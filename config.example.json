@@ -1,0 +1,37 @@
+{
+  "mode": "synced",
+  "synced_inbox": "~/OneDrive - University of Canterbury/myTutor/Inbox",
+  "jobs_root": "~/mytutor/jobs",
+  "vault_path": "C:/Users/<you>/Documents/MBA Vault",
+  "obsidian_vault_name": "",
+  "term": "T3",
+  "term_label": "26T3",
+  "course_folders": {},
+  "vault_folders": {
+    "reference": "Ref",
+    "core": "Core",
+    "cases": "Cases",
+    "quizzes": "Quizzes",
+    "theme": "Theme"
+  },
+  "model": "claude-sonnet-5-5",
+  "price_per_mtok": {
+    "input": 2.0,
+    "output": 10.0
+  },
+  "extensions": [
+    ".pdf",
+    ".pptx",
+    ".docx",
+    ".txt",
+    ".md"
+  ],
+  "max_file_mb": 100,
+  "settle_seconds": 1.0,
+  "graph": {
+    "client_id": "",
+    "tenant": "organizations",
+    "inbox_path": "myTutor/Inbox"
+  },
+  "practice_questions": 20
+}

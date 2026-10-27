@@ -1,0 +1,103 @@
+{
+  "name": "myTutor - check OneDrive every 15 minutes and file notes",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      },
+      "id": "b3c1f6a0-1111-4c1a-9a01-000000000001",
+      "name": "Every 15 minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "b3c1f6a0-1111-4c1a-9a01-000000000002",
+      "name": "Run now (for testing and the demo)",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "command": "cd /d %USERPROFILE%\\mytutor && py run.py --file --sample 10"
+      },
+      "id": "b3c1f6a0-1111-4c1a-9a01-000000000003",
+      "name": "Run myTutor",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        260,
+        100
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Reads the SUMMARY line that run.py prints last.\nconst out = String($input.first().json.stdout || '');\nconst line = out.split(/\\r?\\n/).find(l => l.startsWith('SUMMARY '));\nlet s = { status: 'no summary: see the Run myTutor output' };\nif (line) {\n  try { s = JSON.parse(line.slice(8)); } catch (e) { s = { status: 'summary unreadable' }; }\n}\nreturn [{ json: {\n  status: s.status,\n  days_processed: s.days_processed || 0,\n  sources: s.sources || 0,\n  notes: s.notes || 0,\n  cost_usd: s.cost_usd || 0,\n  failed: s.failed || 0,\n  days_filed: s.days_filed || 0,\n  next_step: (s.days_processed || 0) > 0 ? 'Notes filed in Obsidian: spot-check the sampled notes in quality_audit.csv' : 'Nothing new'\n} }];"
+      },
+      "id": "b3c1f6a0-1111-4c1a-9a01-000000000004",
+      "name": "Read summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        520,
+        100
+      ]
+    }
+  ],
+  "connections": {
+    "Every 15 minutes": {
+      "main": [
+        [
+          {
+            "node": "Run myTutor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run now (for testing and the demo)": {
+      "main": [
+        [
+          {
+            "node": "Run myTutor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run myTutor": {
+      "main": [
+        [
+          {
+            "node": "Read summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

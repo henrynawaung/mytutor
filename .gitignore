@@ -1,0 +1,15 @@
+# Personal settings and secrets: never commit
+config.json
+key.txt
+*.key
+.env
+jobs/
+.token_cache.json
+
+# Python
+__pycache__/
+*.pyc
+Lib/
+Scripts/
+.venv/
+venv/
