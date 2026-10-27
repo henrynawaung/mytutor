@@ -57,8 +57,11 @@ NOTES TO WRITE
 4. FIVE quiz questions in the "quiz" field (not as a note): multiple choice, testing understanding and
    application, not wording; 4 options each with exactly one correct. Wrong options must be plausible: closely related theories,
    reasonable managerial decisions or common misunderstandings, similar in length, detail and tone to the
-   right answer, so it cannot be found by elimination; no absurd options. Mix difficulty: 2 recall, 2 applied
-   to a scenario, 1 combining two concepts. Vary which option (0-3) is correct; never refer to options by letter. For each give a
+   right answer, so it cannot be found by elimination; no absurd options. Mix difficulty, aiming for about 20%
+   recall, 50% application, 30% analytical across a day: per source, 1 recall question, 2-3 applied to a
+   business scenario, and 1-2 analytical questions where all four options are credible but only one is best
+   supported by the source (e.g. weighing stakeholder interests against practical constraints). Do not let
+   the question wording give the answer away. Vary which option (0-3) is correct; never refer to options by letter. For each give a
    one- or two-sentence explanation of why the answer is right, and "concept" = the exact title of the core or
    reference note the question comes from. The quiz note is built from this data automatically.
 
