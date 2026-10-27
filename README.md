@@ -13,6 +13,7 @@ UC Executive MBA, October 2026.
 |---|---|
 | **Final deck (9 slides, PDF)** | [docs/myTutor_Final_Deck_9_slides.pdf](docs/myTutor_Final_Deck_9_slides.pdf) |
 | **Full working deck (18 slides, PDF)** | [docs/myTutor_Full_Working_Deck_18_slides.pdf](docs/myTutor_Full_Working_Deck_18_slides.pdf). Earlier draft kept for detail; where numbers differ, the 9-slide deck is final |
+| **Developer guide (PDF)** | [docs/myTutor_Developer_Guide.pdf](docs/myTutor_Developer_Guide.pdf): architecture, prerequisites, versions, setup, config, troubleshooting |
 | **Accuracy audit (Day 9 sample)** | [docs/myTutor_accuracy_audit_Day9.csv](docs/myTutor_accuracy_audit_Day9.csv) |
 
 ## Results in one line
@@ -22,6 +23,8 @@ to existing notes per note, 34 of 34 notes passing five structural checks (manua
 US$0.48 of API cost. Recall: 17/20 on the Day 9 quiz from memory, six days later. Five files, one tester, self-timed; see the deck for method and limits.
 
 ## How it works
+
+![myTutor architecture](docs/architecture.png)
 
 ```
 OneDrive  <course>/<day>/  ─►  n8n (every 15 min)  ─►  run.py
