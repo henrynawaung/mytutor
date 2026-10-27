@@ -5,7 +5,7 @@ Two prompts were used in the experiment.
 1. **Manual baseline prompt.** Pasted by hand into an AI chat app (Claude), one new chat per file, with the file attached. This is the "before" process the 44.5-minute baseline measured.
 2. **myTutor system prompt.** Sent automatically by `generate.py` to the Claude API (claude-sonnet-5-5) for every source, with the tool `save_notes` so notes come back as structured data.
 
-The manual test workbook builds prompt 1 for you: [manual-test/myTutor_Manual_Test_Template.xlsx](manual-test/myTutor_Manual_Test_Template.xlsx) (Prompt sheet: fill the 3 yellow cells, copy C11:C50).
+The manual test workbook builds prompt 1 for you: [manual-test/myTutor_Manual_Test_Template.xlsx](../manual-test/myTutor_Manual_Test_Template.xlsx) (Prompt sheet: fill the 3 yellow cells, copy C11:C50).
 
 ---
 

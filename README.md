@@ -1,4 +1,4 @@
-<p align="center"><img src="docs/logo.png" width="96" alt="myTutor logo"></p>
+<p align="center"><img src="docs/assets/logo.png" width="96" alt="myTutor logo"></p>
 
 # myTutor: from lecture file to second brain
 
@@ -11,12 +11,12 @@ UC Executive MBA, October 2026.
 
 | | |
 |---|---|
-| **Final deck (9 slides, PDF)** | [docs/myTutor_Final_Deck_9_slides.pdf](docs/myTutor_Final_Deck_9_slides.pdf) |
-| **Full working deck (18 slides, PDF)** | [docs/myTutor_Full_Working_Deck_18_slides.pdf](docs/myTutor_Full_Working_Deck_18_slides.pdf). Earlier draft kept for detail; where numbers differ, the 9-slide deck is final |
-| **Developer guide (PDF)** | [docs/myTutor_Developer_Guide.pdf](docs/myTutor_Developer_Guide.pdf): architecture, prerequisites, versions, setup, config, troubleshooting |
-| **Key prompts** | [docs/PROMPTS.md](docs/PROMPTS.md): the manual baseline prompt and myTutor's system prompt |
+| **Final deck (9 slides, PDF)** | [docs/deck/myTutor_Final_Deck_9_slides.pdf](docs/deck/myTutor_Final_Deck_9_slides.pdf) |
+| **Full working deck (18 slides, PDF)** | [docs/deck/myTutor_Full_Working_Deck_18_slides.pdf](docs/deck/myTutor_Full_Working_Deck_18_slides.pdf). Earlier draft kept for detail; where numbers differ, the 9-slide deck is final |
+| **Developer guide (PDF)** | [docs/guides/myTutor_Developer_Guide.pdf](docs/guides/myTutor_Developer_Guide.pdf): architecture, prerequisites, versions, setup, config, troubleshooting |
+| **Key prompts** | [docs/prompts/PROMPTS.md](docs/prompts/PROMPTS.md): the manual baseline prompt and myTutor's system prompt |
 | **Manual test workbook** | [Blank template](docs/manual-test/myTutor_Manual_Test_Template.xlsx) and [Day 9 results](docs/manual-test/myTutor_Manual_Test_Day9_results.xlsx) |
-| **Accuracy audit (Day 9 sample)** | [docs/myTutor_accuracy_audit_Day9.csv](docs/myTutor_accuracy_audit_Day9.csv) |
+| **Accuracy audit (Day 9 sample)** | [docs/evidence/myTutor_accuracy_audit_Day9.csv](docs/evidence/myTutor_accuracy_audit_Day9.csv) |
 
 ## Results in one line
 
@@ -24,9 +24,30 @@ On the same five Day 9 files: **44.5 min by hand → 12.1 min with myTutor (−7
 to existing notes per note, 34 of 34 notes passing five structural checks (manual: 21 of 30),
 US$0.48 of API cost. Recall: 17/20 on the Day 9 quiz from memory, six days later. Five files, one tester, self-timed; see the deck for method and limits.
 
+
+## Repository layout
+
+```
+mytutor/
+├── run.py  retrieve.py  extract.py  generate.py  file.py  practice.py  jobs.py   pipeline
+├── config.example.json          copy to config.json (never committed)
+├── requirements.txt
+├── n8n_mytutor_workflow.json    import into n8n
+├── start-n8n.bat  run_mytutor.bat
+├── tests/                       67 unit tests
+└── docs/
+    ├── guides/        Developer Guide (PDF), retrieve details
+    ├── architecture/  architecture diagram
+    ├── prompts/       manual baseline prompt + myTutor system prompt
+    ├── manual-test/   test workbook: blank template + Day 9 results
+    ├── deck/          final 9-slide deck + 18-slide working deck (PDF)
+    ├── evidence/      accuracy audit, answer-shuffle retest
+    └── assets/        logo
+```
+
 ## How it works
 
-![myTutor architecture](docs/architecture.png)
+![myTutor architecture](docs/architecture/architecture.png)
 
 ```
 OneDrive  <course>/<day>/  ─►  n8n (every 15 min)  ─►  run.py
@@ -121,4 +142,4 @@ The laptop must be on and OneDrive synced for scheduled runs.
 - Scanned PDFs need OCR, which is not built yet.
 - Notes pass structural checks automatically; factual accuracy needs a human spot-check.
 
-More detail on the retrieve step: [docs/retrieve-details.md](docs/retrieve-details.md).
+More detail on the retrieve step: [docs/guides/retrieve-details.md](docs/guides/retrieve-details.md).
