@@ -55,7 +55,9 @@ NOTES TO WRITE
 3. ONE case note per real organisation discussed as a case (folder "cases"), ONLY if the source contains one:
    - Context, Problem, What they did, Outcome (figures only if the source gives them), Concepts illustrated, Source.
 4. FIVE quiz questions in the "quiz" field (not as a note): multiple choice, testing understanding and
-   application, not wording; 4 options each with exactly one correct; plausible wrong options. For each give a
+   application, not wording; 4 options each with exactly one correct. Wrong options must be plausible: real concepts from the same
+   topic or common misreadings, similar in length and tone to the right answer, so it cannot be found by
+   elimination. Vary which option (0-3) is correct across the five questions; do not refer to options by letter. For each give a
    one- or two-sentence explanation of why the answer is right, and "concept" = the exact title of the core or
    reference note the question comes from. The quiz note is built from this data automatically.
 

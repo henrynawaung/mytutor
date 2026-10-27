@@ -184,7 +184,16 @@ function home(){
   };
 }
 
+function mix(q){
+  // Shuffle the four options for display, keeping track of the right one, so the
+  // correct answer is not always in the same position (the generated sets lean to B).
+  if(q._mixed) return q;
+  const order=shuffle(q.options.map((_,j)=>j));
+  return {...q, options:order.map(j=>q.options[j]), answer:order.indexOf(q.answer), _mixed:true};
+}
+
 function question(){
+  state.qs[state.i]=mix(state.qs[state.i]);
   const q=state.qs[state.i], n=state.qs.length;
   app.innerHTML=`<div class="row" style="margin:0"><span class="mono">${esc(state.day)} · question ${state.i+1} of ${n}</span><span class="mono">score ${state.score}</span></div>
     <div class="progress"><i style="width:${state.i/n*100}%"></i></div>
