@@ -49,7 +49,7 @@ checksum, so nothing is sent to Claude twice.
 ### 2. Get the code
 ```
 cd %USERPROFILE%
-git clone https://github.com/<your-account>/mytutor.git
+git clone https://github.com/henrynawaung/mytutor.git
 cd mytutor
 py -m pip install -r requirements.txt
 py -m unittest discover tests          (should end with OK)
