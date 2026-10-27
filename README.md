@@ -19,7 +19,7 @@ UC Executive MBA, October 2026.
 
 On the same five Day 9 files: **44.5 min by hand → 12.1 min with myTutor (−73%)**, 3.6 vs 2.2 links
 to existing notes per note, 34 of 34 notes passing five structural checks (manual: 21 of 30),
-US$0.48 of API cost. Five files, one tester, self-timed; see the deck for method and limits.
+US$0.48 of API cost. Recall: 17/20 on the Day 9 quiz from memory, six days later. Five files, one tester, self-timed; see the deck for method and limits.
 
 ## How it works
 
