@@ -14,6 +14,8 @@ UC Executive MBA, October 2026.
 | **Final deck (9 slides, PDF)** | [docs/myTutor_Final_Deck_9_slides.pdf](docs/myTutor_Final_Deck_9_slides.pdf) |
 | **Full working deck (18 slides, PDF)** | [docs/myTutor_Full_Working_Deck_18_slides.pdf](docs/myTutor_Full_Working_Deck_18_slides.pdf). Earlier draft kept for detail; where numbers differ, the 9-slide deck is final |
 | **Developer guide (PDF)** | [docs/myTutor_Developer_Guide.pdf](docs/myTutor_Developer_Guide.pdf): architecture, prerequisites, versions, setup, config, troubleshooting |
+| **Key prompts** | [docs/PROMPTS.md](docs/PROMPTS.md): the manual baseline prompt and myTutor's system prompt |
+| **Manual test workbook** | [Blank template](docs/manual-test/myTutor_Manual_Test_Template.xlsx) and [Day 9 results](docs/manual-test/myTutor_Manual_Test_Day9_results.xlsx) |
 | **Accuracy audit (Day 9 sample)** | [docs/myTutor_accuracy_audit_Day9.csv](docs/myTutor_accuracy_audit_Day9.csv) |
 
 ## Results in one line
