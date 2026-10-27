@@ -1,0 +1,42 @@
+{
+ "before": {
+  "runs": 20,
+  "positions": {
+   "A": 60,
+   "B": 220,
+   "C": 80,
+   "D": 40
+  },
+  "max_same_letter_per_quiz": {
+   "mean": 11.0,
+   "max": 11
+  },
+  "scores": [
+   [
+    "20/20",
+    20
+   ]
+  ],
+  "graded_ok": true
+ },
+ "after": {
+  "runs": 200,
+  "positions": {
+   "A": 1007,
+   "B": 972,
+   "C": 1020,
+   "D": 1001
+  },
+  "max_same_letter_per_quiz": {
+   "mean": 7.3,
+   "max": 11
+  },
+  "scores": [
+   [
+    "20/20",
+    200
+   ]
+  ],
+  "graded_ok": true
+ }
+}
