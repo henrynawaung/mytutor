@@ -96,6 +96,15 @@ class FileTests(unittest.TestCase):
         self.assertEqual(ref["links_to_source"], "yes")
         self.assertEqual(len(filer.pick_sample(self.job, self.vault, self.jobs, n=2, seed=1)), 2)
 
+    def test_sample_by_type_covers_each_type_and_repeats(self):
+        filer.file_job(self.job, self.vault, self.cfg, self.jobs)
+        index = json.loads((self.jobs / "filed.json").read_text())
+        kinds = {v["kind"] for v in index.values() if v["kind"] != "theme"}
+        rows = filer.pick_sample(self.job, self.vault, self.jobs, n=len(kinds), seed=7, by_type=True)
+        self.assertEqual({index[r["folder"]]["kind"] for r in rows}, kinds)   # one of each type
+        again = filer.pick_sample(self.job, self.vault, self.jobs, n=len(kinds), seed=7, by_type=True)
+        self.assertEqual([r["note"] for r in rows], [r["note"] for r in again])  # same seed, same sample
+
     def test_cli_files_and_samples(self):
         cfg = Path(self.tmp.name) / "config.json"
         cfg.write_text(json.dumps({"vault_path": str(self.vault), "jobs_root": str(self.jobs), "term_label": "26T3"}))

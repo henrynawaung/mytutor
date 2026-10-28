@@ -1,10 +1,11 @@
+# Versions pinned to the ones tested on the author's laptop (Python 3.12.2), Oct 2026.
 # Stage 2 (extract.py): reading PDF, PowerPoint and Word files
-pymupdf>=1.24
-python-pptx>=0.6.23
-python-docx>=1.1
+pymupdf==1.28.2
+python-pptx==1.0.2
+python-docx==1.2.0
 
 # Stage 3 (generate.py): the Claude API
-anthropic>=1.0
+anthropic==1.15.0
 
 # Only for "mode": "graph" in retrieve.py. Synced mode needs nothing extra.
 msal>=1.28

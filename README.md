@@ -35,7 +35,7 @@ mytutor/
 ├── requirements.txt
 ├── n8n_mytutor_workflow.json    import into n8n
 ├── start-n8n.bat  run_mytutor.bat
-├── tests/                       67 unit tests
+├── tests/                       63 unit tests
 └── docs/
     ├── guides/        Developer Guide (PDF), retrieve details
     ├── architecture/  architecture diagram
