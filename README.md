@@ -22,7 +22,7 @@ UC Executive MBA, October 2026.
 
 ## Results in one line
 
-On the same five Day 9 files: **44.5 min by hand → 12.1 min with myTutor (−73%)**, 3.6 vs 2.2 links
+On the same five Day 9 files: **44.5 min by hand → 12.3 min with myTutor, full run plus review (−72%)**, 3.6 vs 2.2 links
 to existing notes per note, 34 of 34 notes passing five structural checks (manual: 21 of 30),
 US$0.48 of API cost. Accuracy: 31 of 32 statements (Day 9, AI-assisted) and 30 of 30 claims in a manual self-audit (Day 10). Recall: 17/20 on the Day 9 quiz from memory, six days later. Five files, one tester, self-timed; see the deck for method and limits.
 
