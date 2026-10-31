@@ -18,13 +18,13 @@ UC Executive MBA, October 2026.
 | **Key prompts** | [docs/prompts/PROMPTS.md](docs/prompts/PROMPTS.md): the manual baseline prompt and myTutor's system prompt |
 | **Manual test workbook** | [Blank template](docs/manual-test/myTutor_Manual_Test_Template.xlsx) and [Day 9 results](docs/manual-test/myTutor_Manual_Test_Day9_results.xlsx) |
 | **Accuracy audit (Day 9 sample, AI-assisted)** | [docs/evidence/myTutor_accuracy_audit_Day9.csv](docs/evidence/myTutor_accuracy_audit_Day9.csv) |
-| **Accuracy re-audit (Day 10, by hand)** | [docs/evidence/myTutor_accuracy_audit_Day10.xlsx](docs/evidence/myTutor_accuracy_audit_Day10.xlsx): 30 of 30 claims supported across 8 notes, each with a page reference |
+| **Accuracy re-audit (Day 10, manual self-audit)** | [docs/evidence/myTutor_accuracy_audit_Day10.xlsx](docs/evidence/myTutor_accuracy_audit_Day10.xlsx): 30 of 30 claims supported across 8 notes, each with a page reference |
 
 ## Results in one line
 
 On the same five Day 9 files: **44.5 min by hand → 12.1 min with myTutor (−73%)**, 3.6 vs 2.2 links
 to existing notes per note, 34 of 34 notes passing five structural checks (manual: 21 of 30),
-US$0.48 of API cost. Accuracy: 31 of 32 statements (Day 9, AI-assisted) and 30 of 30 claims checked by hand (Day 10). Recall: 17/20 on the Day 9 quiz from memory, six days later. Five files, one tester, self-timed; see the deck for method and limits.
+US$0.48 of API cost. Accuracy: 31 of 32 statements (Day 9, AI-assisted) and 30 of 30 claims in a manual self-audit (Day 10). Recall: 17/20 on the Day 9 quiz from memory, six days later. Five files, one tester, self-timed; see the deck for method and limits.
 
 
 ## Repository layout
