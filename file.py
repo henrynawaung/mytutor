@@ -127,8 +127,12 @@ def file_job(job_dir: Path, vault: Path, cfg: dict, jobs_root: Path, dry_run: bo
     return result
 
 
-def pick_sample(job_dir: Path, vault: Path, jobs_root: Path, n: int, seed: int | None = None) -> list[dict]:
-    """Random notes from this job (journal excluded), with the automatic checks filled in."""
+def pick_sample(job_dir: Path, vault: Path, jobs_root: Path, n: int, seed: int | None = None,
+                by_type: bool = False) -> list[dict]:
+    """Random notes from this job (journal excluded), with the automatic checks filled in.
+
+    by_type=True spreads the sample across note types (reference, core, case, ...) as evenly
+    as the job allows, so an accuracy audit is not dominated by one type."""
     index_path = jobs_root / "filed.json"
     index = json.loads(index_path.read_text(encoding="utf-8")) if index_path.exists() else {}
     mine = [rel for rel, v in index.items() if v.get("job") == job_dir.name and v.get("kind") != "theme"
@@ -136,7 +140,20 @@ def pick_sample(job_dir: Path, vault: Path, jobs_root: Path, n: int, seed: int |
     if not mine:
         return []
     rng = random.Random(seed)
-    picked = sorted(rng.sample(mine, min(n, len(mine))))
+    if by_type:
+        groups: dict[str, list] = {}
+        for rel in sorted(mine):
+            groups.setdefault(index[rel]["kind"], []).append(rel)
+        for g in groups.values():
+            rng.shuffle(g)
+        picked, kinds = [], sorted(groups)
+        while len(picked) < min(n, len(mine)):
+            for k in kinds:
+                if groups[k] and len(picked) < n:
+                    picked.append(groups[k].pop())
+        picked = sorted(picked)
+    else:
+        picked = sorted(rng.sample(mine, min(n, len(mine))))
     from generate import vault_titles  # titles in the vault, excluding this job's own notes
     own = {Path(r).stem for r in mine}
     other_titles = vault_titles(vault) - own
@@ -191,6 +208,7 @@ def main(argv=None) -> int:
     parser.add_argument("--dry-run", action="store_true", help="show what would happen, change nothing")
     parser.add_argument("--sample", type=int, default=0, help="pick N random notes to spot-check")
     parser.add_argument("--seed", type=int, help="repeat the same sample")
+    parser.add_argument("--by-type", action="store_true", help="spread the sample evenly across note types")
     parser.add_argument("--no-file", action="store_true", help="only pick a sample")
     args = parser.parse_args(argv)
 
@@ -217,7 +235,7 @@ def main(argv=None) -> int:
 
     rows = []
     if args.sample and not args.dry_run:
-        rows = pick_sample(job_dir, vault, jobs_root, args.sample, args.seed)
+        rows = pick_sample(job_dir, vault, jobs_root, args.sample, args.seed, args.by_type)
         if rows:
             append_csv(jobs_root / "quality_audit.csv", AUDIT_FIELDS, rows)
             root = obsidian_root(vault)

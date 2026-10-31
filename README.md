@@ -12,6 +12,7 @@ UC Executive MBA, October 2026.
 | | |
 |---|---|
 | **Final deck (9 slides, PDF)** | [docs/deck/myTutor_Final_Deck_9_slides.pdf](docs/deck/myTutor_Final_Deck_9_slides.pdf) |
+| **Final deck (PowerPoint)** | [docs/deck/MyTutor Demo version 3.2.pptx](<docs/deck/MyTutor Demo version 3.2.pptx>): same 9 slides with speaker notes and clickable GitHub links |
 | **Full working deck (18 slides, PDF)** | [docs/deck/myTutor_Full_Working_Deck_18_slides.pdf](docs/deck/myTutor_Full_Working_Deck_18_slides.pdf). Earlier draft kept for detail; where numbers differ, the 9-slide deck is final |
 | **Developer guide (PDF)** | [docs/guides/myTutor_Developer_Guide.pdf](docs/guides/myTutor_Developer_Guide.pdf): architecture, prerequisites, versions, setup, config, troubleshooting |
 | **Key prompts** | [docs/prompts/PROMPTS.md](docs/prompts/PROMPTS.md): the manual baseline prompt and myTutor's system prompt |
@@ -34,7 +35,7 @@ mytutor/
 ├── requirements.txt
 ├── n8n_mytutor_workflow.json    import into n8n
 ├── start-n8n.bat  run_mytutor.bat
-├── tests/                       67 unit tests
+├── tests/                       63 unit tests
 └── docs/
     ├── guides/        Developer Guide (PDF), retrieve details
     ├── architecture/  architecture diagram
