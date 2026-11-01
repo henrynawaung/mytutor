@@ -76,12 +76,17 @@ checksum, so nothing is sent to Claude twice.
 
 ### 2. Get the code
 ```
-cd %USERPROFILE%
+cd /d %USERPROFILE%
 git clone https://github.com/henrynawaung/mytutor.git
 cd mytutor
-py -m pip install -r requirements.txt
-py -m unittest discover tests          (should end with OK)
+py -m venv .venv
+.venv\Scripts\python -m pip install -r requirements.txt
+.venv\Scripts\python -m unittest discover tests      (should end with OK)
 ```
+The virtual environment (`.venv`) keeps myTutor's libraries in its own folder, at the pinned versions.
+Wherever a later command says `py`, use `.venv\Scripts\python` instead, including in the n8n command.
+
+Verified on Windows on 1 Nov 2026: a fresh clone of v3.3 in a new folder, set up exactly as above, ran 63 of 63 tests OK.
 
 ### 3. Add your Claude API key (never in a file)
 ```
