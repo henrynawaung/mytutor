@@ -18,7 +18,7 @@ UC Executive MBA, October 2026.
 | **Key prompts** | [docs/prompts/PROMPTS.md](docs/prompts/PROMPTS.md): the manual baseline prompt and myTutor's system prompt |
 | **Manual test workbook** | [Blank template](docs/manual-test/myTutor_Manual_Test_Template.xlsx) and [Day 9 results](docs/manual-test/myTutor_Manual_Test_Day9_results.xlsx) |
 | **Accuracy audit (Day 9 sample, AI-assisted)** | [docs/evidence/myTutor_accuracy_audit_Day9.csv](docs/evidence/myTutor_accuracy_audit_Day9.csv) |
-| **Accuracy re-audit (Day 10, manual self-audit)** | [docs/evidence/myTutor_evidence_workbook.xlsx](docs/evidence/myTutor_evidence_workbook.xlsx) (tab 1): 30 of 30 claims supported across 8 notes, each with a page reference |
+| **Accuracy re-audit (Day 10, manual self-audit)** | [docs/evidence/myTutor_evidence_workbook.xlsx](docs/evidence/myTutor_evidence_workbook.xlsx) (tab 1): 30 of 30 claims supported across 8 notes, each with a page reference; 2 classmates blind-checked 10 random claims and agreed on all 10 |
 | **Fresh-file timing replication (1 Nov)** | [docs/evidence/myTutor_evidence_workbook.xlsx](docs/evidence/myTutor_evidence_workbook.xlsx) (tab 2): 4 unseen files, each done one way only: 3.68 vs 1.11 min per 1,000 words, 70% less |
 
 ## Results in one line
