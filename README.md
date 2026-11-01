@@ -11,14 +11,14 @@ UC Executive MBA, October 2026.
 
 | | |
 |---|---|
-| **Final deck (9 slides, PDF)** | [docs/deck/myTutor_Final_Deck_9_slides.pdf](docs/deck/myTutor_Final_Deck_9_slides.pdf) |
-| **Final deck (PowerPoint)** | [docs/deck/MyTutor Demo version 3.3.pptx](<docs/deck/MyTutor Demo version 3.3.pptx>): same 9 slides with speaker notes and clickable GitHub links |
+| **Final deck (9 slides, PDF)** | [docs/deck/myTutor_Final_Deck_9_slides_v4.1.pdf](docs/deck/myTutor_Final_Deck_9_slides_v4.1.pdf) |
+| **Final deck (PowerPoint)** | [docs/deck/MyTutor Demo version 4.1.pptx](<docs/deck/MyTutor Demo version 4.1.pptx>): same 9 slides with speaker notes and clickable GitHub links |
 | **Full working deck (18 slides, PDF)** | [docs/deck/myTutor_Full_Working_Deck_18_slides.pdf](docs/deck/myTutor_Full_Working_Deck_18_slides.pdf). Earlier draft kept for detail; where numbers differ, the 9-slide deck is final |
 | **Developer guide (PDF)** | [docs/guides/myTutor_Developer_Guide.pdf](docs/guides/myTutor_Developer_Guide.pdf): architecture, prerequisites, versions, setup, config, troubleshooting |
 | **Key prompts** | [docs/prompts/PROMPTS.md](docs/prompts/PROMPTS.md): the manual baseline prompt and myTutor's system prompt |
 | **Manual test workbook** | [Blank template](docs/manual-test/myTutor_Manual_Test_Template.xlsx) and [Day 9 results](docs/manual-test/myTutor_Manual_Test_Day9_results.xlsx) |
 | **Accuracy audit (Day 9 sample, AI-assisted)** | [docs/evidence/myTutor_accuracy_audit_Day9.csv](docs/evidence/myTutor_accuracy_audit_Day9.csv) |
-| **Accuracy re-audit (Day 10, manual self-audit)** | [docs/evidence/myTutor_evidence_workbook.xlsx](docs/evidence/myTutor_evidence_workbook.xlsx) (tab 1): 30 of 30 claims supported across 8 notes, each with a page reference; 2 classmates blind-checked 10 random claims and agreed on all 10 |
+| **Accuracy re-audit (Day 10, manual self-audit)** | [docs/evidence/myTutor_evidence_workbook.xlsx](docs/evidence/myTutor_evidence_workbook.xlsx) (tab 1): 30 of 30 claims supported across 8 notes, each with a page reference; 2 classmates blind-checked 10 random claims and agreed on 9 of 10 (1 rated Interpretation) |
 | **Fresh-file timing replication (1 Nov)** | [docs/evidence/myTutor_evidence_workbook.xlsx](docs/evidence/myTutor_evidence_workbook.xlsx) (tab 2): 4 unseen files, each done one way only: 3.68 vs 1.11 min per 1,000 words, 70% less |
 
 ## Results in one line
