@@ -12,18 +12,19 @@ UC Executive MBA, October 2026.
 | | |
 |---|---|
 | **Final deck (9 slides, PDF)** | [docs/deck/myTutor_Final_Deck_9_slides.pdf](docs/deck/myTutor_Final_Deck_9_slides.pdf) |
-| **Final deck (PowerPoint)** | [docs/deck/MyTutor Demo version 3.2.pptx](<docs/deck/MyTutor Demo version 3.2.pptx>): same 9 slides with speaker notes and clickable GitHub links |
+| **Final deck (PowerPoint)** | [docs/deck/MyTutor Demo version 3.3.pptx](<docs/deck/MyTutor Demo version 3.3.pptx>): same 9 slides with speaker notes and clickable GitHub links |
 | **Full working deck (18 slides, PDF)** | [docs/deck/myTutor_Full_Working_Deck_18_slides.pdf](docs/deck/myTutor_Full_Working_Deck_18_slides.pdf). Earlier draft kept for detail; where numbers differ, the 9-slide deck is final |
 | **Developer guide (PDF)** | [docs/guides/myTutor_Developer_Guide.pdf](docs/guides/myTutor_Developer_Guide.pdf): architecture, prerequisites, versions, setup, config, troubleshooting |
 | **Key prompts** | [docs/prompts/PROMPTS.md](docs/prompts/PROMPTS.md): the manual baseline prompt and myTutor's system prompt |
 | **Manual test workbook** | [Blank template](docs/manual-test/myTutor_Manual_Test_Template.xlsx) and [Day 9 results](docs/manual-test/myTutor_Manual_Test_Day9_results.xlsx) |
-| **Accuracy audit (Day 9 sample)** | [docs/evidence/myTutor_accuracy_audit_Day9.csv](docs/evidence/myTutor_accuracy_audit_Day9.csv) |
+| **Accuracy audit (Day 9 sample, AI-assisted)** | [docs/evidence/myTutor_accuracy_audit_Day9.csv](docs/evidence/myTutor_accuracy_audit_Day9.csv) |
+| **Accuracy re-audit (Day 10, manual self-audit)** | [docs/evidence/myTutor_accuracy_audit_Day10.xlsx](docs/evidence/myTutor_accuracy_audit_Day10.xlsx): 30 of 30 claims supported across 8 notes, each with a page reference |
 
 ## Results in one line
 
-On the same five Day 9 files: **44.5 min by hand → 12.1 min with myTutor (−73%)**, 3.6 vs 2.2 links
+On the same five Day 9 files: **44.5 min by hand → 12.3 min with myTutor, full run plus review (−72%)**, 3.6 vs 2.2 links
 to existing notes per note, 34 of 34 notes passing five structural checks (manual: 21 of 30),
-US$0.48 of API cost. Recall: 17/20 on the Day 9 quiz from memory, six days later. Five files, one tester, self-timed; see the deck for method and limits.
+US$0.48 of API cost. Accuracy: 31 of 32 statements (Day 9, AI-assisted) and 30 of 30 claims in a manual self-audit (Day 10). Recall: 17/20 on the Day 9 quiz from memory, six days later. Five files, one tester, self-timed; see the deck for method and limits.
 
 
 ## Repository layout
