@@ -11,8 +11,8 @@ UC Executive MBA, October 2026.
 
 | | |
 |---|---|
-| **Final deck (9 slides, PDF)** | [docs/deck/myTutor_Final_Deck_9_slides.pdf](docs/deck/myTutor_Final_Deck_9_slides.pdf) |
-| **Final deck (PowerPoint)** | [docs/deck/MyTutor Demo version 3.3.pptx](<docs/deck/MyTutor Demo version 3.3.pptx>): same 9 slides with speaker notes and clickable GitHub links |
+| **Final deck (9 slides, PDF)** | [docs/deck/myTutor_Final_Deck_9_slides_v4.0.pdf](docs/deck/myTutor_Final_Deck_9_slides_v4.0.pdf) |
+| **Final deck (PowerPoint)** | [docs/deck/MyTutor Demo version 4.0.pptx](<docs/deck/MyTutor Demo version 4.0.pptx>): same 9 slides with speaker notes and clickable GitHub links |
 | **Full working deck (18 slides, PDF)** | [docs/deck/myTutor_Full_Working_Deck_18_slides.pdf](docs/deck/myTutor_Full_Working_Deck_18_slides.pdf). Earlier draft kept for detail; where numbers differ, the 9-slide deck is final |
 | **Developer guide (PDF)** | [docs/guides/myTutor_Developer_Guide.pdf](docs/guides/myTutor_Developer_Guide.pdf): architecture, prerequisites, versions, setup, config, troubleshooting |
 | **Key prompts** | [docs/prompts/PROMPTS.md](docs/prompts/PROMPTS.md): the manual baseline prompt and myTutor's system prompt |
