@@ -122,9 +122,34 @@ def file_job(job_dir: Path, vault: Path, cfg: dict, jobs_root: Path, dry_run: bo
             index[rel] = {"sha": sha(new), "job": job_dir.name, "kind": kind,
                           "filed_at": datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")}
         result[bucket].append(rel)
+    result["phrases_added"] = append_phrasebook(job_dir, target, dry_run)
     if not dry_run:
         index_path.write_text(json.dumps(index, indent=2, ensure_ascii=False), encoding="utf-8")
     return result
+
+
+PHRASEBOOK = "Boardroom English Phrasebook.md"
+
+
+def append_phrasebook(job_dir: Path, target: Path, dry_run: bool = False) -> int:
+    """Append new phrases to the course's phrasebook. Append-only: your own edits and practice notes are kept."""
+    src = job_dir / "phrases.json"
+    if not src.exists():
+        return 0
+    phrases = json.loads(src.read_text(encoding="utf-8"))
+    book = target / PHRASEBOOK
+    text = book.read_text(encoding="utf-8") if book.exists() else (
+        "---\ntype: theme\ntags: [mytutor, boardroom-english]\n---\n# Boardroom English Phrasebook\n\n"
+        "Phrases collected from my daily readings. Practise one in a real meeting, then note how it went.\n\n")
+    lower = text.lower()
+    new = [p for p in phrases if f"**{p['phrase'].lower()}**" not in lower]
+    if new and not dry_run:
+        lines = "".join(f"- **{p['phrase']}**" + (f": {p['meaning']}" if p.get("meaning") else "") +
+                        f" *({p.get('day', '')}" + (f", [[{p['source']}]]" if p.get("source") else "") + ")*\n"
+                        for p in new)
+        book.parent.mkdir(parents=True, exist_ok=True)
+        book.write_text(text.rstrip("\n") + "\n" + lines if book.exists() else text + lines, encoding="utf-8")
+    return len(new)
 
 
 def pick_sample(job_dir: Path, vault: Path, jobs_root: Path, n: int, seed: int | None = None,

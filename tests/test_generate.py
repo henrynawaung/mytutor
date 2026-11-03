@@ -138,6 +138,23 @@ class GenerateTests(unittest.TestCase):
         self.assertIn("See [[MBAM601 Day 1 - Kodak]]", kodak)          # unknown concept -> reference note
         self.assertNotIn("bad", kodak)                                   # malformed question dropped
 
+    def test_no_quiz_course_gets_notes_but_no_quiz_or_practice_set(self):
+        self.cfg["no_quiz_courses"] = ["mbam601"]                         # matched case-insensitively
+        client = FakeClient(self.responses())
+        report = self.run_job(client)
+        notes = self.job / "notes"
+        self.assertTrue((notes / "core" / "Digital transformation.md").exists())  # notes still written
+        self.assertFalse((notes / "quizzes").exists())                      # no quiz notes, no practice set
+        self.assertFalse((self.job / "quiz").exists())
+        self.assertNotIn("practice_set", report)
+        self.assertTrue(client.calls[0]["messages"][0]["content"].startswith("QUIZ: OFF"))
+
+    def test_quiz_enabled_only_skips_listed_courses(self):
+        cfg = {"no_quiz_courses": ["BusinessMentor"]}
+        self.assertFalse(generate.quiz_enabled("BusinessMentor", cfg))
+        self.assertTrue(generate.quiz_enabled("MBAM601", cfg))
+        self.assertTrue(generate.quiz_enabled("MBAM601", {}))
+
     def test_practice_set_built_once_when_day_complete(self):
         report = self.run_job(FakeClient(self.responses()))
         set_path = self.job / "quiz" / "practice-set.json"

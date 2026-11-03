@@ -181,6 +181,17 @@ SAVE_NOTES_TOOL = {
                     "required": ["question", "options", "answer", "explanation", "concept"],
                 },
             },
+            "phrases": {
+                "type": "array",
+                "description": "Reading mode only: Boardroom/Executive English expressions the source teaches.",
+                "items": {"type": "object",
+                          "properties": {"phrase": {"type": "string"}, "meaning": {"type": "string"}},
+                          "required": ["phrase"]},
+            },
+            "reflection_prompts": {
+                "type": "array", "items": {"type": "string"},
+                "description": "Reading mode only: the source's own reflection or discussion questions, verbatim.",
+            },
         },
         "required": ["source_title", "kind", "notes", "quiz"],
     },
@@ -253,9 +264,62 @@ def append_csv(path: Path, fields: list, row: dict) -> None:
 
 # ---------------------------------------------------------------- one source
 
-def build_user_message(course, day, today, src, origin_link, kind_guess, titles, text) -> str:
+READING_MODE_NOTE = """MODE: LEADERSHIP READING. This source is a daily executive leadership brief for self-development, \
+not MBA course material. Adapt the notes:
+- Reference note: name it after the brief's own title. Give its thesis, key points, and for each research source \
+its evidence type and main limitation. Under "Original sources", keep every article link (URL) exactly as written \
+in the source. Under "Questions to reflect on", copy the brief's reflection or discussion questions.
+- Core notes: after "Why it matters", add "**Evidence strength:**" naming the strongest support the source gives \
+(peer-reviewed study, randomised trial, survey or correlation, case example, practitioner guidance, or the brief's own \
+synthesis or proposal), and "**How I could apply it:**" in one or two sentences, framed as an option and grounded in \
+the source. Keep the brief's labels such as "illustrative", "proposed" or "not a research finding".
+- Ignore generic template sections that repeat in every brief and are not about today's topic: study-prompt lists, \
+a 30-day plan labelled as a generic study scaffold, "Extended drills", "Active recall", empty reflection fields \
+("What I understood:" etc.) and lists of related notes. Do not create concept notes from them.
+- "phrases": if the source has a Boardroom English or Executive English section, return its expressions with a short \
+meaning; otherwise an empty list. Do not make concept notes from them.
+- "reflection_prompts": the brief's reflection or discussion questions, copied word for word; empty list if none.
+"""
+
+
+def reading_mode(course: str, cfg: dict) -> bool:
+    """True for courses listed in config "reading_courses" (daily readings rather than lectures)."""
+    return course.upper() in {str(c).upper() for c in (cfg.get("reading_courses") or [])}
+
+
+DATED_PAIR = re.compile(r"_(brief|notes)(?=_|$)", re.I)
+
+
+def prefer_markdown(sources: list) -> tuple[list, list]:
+    """Where a slide deck has matching notes ('..._Brief.pptx' and '..._Notes.md'), keep only the notes."""
+    def key(e):
+        return DATED_PAIR.sub("", Path(e["rel_path"]).stem).lower()
+    md_keys = {key(e) for e in sources if Path(e["rel_path"]).suffix.lower() == ".md"}
+    keep, skipped = [], []
+    for e in sources:
+        if Path(e["rel_path"]).suffix.lower() in (".pptx", ".ppt", ".pdf") and key(e) in md_keys:
+            skipped.append(e)
+        else:
+            keep.append(e)
+    return keep, skipped
+
+
+NO_QUIZ_NOTE = ("QUIZ: OFF for this course. Return an empty list in the \"quiz\" field, and do not link to any "
+                "quiz note from the reference note.\n")
+
+
+def quiz_enabled(course: str, cfg: dict) -> bool:
+    """False for courses listed in config "no_quiz_courses" (e.g. daily readings you do not want tested on)."""
+    off = {str(c).upper() for c in (cfg.get("no_quiz_courses") or [])}
+    return course.upper() not in off
+
+
+def build_user_message(course, day, today, src, origin_link, kind_guess, titles, text, quiz: bool = True,
+                       reading: bool = False) -> str:
     title_list = "\n".join(f"- {t}" for t in sorted(titles)) or "- (none yet)"
     return (
+        (READING_MODE_NOTE if reading else "") +
+        ("" if quiz else NO_QUIZ_NOTE) +
         f"COURSE: {course}\nDAY: {day}\nDATE: {today}\n"
         f"SOURCE FILE: {Path(src).name}\nORIGINAL LINK: {origin_link}\n"
         f"KIND GUESS (check it against the content): {kind_guess}\n"
@@ -316,13 +380,15 @@ def normalise_result(result) -> dict:
     result = _maybe_json(result)
     if not isinstance(result, dict):
         raise ValueError("Claude did not return notes in the expected format")
-    for key in ("notes", "quiz"):
+    for key in ("notes", "quiz", "phrases"):
         value = _maybe_json(result.get(key))
         if isinstance(value, dict):          # a single note or question instead of a list
             value = [value]
         items = value if isinstance(value, list) else []
         result[key] = [_maybe_json(i) for i in items]
         result[key] = [i for i in result[key] if isinstance(i, dict)]
+    prompts = _maybe_json(result.get("reflection_prompts"))
+    result["reflection_prompts"] = [str(p).strip() for p in prompts if str(p).strip()] if isinstance(prompts, list) else []
     if not result["notes"]:
         raise ValueError("Claude returned no usable notes; run this source again")
     return result
@@ -395,7 +461,7 @@ def write_quiz(notes_dir: Path, quiz_dir: Path, course: str, day: str, today: st
 
 
 def write_journal_stub(notes_dir: Path, course: str, day: str, term: str, today: str, written: list,
-                       known_titles: set) -> str | None:
+                       known_titles: set, prompts: list = ()) -> str | None:
     title = f"{course} {day} - Journal".strip()
     if title in known_titles:
         return None
@@ -442,6 +508,9 @@ tags: [journal, reflection]
 
 **Questions still open:**
 """
+    if prompts:
+        body += "\n## Reflection prompts from the brief\n\n" + "".join(
+            f"**{i}. {p}**\n\nMy answer:\n\n" for i, p in enumerate(prompts, start=1))
     dest = notes_dir / "theme" / safe_filename(title)
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_text(body, encoding="utf-8")
@@ -450,6 +519,25 @@ tags: [journal, reflection]
 
 
 PRACTICE_SET = "practice-set.json"
+PHRASES_FILE = "phrases.json"
+
+
+def add_phrases(job_dir: Path, phrases: list, day: str, ref_title: str) -> int:
+    """Keep this job's Boardroom English phrases; file.py appends them to the course phrasebook."""
+    path = job_dir / PHRASES_FILE
+    have = json.loads(path.read_text(encoding="utf-8")) if path.exists() else []
+    seen = {h["phrase"].lower() for h in have}
+    added = 0
+    for p in phrases:
+        phrase = str(p.get("phrase", "")).strip()
+        if phrase and phrase.lower() not in seen:
+            have.append({"phrase": phrase, "meaning": str(p.get("meaning", "")).strip(),
+                         "day": day, "source": ref_title})
+            seen.add(phrase.lower())
+            added += 1
+    if have:
+        path.write_text(json.dumps(have, indent=2, ensure_ascii=False), encoding="utf-8")
+    return added
 
 
 def same_day_jobs(job_dir: Path) -> list:
@@ -544,6 +632,8 @@ def generate_job(job_dir: Path, client, cfg: dict, only: str | None = None, forc
     extract = json.loads((job_dir / "extract.json").read_text(encoding="utf-8"))
     origins = {f["rel_path"]: f.get("origin", "") for f in manifest["files"]}
     course, day = parse_folder(manifest.get("folder", ""))
+    quiz_on = quiz_enabled(course, cfg)
+    reading = reading_mode(course, cfg)
     model = cfg.get("model", DEFAULT_MODEL)
     prices = cfg.get("price_per_mtok", DEFAULT_PRICES)
     today = date.today().isoformat()
@@ -554,6 +644,10 @@ def generate_job(job_dir: Path, client, cfg: dict, only: str | None = None, forc
 
     known = vault_titles(vault) | vault_titles(notes_dir)
     sources = [e for e in extract["files"] if e["status"] == "extracted"]
+    if reading:
+        sources, skipped_slides = prefer_markdown(sources)
+        for e in skipped_slides:
+            print(f"skipped    {e['rel_path']}  (slides: using the matching .md notes instead)")
     if only:
         sources = [e for e in sources if only.lower() in e["rel_path"].lower()]
     # Slides first: the lecture defines the core concepts that readings and cases then link to.
@@ -585,7 +679,8 @@ def generate_job(job_dir: Path, client, cfg: dict, only: str | None = None, forc
             continue
 
         origin_link = file_link(origins.get(rel, ""))
-        msg = build_user_message(course, day, today, rel, origin_link, e.get("kind_guess", ""), known, text)
+        msg = build_user_message(course, day, today, rel, origin_link, e.get("kind_guess", ""), known, text,
+                                 quiz=quiz_on, reading=reading)
         t0 = time.perf_counter()
         row = {"job": job_dir.name, "source": rel, "model": model, "status": "failed",
                "input_tokens": 0, "output_tokens": 0, "cost_usd": 0, "notes_written": 0,
@@ -595,14 +690,17 @@ def generate_job(job_dir: Path, client, cfg: dict, only: str | None = None, forc
                                             tool_choice=cfg.get("tool_choice"))
             written, linked = write_notes(notes_dir, result, known, origin_link)
             ref_title = next((w.split("/", 1)[1][:-3] for w in written if w.startswith("reference/")), "")
-            quiz = valid_quiz(result.get("quiz"))
+            quiz = valid_quiz(result.get("quiz")) if quiz_on else []
             written += write_quiz(notes_dir, job_dir / "quiz", course, day, today, Path(rel).name,
                                   result.get("source_title", Path(rel).stem), ref_title, quiz, known)
             row.update(status="done", input_tokens=tin, output_tokens=tout,
                        cost_usd=cost_usd(tin, tout, prices), notes_written=len(written),
                        links_to_existing=linked, source_title=result.get("source_title", ""),
                        kind=result.get("kind", ""))
-            report["sources"][rel] = {**row, "notes": written}
+            report["sources"][rel] = {**row, "notes": written,
+                                      "reflection_prompts": result.get("reflection_prompts", []) if reading else []}
+            if reading:
+                add_phrases(job_dir, result.get("phrases", []), day, ref_title)
             all_written += written
             print(f"done       {rel}: {len(written)} notes, {tin:,}+{tout:,} tokens, US${row['cost_usd']:.3f}")
         except Exception as exc:
@@ -620,16 +718,19 @@ def generate_job(job_dir: Path, client, cfg: dict, only: str | None = None, forc
         # The staged journal stub lists every note made for the day so far (all runs, not just this one).
         # It is rewritten each run; it is skipped only if a journal with that title is already in the vault.
         day_notes = [n for r in report["sources"].values() if r.get("status") == "done" for n in r.get("notes", [])]
+        prompts = [p for r in report["sources"].values() if r.get("status") == "done"
+                   for p in r.get("reflection_prompts", [])]
         for other in same_day_jobs(job_dir):          # files added to the day earlier, in other jobs
             try:
                 prev_report = json.loads((other / "generate.json").read_text(encoding="utf-8"))
             except (OSError, ValueError):
                 continue
-            day_notes += [n for r in prev_report.get("sources", {}).values() if r.get("status") == "done"
-                          for n in r.get("notes", []) if n not in day_notes]
+            done_prev = [r for r in prev_report.get("sources", {}).values() if r.get("status") == "done"]
+            day_notes += [n for r in done_prev for n in r.get("notes", []) if n not in day_notes]
+            prompts += [p for r in done_prev for p in r.get("reflection_prompts", []) if p not in prompts]
         if day_notes:
             stub = write_journal_stub(notes_dir, course, day, cfg.get("term", ""), today, day_notes,
-                                      vault_titles(vault))
+                                      vault_titles(vault), prompts=list(dict.fromkeys(prompts)))
             if stub:
                 report["journal"] = stub
 
@@ -640,7 +741,9 @@ def generate_job(job_dir: Path, client, cfg: dict, only: str | None = None, forc
         all_done = every and all(report["sources"].get(e["rel_path"], {}).get("status") == "done" for e in every)
         siblings = same_day_jobs(job_dir)
         exists = any((j / "quiz" / PRACTICE_SET).exists() for j in [job_dir, *siblings])
-        if all_done and (rebuild_set or not exists):
+        if not quiz_on:
+            pass                                      # quiz off for this course: no practice set
+        elif all_done and (rebuild_set or not exists):
             note = build_practice_set(job_dir, notes_dir, course, day, today, [e["rel_path"] for e in every],
                                       size=int(cfg.get("practice_questions", 20)), other_jobs=siblings)
             if note:

@@ -26,6 +26,7 @@ import argparse
 import csv
 import hashlib
 import json
+import re
 import os
 import sys
 import time
@@ -53,6 +54,33 @@ def day_folders(inbox: Path) -> list[tuple[str, Path]]:
         for day in sorted(p for p in course.iterdir() if p.is_dir() and not p.name.startswith(".")):
             out.append((f"{course.name}/{day.name}", day))
     return out
+
+
+DATE_IN_NAME = re.compile(r"\d{4}-\d{2}-\d{2}")
+
+
+def sort_dated_files(inbox: Path, courses: list, settle_minutes: float, dry_run: bool = False) -> list:
+    """For reading courses: move files saved straight into the course folder into a folder per date
+    (e.g. 2026-11-04_..._Notes.md -> <course>/2026-11-04/). Files still syncing are left for the next run."""
+    wanted = {str(c).upper() for c in courses or []}
+    moved = []
+    if not wanted or not inbox.is_dir():
+        return moved
+    for course in sorted(p for p in inbox.iterdir() if p.is_dir()):
+        if re.split(r"[_\s-]", course.name)[0].upper() not in wanted:
+            continue
+        for f in sorted(p for p in course.iterdir() if p.is_file()):
+            m = DATE_IN_NAME.search(f.name)
+            if not m or time.time() - f.stat().st_mtime < settle_minutes * 60:
+                continue
+            dest = course / m.group(0) / f.name
+            if dest.exists():
+                continue
+            if not dry_run:
+                dest.parent.mkdir(exist_ok=True)
+                f.rename(dest)
+            moved.append(f"{course.name}/{m.group(0)}/{f.name}")
+    return moved
 
 
 def folder_status(day: Path, extensions: set, known_sha: set, settle_minutes: float) -> tuple[str, int]:
@@ -106,6 +134,8 @@ def run(cfg: dict, client=None, dry_run: bool = False, log=print) -> dict:
             summary["status"] = "already running"
             log("Another myTutor run is in progress: nothing to do.")
             return summary
+        for rel in sort_dated_files(inbox, cfg.get("reading_courses"), float(cfg.get("settle_minutes", 3)), dry_run):
+            log(f"sorted     {rel}")
         todo = []
         for label, path in day_folders(inbox):
             status, new = folder_status(path, extensions, known, float(cfg.get("settle_minutes", 3)))
