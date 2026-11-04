@@ -96,7 +96,7 @@ async function showActivity() {
     <p class="weekline"><b>Last 7 days:</b> ${plural(wk.approve, "approval")} · ${plural(wk.take, "take")} · ${plural(wk.ans, "reflection")} · streak ${plural(stats.streak || 0, "day")}</p>` +
     (days.map(d => `<div class="daycard" data-day="${d.day}">
       <div class="dayhead"><b>${esc(niceDay(d.day))}</b>
-        <span>${d.approve} approved · ${d["my-take"]} takes · ${d.answer} reflections${d["needs-fix"] ? " · " + d["needs-fix"] + " needs fix" : ""}</span>
+        <span>${d.approve} approved · ${d["my-take"]} takes · ${d.answer} reflections${d["needs-fix"] ? " · " + d["needs-fix"] + " needs fix" : ""}${d.no_take ? ` · <em class="notake">${d.no_take} approved without a take</em>` : ""}</span>
         <small>${Object.entries(d.types).map(([t, n]) => { const w = (TYPES[t] || t).toLowerCase(); return `${n} ${n === 1 && w !== "core" ? w.replace(/s$/, "") : w}`; }).join(" · ")}</small>
         <span class="chev">▸</span></div>
       <div class="daybody" hidden></div></div>`).join("") || '<p class="empty">Nothing yet. Approve a note or write a take, and your day shows up here.</p>') + "</div>";
@@ -111,9 +111,10 @@ async function openDay(card) {
   for (const n of notes) (groups[n.type === "theme" ? "reflection" : (n.type || "other")] ||= []).push(n);
   body.innerHTML = Object.keys(TYPES).filter(t => groups[t]).map(t => `<h3>${TYPES[t]} (${groups[t].length})</h3>` + groups[t].map(n =>
     `<div class="dayitem"><div class="dayitemhead" data-x="1"><b>${esc(n.title)}</b><small>${esc(n.course)}</small>
-       <span class="tags">${[...new Set(n.actions.map(a => ACT[a.action] || a.action))].map(x => `<span class="chip">${esc(x)}</span>`).join("")}</span><span class="chev">▸</span></div>
+       <span class="tags">${[...new Set(n.actions.map(a => ACT[a.action] || a.action))].map(x => `<span class="chip">${esc(x)}</span>`).join("")}${n.has_take ? "" : '<span class="chip notake">no take yet</span>'}</span><span class="chev">▸</span></div>
      <div class="dayitembody" hidden>${n.actions.map(a => `<div class="upd"><small>${esc(a.at)} · ${esc(ACT[a.action] || a.action)}</small>${a.detail ? `<div class="md">${md(a.detail)}</div>` : ""}</div>`).join("")}
-       <button class="b small" data-open="${esc(n.rel)}" data-kind="${n.type === "theme" ? "journals" : "notes"}">Open note</button></div></div>`).join("")).join("");
+       ${n.has_take ? "" : '<p class="notake">No take on this note yet. Open it to add one.</p>'}
+       <button class="b small" data-open="${esc(n.rel)}" data-kind="${n.type === "theme" ? "journals" : "notes"}">${n.has_take ? "Open note" : "Open note to add a take"}</button></div></div>`).join("")).join("");
   body.dataset.loaded = "1";
 }
 let curIdx = 0;

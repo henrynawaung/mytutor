@@ -165,7 +165,7 @@ def create_app(vault_root: Path, jobs: Path, obsidian_vault: str = "", testing: 
     @app.get("/api/days")
     @login_required
     def days():
-        return jsonify(days=store.days(), stats=store.stats())
+        return jsonify(days=store.days(vault=vault), stats=store.stats())
 
     @app.get("/api/day")
     @login_required
@@ -173,7 +173,7 @@ def create_app(vault_root: Path, jobs: Path, obsidian_vault: str = "", testing: 
         d = request.args.get("d", "")
         if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", d):
             return jsonify(error="Bad date."), 400
-        return jsonify(store.day(d))
+        return jsonify(store.day(d, vault=vault))
 
     @app.get("/api/recent")
     @login_required

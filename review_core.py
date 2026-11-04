@@ -304,7 +304,20 @@ class Store:
 
     WORK = ("approve", "needs-fix", "my-take", "answer", "undo")
 
-    def days(self, n: int = 60) -> list:
+    def has_take(self, vault, rel: str) -> bool:
+        """A take saved in the app at any time, or one written straight into the note in Obsidian."""
+        if self.q("SELECT 1 FROM activity WHERE rel=? AND action='my-take' LIMIT 1", (rel,)):
+            return True
+        try:
+            t = read(vault.path(rel))
+        except (OSError, ValueError):
+            return False
+        m = re.search(r"^## My take[ \t]*\n(.*?)(?=^## |\Z)", t, re.M | re.S)
+        if m and re.sub(r"\*\*[^*]+:\*\*|\s", "", m.group(1)):
+            return True
+        return "Where I came across this" in t
+
+    def days(self, n: int = 60, vault=None) -> list:
         """One summary row per day: counts by action and by note type."""
         rows = self.q("SELECT substr(a.at,1,10) d, a.action, a.rel, COALESCE(n.type,'') type FROM activity a "
                       "LEFT JOIN notes n ON n.rel=a.rel WHERE a.action IN (%s) ORDER BY a.id" % ",".join("?" * len(self.WORK)),
@@ -320,11 +333,16 @@ class Store:
                 t = "reflection" if r["type"] == "theme" else (r["type"] or "other")
                 d["types"][t] = d["types"].get(t, 0) + 1
         days = sorted(out.values(), key=lambda x: x["day"], reverse=True)[:n]
+        approved = {}
+        for r in rows:
+            if r["action"] == "approve" and r["type"] != "theme":
+                approved.setdefault(r["d"], set()).add(r["rel"])
         for d in days:
             d["notes"] = len(d["notes"])
+            d["no_take"] = sum(1 for rel in approved.get(d["day"], ()) if vault and not self.has_take(vault, rel))
         return days
 
-    def day(self, day: str) -> list:
+    def day(self, day: str, vault=None) -> list:
         """Everything done on one day, grouped by note: title, type, course and each action with its text."""
         rows = self.q("SELECT a.at, a.action, a.rel, a.detail, n.title, n.type, n.course FROM activity a "
                       "LEFT JOIN notes n ON n.rel=a.rel WHERE substr(a.at,1,10)=? AND a.action IN (%s) ORDER BY a.id"
@@ -334,6 +352,8 @@ class Store:
             n = notes.setdefault(r["rel"], {"rel": r["rel"], "title": r["title"] or Path(r["rel"]).stem,
                                             "type": r["type"] or "", "course": r["course"] or "", "actions": []})
             n["actions"].append({"at": r["at"][11:16], "action": r["action"], "detail": r["detail"] or ""})
+        for n in notes.values():
+            n["has_take"] = n["type"] == "theme" or (vault is not None and self.has_take(vault, n["rel"]))
         return list(notes.values())
 
     def recent(self, n: int = 30) -> list:

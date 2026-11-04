@@ -154,11 +154,17 @@ class AppTests(unittest.TestCase):
                         headers={"X-CSRF": tok}).get_json()["note"]
         self.c.post("/api/approve", json={"rel": n["rel"], "mtime": n["mtime"]}, headers={"X-CSRF": tok})
         d = self.c.get("/api/days").get_json()["days"][0]
-        self.assertEqual((d["approve"], d["my-take"], d["notes"], d["types"]), (1, 1, 1, {"core": 1}))
+        self.assertEqual((d["approve"], d["my-take"], d["notes"], d["types"], d["no_take"]), (1, 1, 1, {"core": 1}, 0))
         items = self.c.get("/api/day?d=" + d["day"]).get_json()
         self.assertEqual(items[0]["title"], "Kodak")
         self.assertEqual([a["action"] for a in items[0]["actions"]], ["my-take", "approve"])
         self.assertEqual(items[0]["actions"][0]["detail"], "- my point")
+        self.assertTrue(items[0]["has_take"])
+        m = self.c.get("/api/note?rel=C/Day 1/Core/Disruption.md").get_json()
+        self.c.post("/api/approve", json={"rel": m["rel"], "mtime": m["mtime"]}, headers={"X-CSRF": tok})
+        self.assertEqual(self.c.get("/api/days").get_json()["days"][0]["no_take"], 1)
+        noted = {i["title"]: i["has_take"] for i in self.c.get("/api/day?d=" + d["day"]).get_json()}
+        self.assertEqual(noted, {"Kodak": True, "Disruption": False})
         self.assertEqual(self.c.get("/api/day?d=../x").status_code, 400)
 
     def test_paths_outside_vault_are_refused(self):
