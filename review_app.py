@@ -1,7 +1,7 @@
 """myTutor Review: a lightweight web app on your laptop for reviewing your vault, with a login.
 
 First time:   py -m pip install flask
-              py review_app.py --create-user henry      (asks for a password, min 12 characters)
+              py review_app.py --create-user you@example.com   (your email; asks for a password, min 12 characters)
 Every time:   py review_app.py                           (opens http://127.0.0.1:5057 in your browser)
 
 - Markdown notes stay the master copy; Obsidian keeps working.
@@ -15,6 +15,7 @@ import argparse
 import getpass
 import json
 import os
+import re
 import secrets
 import sys
 import webbrowser
@@ -29,6 +30,7 @@ import review_core as core
 
 HERE = Path(__file__).resolve().parent
 DUMMY_HASH = generate_password_hash("not-a-real-password")
+EMAIL = re.compile(r"[^@\s]+@[^@\s]+\.[^@\s]+")
 
 
 def load_config(name="config.json"):
@@ -88,13 +90,13 @@ def create_app(vault_root: Path, jobs: Path, obsidian_vault: str = "", testing: 
     def login():
         if store.users() == 0:
             return render_template("login.html", error="No user yet. In the mytutor folder run: "
-                                   "py review_app.py --create-user henry", csrf="", disabled=True)
+                                   "py review_app.py --create-user <your email>", csrf="", disabled=True)
         session.setdefault("csrf", secrets.token_urlsafe(24))
         error = ""
         if request.method == "POST":
             if not csrf_ok():
                 abort(403)
-            name = request.form.get("username", "").strip()
+            name = request.form.get("username", "").strip().lower()
             pw = request.form.get("password", "")
             u = store.user(name)
             if store.locked(u):
@@ -109,7 +111,7 @@ def create_app(vault_root: Path, jobs: Path, obsidian_vault: str = "", testing: 
                 if not u:
                     check_password_hash(DUMMY_HASH, pw)       # same time whether or not the user exists
                 store.login_failed(name)
-                error = "Wrong username or password."
+                error = "Wrong email or password."
         return render_template("login.html", error=error, csrf=session["csrf"], disabled=False)
 
     @app.post("/logout")
@@ -215,11 +217,15 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="myTutor Review web app")
     ap.add_argument("--config", default="config.json")
     ap.add_argument("--port", type=int, default=5057)
-    ap.add_argument("--create-user", metavar="NAME", help="create a login (or reset its password)")
+    ap.add_argument("--create-user", metavar="EMAIL", help="create a login with your email (or reset its password)")
     ap.add_argument("--no-open", action="store_true")
     a = ap.parse_args(argv)
     cfg, vault, jobs = load_config(a.config)
     if a.create_user:
+        email = a.create_user.strip().lower()
+        if not EMAIL.fullmatch(email):
+            print("Please use an email address as the username, e.g. name@example.com")
+            return 1
         pw = getpass.getpass("New password (min 12 characters, not shown): ")
         if len(pw) < 12:
             print("Too short: use at least 12 characters.")
@@ -227,8 +233,8 @@ def main(argv=None) -> int:
         if pw != getpass.getpass("Type it again: "):
             print("The two passwords did not match.")
             return 1
-        core.Store(jobs / "mytutor.db").add_user(a.create_user.strip(), generate_password_hash(pw))
-        print(f"Login '{a.create_user}' is ready. Now run: py review_app.py")
+        core.Store(jobs / "mytutor.db").add_user(email, generate_password_hash(pw))
+        print(f"Login for {email} is ready (password stored as a one-way scrypt hash). Now run: py review_app.py")
         return 0
     app = create_app(vault, jobs, cfg.get("obsidian_vault_name", ""))
     url = f"http://127.0.0.1:{a.port}/"

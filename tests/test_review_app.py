@@ -57,7 +57,7 @@ class AppTests(unittest.TestCase):
             p = self.vault / rel
             p.parent.mkdir(parents=True, exist_ok=True)
             p.write_text(text, encoding="utf-8")
-        core.Store(self.jobs / "mytutor.db").add_user("henry", generate_password_hash("correct horse battery"))
+        core.Store(self.jobs / "mytutor.db").add_user("henry@example.com", generate_password_hash("correct horse battery"))
         self.app = review_app.create_app(self.vault, self.jobs, "henry_mba", testing=True)
         self.c = self.app.test_client()
 
@@ -69,7 +69,7 @@ class AppTests(unittest.TestCase):
         return re.search(r'name="csrf" (?:value|content)="([^"]+)"', self.c.get(path).get_data(as_text=True)).group(1)
 
     def login(self, pw="correct horse battery"):
-        return self.c.post("/login", data={"username": "henry", "password": pw, "csrf": self.csrf()})
+        return self.c.post("/login", data={"username": "Henry@Example.com", "password": pw, "csrf": self.csrf()})
 
     def api_csrf(self):
         return re.search(r'<meta name="csrf" content="([^"]+)"', self.c.get("/").get_data(as_text=True)).group(1)
@@ -79,11 +79,11 @@ class AppTests(unittest.TestCase):
         self.assertEqual(self.c.get("/api/summary").status_code, 401)
 
     def test_login_without_csrf_is_refused(self):
-        self.assertEqual(self.c.post("/login", data={"username": "henry", "password": "x"}).status_code, 403)
+        self.assertEqual(self.c.post("/login", data={"username": "henry@example.com", "password": "x"}).status_code, 403)
 
     def test_wrong_password_and_lockout(self):
         for _ in range(5):
-            self.assertIn(b"Wrong username or password", self.login("nope").data)
+            self.assertIn(b"Wrong email or password", self.login("nope").data)
         r = self.login()                                     # right password, but locked now
         self.assertIn(b"Too many attempts", r.data)
 
@@ -118,6 +118,11 @@ class AppTests(unittest.TestCase):
     def test_paths_outside_vault_are_refused(self):
         self.login()
         self.assertEqual(self.c.get("/api/note?rel=../jobs/mytutor.db").status_code, 404)
+
+    def test_create_user_needs_an_email(self):
+        cfg = Path(self.tmp.name) / "config.json"
+        cfg.write_text('{"vault_path": "%s", "jobs_root": "%s"}' % (self.vault.as_posix(), self.jobs.as_posix()))
+        self.assertEqual(review_app.main(["--config", str(cfg), "--create-user", "henry"]), 1)
 
     def test_security_headers(self):
         h = self.c.get("/login").headers
