@@ -72,3 +72,18 @@ table.act td:first-child{color:var(--muted);white-space:nowrap}
 .banner.info{background:var(--chip);color:var(--ink)}
 .tb .tpbtn{margin-left:8px;font-weight:600;color:var(--teal);border:1px solid var(--line)}
 .md h4{margin:.9em 0 .3em;font-size:15px}
+.item.draft b::after{content:" ✎";color:var(--brand)}
+.restored{display:block;color:var(--brand);font-size:12px;margin-top:4px}
+.weekline{color:var(--muted)}
+.daycard{border:1px solid var(--line);border-radius:12px;background:var(--panel);margin:10px 0;overflow:hidden}
+.dayhead{display:grid;grid-template-columns:1fr auto;gap:2px 12px;padding:12px 14px;cursor:pointer;align-items:center}
+.dayhead b{font-size:16px}.dayhead span:not(.chev){grid-column:1;color:var(--ink);font-size:14px}.dayhead small{grid-column:1;color:var(--muted)}
+.dayhead .chev{grid-column:2;grid-row:1/4;color:var(--muted);transition:transform .15s}
+.daycard.open>.dayhead .chev,.dayitem.open .chev{transform:rotate(90deg)}
+.daybody{border-top:1px solid var(--line);padding:4px 14px 12px}.daybody h3{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:14px 0 6px}
+.dayitem{border:1px solid var(--line);border-radius:8px;margin:6px 0;background:var(--bg)}
+.dayitemhead{display:flex;gap:8px;align-items:center;padding:8px 10px;cursor:pointer;flex-wrap:wrap}
+.dayitemhead small{color:var(--muted)}.dayitemhead .tags{display:flex;gap:4px;margin-left:auto}.dayitemhead .chev{color:var(--muted);transition:transform .15s}
+.dayitembody{padding:4px 12px 10px;border-top:1px solid var(--line)}
+.upd{margin:8px 0}.upd small{color:var(--muted)}.upd .md{border-left:3px solid var(--brand);padding-left:10px;margin-top:4px}
+main.noside{grid-template-columns:1fr}

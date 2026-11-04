@@ -40,13 +40,13 @@ function renderProg() {
 function renderList() {
   const L = $("list");
   if (mode === "journals") {
-    L.innerHTML = S.journals.map(j => `<div class="item${cur && cur.rel === j.rel ? " on" : ""}" data-r="${esc(j.rel)}"><b>${esc(j.title)}</b><small>${j.open} open prompt${j.open > 1 ? "s" : ""}</small></div>`).join("")
+    L.innerHTML = S.journals.map(j => `<div class="item${cur && cur.rel === j.rel ? " on" : ""}${hasDraft(j.rel) ? " draft" : ""}" data-r="${esc(j.rel)}"><b>${esc(j.title)}</b><small>${j.open} open prompt${j.open > 1 ? "s" : ""}</small></div>`).join("")
       || '<div class="item"><small>No open prompts. Nice.</small></div>';
     return;
   }
   const f = filtered();
   L.innerHTML = `<div class="item"><small>${f.length} note${f.length === 1 ? "" : "s"}</small></div>` + f.slice(0, 500).map(i =>
-    `<div class="item${cur && cur.rel === i.rel ? " on" : ""}" data-r="${esc(i.rel)}"><b>${esc(i.title)}</b><small>${esc(i.course)} · ${esc(i.day)} · ${esc(i.type)}</small></div>`).join("");
+    `<div class="item${cur && cur.rel === i.rel ? " on" : ""}${hasDraft(i.rel) ? " draft" : ""}" data-r="${esc(i.rel)}"><b>${esc(i.title)}</b><small>${esc(i.course)} · ${esc(i.day)} · ${esc(i.type)}</small></div>`).join("");
 }
 async function load() {
   S = await api("/api/summary");
@@ -73,7 +73,7 @@ function show() {
            <div class="editwrap" data-w="${q.i}" hidden><textarea data-i="${q.i}">${esc(q.answer)}</textarea><div class="gap"><button class="b ok" data-ans="${q.i}">Save answer</button></div></div>`
         : `<textarea data-i="${q.i}" placeholder="My answer, in my own words…"></textarea><div class="gap"><button class="b ok" data-ans="${q.i}">Save answer</button></div>`)
       + `</div>`).join("") + "</div>";
-    V.querySelectorAll("textarea").forEach(enhance);
+    V.querySelectorAll("textarea").forEach(ta => { keepDraft(ta, dkey("ans", n.rel, ta.dataset.i)); enhance(ta); });
     $("actions").hidden = true; return;
   }
   V.innerHTML = `<div class="doc"><div class="meta">${chips}</div>${md(n.body)}</div>
@@ -82,14 +82,39 @@ function show() {
   $("actions").hidden = false;
   const o = $("b-obs"); if (n.obsidian) { o.href = n.obsidian; o.hidden = false; } else o.hidden = true;
   V.scrollTop = 0; $("b-take").onclick = saveTake; enhance($("take"), {template: true});
-  $("take").addEventListener("input", labels); labels();
+  keepDraft($("take"), dkey("take", n.rel)); $("take").addEventListener("input", labels); labels();
 }
+const ACT = {"approve": "✓ approved", "needs-fix": "⚑ needs fix", "my-take": "✎ take", "answer": "💬 reflection", "undo": "↩ undo"};
+const TYPES = {"case": "Cases", "core": "Core", "hub": "Hubs", "reference": "Sources", "reflection": "Reflections", "other": "Other"};
+function niceDay(d) { return new Date(d + "T12:00:00").toLocaleDateString(undefined, {weekday: "short", day: "numeric", month: "short", year: "numeric"}); }
+function plural(n, w) { return `${n} ${w}${n === 1 ? "" : "s"}`; }
 async function showActivity() {
-  const rows = await api("/api/recent");
-  $("view").innerHTML = `<div class="doc"><h1>Activity</h1><table class="act">` + (rows.map(r =>
-    `<tr><td>${esc(r.at.replace("T", " "))}</td><td>${esc(r.action)}</td><td>${esc((r.rel || "").split("/").pop().replace(/\.md$/, ""))}${r.detail ? "<br><small>" + esc(r.detail) + "</small>" : ""}</td></tr>`).join("")
-    || "<tr><td>No activity yet.</td></tr>") + "</table></div>";
+  const {days, stats} = await api("/api/days");
+  const wk = days.filter(d => (Date.now() - new Date(d.day + "T12:00:00")) / 864e5 < 7)
+    .reduce((a, d) => ({approve: a.approve + d.approve, take: a.take + d["my-take"], ans: a.ans + d.answer}), {approve: 0, take: 0, ans: 0});
+  $("view").innerHTML = `<div class="doc"><h1>My days</h1>
+    <p class="weekline"><b>Last 7 days:</b> ${plural(wk.approve, "approval")} · ${plural(wk.take, "take")} · ${plural(wk.ans, "reflection")} · streak ${plural(stats.streak || 0, "day")}</p>` +
+    (days.map(d => `<div class="daycard" data-day="${d.day}">
+      <div class="dayhead"><b>${esc(niceDay(d.day))}</b>
+        <span>${d.approve} approved · ${d["my-take"]} takes · ${d.answer} reflections${d["needs-fix"] ? " · " + d["needs-fix"] + " needs fix" : ""}</span>
+        <small>${Object.entries(d.types).map(([t, n]) => { const w = (TYPES[t] || t).toLowerCase(); return `${n} ${n === 1 && w !== "core" ? w.replace(/s$/, "") : w}`; }).join(" · ")}</small>
+        <span class="chev">▸</span></div>
+      <div class="daybody" hidden></div></div>`).join("") || '<p class="empty">Nothing yet. Approve a note or write a take, and your day shows up here.</p>') + "</div>";
   $("actions").hidden = true;
+}
+async function openDay(card) {
+  const body = card.querySelector(".daybody"), open = body.hidden;
+  card.classList.toggle("open", open); body.hidden = !open;
+  if (!open || body.dataset.loaded) return;
+  const notes = await api("/api/day?d=" + card.dataset.day);
+  const groups = {};
+  for (const n of notes) (groups[n.type === "theme" ? "reflection" : (n.type || "other")] ||= []).push(n);
+  body.innerHTML = Object.keys(TYPES).filter(t => groups[t]).map(t => `<h3>${TYPES[t]} (${groups[t].length})</h3>` + groups[t].map(n =>
+    `<div class="dayitem"><div class="dayitemhead" data-x="1"><b>${esc(n.title)}</b><small>${esc(n.course)}</small>
+       <span class="tags">${[...new Set(n.actions.map(a => ACT[a.action] || a.action))].map(x => `<span class="chip">${esc(x)}</span>`).join("")}</span><span class="chev">▸</span></div>
+     <div class="dayitembody" hidden>${n.actions.map(a => `<div class="upd"><small>${esc(a.at)} · ${esc(ACT[a.action] || a.action)}</small>${a.detail ? `<div class="md">${md(a.detail)}</div>` : ""}</div>`).join("")}
+       <button class="b small" data-open="${esc(n.rel)}" data-kind="${n.type === "theme" ? "journals" : "notes"}">Open note</button></div></div>`).join("")).join("");
+  body.dataset.loaded = "1";
 }
 let curIdx = 0;
 function next() {
@@ -100,7 +125,9 @@ function next() {
   if (n && (!cur || n.rel !== cur.rel)) return openNote(n.rel); toast("That was the last one");
 }
 async function act(path, extra, msg) {
-  try { const r = await api(path, Object.assign({rel: cur.rel, mtime: cur.mtime}, extra || {})); cur = r.note; if (msg) toast(msg); await load(); return true; }
+  try { const rel = cur.rel; const r = await api(path, Object.assign({rel, mtime: cur.mtime}, extra || {})); cur = r.note;
+    if (path === "/api/take") dset(dkey("take", rel), "");
+    if (path === "/api/answer") dset(dkey("ans", rel, extra.i), ""); if (msg) toast(msg); await load(); return true; }
   catch (e) { toast(e.message); return false; }
 }
 let undoStatus = null;
@@ -132,13 +159,18 @@ async function saveTake() { const t = $("take").value.trim(); if (!t) return; if
 function setMode(m) {
   mode = m; cur = null;
   for (const t of ["notes", "journals", "activity"]) $("t-" + t).classList.toggle("on", t === m);
-  $("side").hidden = m === "activity"; $("actions").hidden = true;
+  $("side").hidden = m === "activity"; document.querySelector("main").classList.toggle("noside", m === "activity"); $("actions").hidden = true;
   document.querySelector(".filters").hidden = $("f-q").hidden = m !== "notes";
   if (m === "activity") return showActivity();
   $("view").innerHTML = `<div class="empty">${m === "journals" ? "Pick a journal with open prompts." : "Pick a note on the left."}</div>`;
   renderList();
 }
 document.addEventListener("click", async e => {
+  const op = e.target.closest("[data-open]");
+  if (op) { setMode(op.dataset.kind); return openNote(op.dataset.open); }
+  const ih = e.target.closest(".dayitemhead");
+  if (ih) { const b = ih.nextElementSibling; b.hidden = !b.hidden; ih.parentElement.classList.toggle("open", !b.hidden); return; }
+  const dh = e.target.closest(".dayhead"); if (dh) return openDay(dh.parentElement);
   const it = e.target.closest(".item[data-r]"); if (it) return openNote(it.dataset.r);
   const wl = e.target.closest("a.wl");
   if (wl) { e.preventDefault(); const r = await api("/api/find?title=" + encodeURIComponent(wl.dataset.t)); r.rel ? openNote(r.rel) : toast(`No note called “${wl.dataset.t}” yet`); return; }
@@ -162,6 +194,18 @@ document.addEventListener("keydown", e => {
   else if (k === "t") { e.preventDefault(); $("take").focus(); }
 });
 load().then(() => { const f = filtered(); if (f.length) openNote(f[0].rel); }).catch(e => toast(e.message));
+
+// ---------------------------------------------------------------- drafts (kept in this browser until saved)
+function dkey(kind, rel, i) { return `mytutor-draft:${kind}:${rel}${i === undefined ? "" : ":" + i}`; }
+function dget(k) { try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } }
+function dset(k, v) { try { v.trim() ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch (e) {} }
+function hasDraft(rel) { try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k.startsWith("mytutor-draft:") && k.includes(":" + rel)) return true; } } catch (e) {} return false; }
+function keepDraft(ta, key) {
+  const saved = dget(key);
+  if (saved && !ta.value) { ta.value = saved; const t = document.createElement("small"); t.className = "restored"; t.textContent = "✎ Draft restored (not saved to the note yet)"; ta.after(t); }
+  ta.addEventListener("input", () => { dset(key, ta.value); markDraft(); });
+}
+function markDraft() { if (!cur) return; const el = document.querySelector(`.item[data-r="${CSS.escape(cur.rel)}"]`); if (el) el.classList.toggle("draft", hasDraft(cur.rel)); }
 
 // ---------------------------------------------------------------- Markdown editor (toolbar, preview, auto-grow)
 function enhance(ta, opts = {}) {

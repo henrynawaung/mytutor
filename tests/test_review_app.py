@@ -146,6 +146,21 @@ class AppTests(unittest.TestCase):
                           headers={"X-CSRF": tok})
         self.assertEqual(bad.status_code, 400)
 
+    def test_days_summary_and_day_detail(self):
+        self.login()
+        tok = self.api_csrf()
+        n = self.c.get("/api/note?rel=C/Day 1/Core/Kodak.md").get_json()
+        n = self.c.post("/api/take", json={"rel": n["rel"], "mtime": n["mtime"], "take": "- my point"},
+                        headers={"X-CSRF": tok}).get_json()["note"]
+        self.c.post("/api/approve", json={"rel": n["rel"], "mtime": n["mtime"]}, headers={"X-CSRF": tok})
+        d = self.c.get("/api/days").get_json()["days"][0]
+        self.assertEqual((d["approve"], d["my-take"], d["notes"], d["types"]), (1, 1, 1, {"core": 1}))
+        items = self.c.get("/api/day?d=" + d["day"]).get_json()
+        self.assertEqual(items[0]["title"], "Kodak")
+        self.assertEqual([a["action"] for a in items[0]["actions"]], ["my-take", "approve"])
+        self.assertEqual(items[0]["actions"][0]["detail"], "- my point")
+        self.assertEqual(self.c.get("/api/day?d=../x").status_code, 400)
+
     def test_paths_outside_vault_are_refused(self):
         self.login()
         self.assertEqual(self.c.get("/api/note?rel=../jobs/mytutor.db").status_code, 404)

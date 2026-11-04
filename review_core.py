@@ -282,7 +282,7 @@ class Store:
 
     def log(self, user: str, action: str, rel: str, detail: str):
         self.x("INSERT INTO activity(at,user,action,rel,detail) VALUES (?,?,?,?,?)",
-               (now(), user, action, rel, (detail or "")[:2000]))
+               (now(), user, action, rel, (detail or "")[:20000]))
 
     def stats(self) -> dict:
         today = datetime.now().date().isoformat()
@@ -301,6 +301,40 @@ class Store:
         done = self.q("SELECT COUNT(*) n FROM activity WHERE substr(at,1,10)=? AND action IN "
                       "('approve','needs-fix','my-take','answer')", (today,))[0]["n"]
         return {"today": done, "streak": streak}
+
+    WORK = ("approve", "needs-fix", "my-take", "answer", "undo")
+
+    def days(self, n: int = 60) -> list:
+        """One summary row per day: counts by action and by note type."""
+        rows = self.q("SELECT substr(a.at,1,10) d, a.action, a.rel, COALESCE(n.type,'') type FROM activity a "
+                      "LEFT JOIN notes n ON n.rel=a.rel WHERE a.action IN (%s) ORDER BY a.id" % ",".join("?" * len(self.WORK)),
+                      self.WORK)
+        out = {}
+        for r in rows:
+            d = out.setdefault(r["d"], {"day": r["d"], "approve": 0, "needs-fix": 0, "my-take": 0, "answer": 0,
+                                        "notes": set(), "types": {}})
+            if r["action"] in d:
+                d[r["action"]] += 1
+            if r["rel"] not in d["notes"]:
+                d["notes"].add(r["rel"])
+                t = "reflection" if r["type"] == "theme" else (r["type"] or "other")
+                d["types"][t] = d["types"].get(t, 0) + 1
+        days = sorted(out.values(), key=lambda x: x["day"], reverse=True)[:n]
+        for d in days:
+            d["notes"] = len(d["notes"])
+        return days
+
+    def day(self, day: str) -> list:
+        """Everything done on one day, grouped by note: title, type, course and each action with its text."""
+        rows = self.q("SELECT a.at, a.action, a.rel, a.detail, n.title, n.type, n.course FROM activity a "
+                      "LEFT JOIN notes n ON n.rel=a.rel WHERE substr(a.at,1,10)=? AND a.action IN (%s) ORDER BY a.id"
+                      % ",".join("?" * len(self.WORK)), (day, *self.WORK))
+        notes = {}
+        for r in rows:
+            n = notes.setdefault(r["rel"], {"rel": r["rel"], "title": r["title"] or Path(r["rel"]).stem,
+                                            "type": r["type"] or "", "course": r["course"] or "", "actions": []})
+            n["actions"].append({"at": r["at"][11:16], "action": r["action"], "detail": r["detail"] or ""})
+        return list(notes.values())
 
     def recent(self, n: int = 30) -> list:
         return self.q("SELECT at, action, rel, detail FROM activity WHERE action NOT LIKE 'login%' "

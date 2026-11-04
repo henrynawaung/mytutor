@@ -162,6 +162,19 @@ def create_app(vault_root: Path, jobs: Path, obsidian_vault: str = "", testing: 
         r = store.q("SELECT rel FROM notes WHERE lower(title)=lower(?) LIMIT 1", (request.args.get("title", ""),))
         return jsonify(rel=r[0]["rel"] if r else None)
 
+    @app.get("/api/days")
+    @login_required
+    def days():
+        return jsonify(days=store.days(), stats=store.stats())
+
+    @app.get("/api/day")
+    @login_required
+    def day():
+        d = request.args.get("d", "")
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", d):
+            return jsonify(error="Bad date."), 400
+        return jsonify(store.day(d))
+
     @app.get("/api/recent")
     @login_required
     def recent():
