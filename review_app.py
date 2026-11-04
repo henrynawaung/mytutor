@@ -23,7 +23,7 @@ from datetime import date, timedelta
 from functools import wraps
 from pathlib import Path
 
-from flask import Flask, abort, jsonify, redirect, render_template, request, session, url_for
+from flask import Flask, abort, jsonify, redirect, render_template, request, send_file, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
 import review_core as core
@@ -210,6 +210,52 @@ def create_app(vault_root: Path, jobs: Path, obsidian_vault: str = "", testing: 
                     phrases.append({"phrase": m.group(1), "meaning": m.group(2)})
         out["phrases"] = phrases
         return jsonify(out)
+
+    # ---------------------------------------------------------------- background photo (stays on this laptop)
+    BG_TYPES = {b"\xff\xd8\xff": ("jpg", "image/jpeg"), b"\x89PNG": ("png", "image/png"), b"RIFF": ("webp", "image/webp")}
+
+    def bg_file():
+        for ext in ("jpg", "png", "webp"):
+            p = jobs / f"background.{ext}"
+            if p.exists():
+                return p
+        return None
+
+    @app.get("/api/background")
+    @login_required
+    def bg_get():
+        p = bg_file()
+        if not p:
+            return jsonify(error="No photo."), 404
+        return send_file(p, mimetype={"jpg": "image/jpeg", "png": "image/png", "webp": "image/webp"}[p.suffix[1:]],
+                         max_age=0)
+
+    @app.post("/api/background")
+    @login_required
+    def bg_set():
+        f = request.files.get("photo")
+        if not f:
+            return jsonify(ok=False, error="No file."), 400
+        data = f.read(8 * 1024 * 1024 + 1)
+        if len(data) > 8 * 1024 * 1024:
+            return jsonify(ok=False, error="Please use a photo under 8 MB."), 400
+        kind = next((v for k, v in BG_TYPES.items() if data.startswith(k)), None)
+        if not kind or (kind[0] == "webp" and data[8:12] != b"WEBP"):
+            return jsonify(ok=False, error="Please use a JPG, PNG or WebP photo."), 400
+        old = bg_file()
+        if old:
+            old.unlink()
+        (jobs / f"background.{kind[0]}").write_bytes(data)
+        store.log(session["user"], "background", "", kind[0])
+        return jsonify(ok=True)
+
+    @app.post("/api/background/remove")
+    @login_required
+    def bg_remove():
+        p = bg_file()
+        if p:
+            p.unlink()
+        return jsonify(ok=True)
 
     @app.get("/api/recent")
     @login_required

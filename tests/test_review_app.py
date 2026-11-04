@@ -186,6 +186,24 @@ class AppTests(unittest.TestCase):
         self.assertIsNone(c["core"][1]["rel"])
         self.assertEqual(c["phrases"], [{"phrase": "Staged commitment", "meaning": "fund in steps."}])
 
+    def test_background_photo_upload_checks_type(self):
+        import io
+        self.login()
+        tok = self.api_csrf()
+        self.assertEqual(self.c.get("/api/background").status_code, 404)
+        bad = self.c.post("/api/background", data={"photo": (io.BytesIO(b"<svg>"), "x.svg")}, headers={"X-CSRF": tok},
+                          content_type="multipart/form-data")
+        self.assertEqual(bad.status_code, 400)
+        png = b"\x89PNG\r\n\x1a\n" + b"0" * 100
+        ok = self.c.post("/api/background", data={"photo": (io.BytesIO(png), "family.png")}, headers={"X-CSRF": tok},
+                         content_type="multipart/form-data")
+        self.assertEqual(ok.status_code, 200)
+        r = self.c.get("/api/background")
+        self.assertEqual((r.status_code, r.mimetype, r.data), (200, "image/png", png))
+        self.assertEqual(self.c.post("/api/background", data={}, content_type="multipart/form-data").status_code, 403)  # no CSRF
+        self.c.post("/api/background/remove", json={}, headers={"X-CSRF": tok})
+        self.assertEqual(self.c.get("/api/background").status_code, 404)
+
     def test_paths_outside_vault_are_refused(self):
         self.login()
         self.assertEqual(self.c.get("/api/note?rel=../jobs/mytutor.db").status_code, 404)

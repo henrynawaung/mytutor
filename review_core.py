@@ -318,7 +318,8 @@ class Store:
                 break
         done = self.q("SELECT COUNT(*) n FROM activity WHERE substr(at,1,10)=? AND action IN "
                       "('approve','needs-fix','my-take','answer')", (today,))[0]["n"]
-        return {"today": done, "streak": streak}
+        appr = self.q("SELECT COUNT(DISTINCT rel) n FROM activity WHERE substr(at,1,10)=? AND action='approve'", (today,))[0]["n"]
+        return {"today": done, "streak": streak, "approved_today": appr}
 
     WORK = ("approve", "needs-fix", "my-take", "answer", "undo")
 

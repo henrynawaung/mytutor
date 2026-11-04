@@ -6,14 +6,21 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
 <script src="{{ url_for('static', filename='marked.min.js') }}" defer></script>
 <script src="{{ url_for('static', filename='app.js') }}" defer></script></head>
-<body>
-<header><div class="brand"><img src="{{ url_for('static', filename='logo.svg') }}" alt="" width="34" height="34"><div><h1>myTutor <span>Review</span></h1><p class="tag">Your second brain · read, reflect, apply</p></div></div>
-<nav class="tabs"><button id="t-notes" class="on">Notes</button><button id="t-journals">Reflections</button><button id="t-activity">Activity</button></nav>
-<div class="prog" id="prog"></div>
-<div class="who"><span id="stats"></span><button class="b small" id="b-sync" title="Re-read the vault">Refresh</button>
-<form method="post" action="{{ url_for('logout') }}"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="b small">Log out ({{ user }})</button></form></div>
+<body><div class="bgphoto" id="bgphoto" hidden></div>
+<header>
+<div class="brand"><img src="{{ url_for('static', filename='logo.svg') }}" alt="" width="34" height="34"><div><h1>myTutor <span>Review</span></h1><p class="tag" id="tagline">Your second brain · read, reflect, apply</p></div></div>
+<nav class="tabs"><button id="t-notes" class="on"><span class="ti">📚</span>Notes</button><button id="t-journals"><span class="ti">💬</span>Reflections</button><button id="t-activity"><span class="ti">📅</span>My days</button></nav>
+<div class="hright">
+  <div class="goal" id="goal" title="Today's goal"><svg viewBox="0 0 36 36" width="34" height="34"><circle cx="18" cy="18" r="15" class="gbg"/><circle cx="18" cy="18" r="15" class="gfg" id="goal-ring"/></svg><div><b id="goal-txt">0/5</b><small id="streak-txt">today</small></div></div>
+  <button class="iconbtn" id="b-sync" title="Re-read the vault">⟳</button>
+  <button class="iconbtn" id="b-set" title="Personalise">⚙</button>
+  <div class="usermenu"><button class="avatar" id="b-user" title="{{ user }}">{{ user[:1]|upper }}</button>
+    <div class="umenu" id="umenu" hidden><div class="uname">{{ user }}</div>
+      <form method="post" action="{{ url_for('logout') }}"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="b small wide">Log out</button></form></div></div>
+</div>
+<span id="stats" hidden></span>
 </header>
-<main><aside id="side"><div class="filters">
+<main><aside id="side"><div class="prog" id="prog"></div><div class="filters">
 <select id="f-course"><option value="">All courses</option></select>
 <select id="f-status"><option value="unreviewed">To review</option><option value="needs-fix">Needs fix</option><option value="reviewed">Approved</option><option value="">All</option></select>
 <select id="f-type"><option value="">All types</option><option>core</option><option>case</option><option>hub</option><option>reference</option></select>
@@ -28,5 +35,19 @@
 <button class="b" id="b-skip" title="S or →">Skip</button>
 <a class="b" id="b-obs">Open in Obsidian</a>
 <span class="kbd">Shift+A approve &amp; next · A approve · F needs fix · → next · T my take</span></div></div>
+<div class="settings" id="settings" hidden><h4>Personalise</h4>
+<div class="grp"><span>Your name (for the greeting)</span><input class="sinput" id="s-name" maxlength="40" placeholder="e.g. Henry"></div>
+<div class="grp"><span>Daily goal (notes approved)</span><div class="seg" data-set="goal"><button data-v="3">3</button><button data-v="5">5</button><button data-v="10">10</button><button data-v="15">15</button></div></div>
+<div class="grp"><span>Accent colour</span><div class="seg swatches" data-set="accent"><button data-v="amber" title="Amber"></button><button data-v="teal" title="Teal"></button><button data-v="indigo" title="Indigo"></button><button data-v="rose" title="Rose"></button><button data-v="green" title="Green"></button></div></div>
+<div class="grp"><span>Layout density</span><div class="seg" data-set="density"><button data-v="comfy">Comfortable</button><button data-v="compact">Compact</button></div></div>
+<div class="grp"><span>Text size</span><div class="seg" data-set="size"><button data-v="s">S</button><button data-v="m">M</button><button data-v="l">L</button><button data-v="xl">XL</button></div></div>
+<div class="grp"><span>Theme</span><div class="seg" data-set="theme"><button data-v="auto">Auto</button><button data-v="light">Light</button><button data-v="dark">Dark</button></div></div>
+<div class="grp"><span>Reading font</span><div class="seg" data-set="font"><button data-v="sans">Sans</button><button data-v="serif">Serif</button></div></div>
+<div class="grp"><span>Background photo</span>
+  <div class="photorow"><label class="b small">Choose photo…<input type="file" id="bg-file" accept="image/jpeg,image/png,image/webp" hidden></label><button class="b small" id="bg-remove">Remove</button></div>
+  <span class="tiny">Stays on this laptop only.</span></div>
+<div class="grp"><span>Photo visibility</span><div class="seg" data-set="photo"><button data-v="soft">Soft</button><button data-v="medium">Medium</button><button data-v="strong">Strong</button></div></div>
+<div class="grp"><span>Reading width</span><div class="seg" data-set="width"><button data-v="normal">Normal</button><button data-v="wide">Wide</button></div></div>
+</div>
 <div class="toast" id="toast"></div>
 </body></html>

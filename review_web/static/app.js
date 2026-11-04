@@ -1,4 +1,17 @@
 "use strict";
+// ---- display settings (kept in this browser) ----
+const SET_DEF = {size: "m", theme: "auto", font: "sans", width: "normal", photo: "soft", goal: "5", accent: "amber", density: "comfy", name: ""};
+function getSet() { try { return Object.assign({}, SET_DEF, JSON.parse(localStorage.getItem("mytutor-settings") || "{}")); } catch (e) { return {...SET_DEF}; } }
+function applySet(s) {
+  const r = document.documentElement;
+  r.dataset.size = s.size; r.dataset.font = s.font; r.dataset.width = s.width; r.dataset.photo = s.photo; r.dataset.accent = s.accent; r.dataset.density = s.density;
+  if (s.theme === "auto") delete r.dataset.theme; else r.dataset.theme = s.theme;
+  document.querySelectorAll(".seg[data-set]").forEach(g => g.querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.v === s[g.dataset.set])));
+}
+applySet(getSet());
+function saveSet(k, v) { const s = getSet(); s[k] = v; try { localStorage.setItem("mytutor-settings", JSON.stringify(s)); } catch (e) {} applySet(s); renderProg(); }
+function greeting() { const h = new Date().getHours(), n = getSet().name.trim();
+  return (h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening") + (n ? ", " + n : ""); }
 const CSRF = document.querySelector('meta[name="csrf"]').content;
 let S = {items: [], journals: [], courses: {}, stats: {}}, cur = null, mode = "notes", hist = [];
 const $ = id => document.getElementById(id);
@@ -27,15 +40,19 @@ function filtered() {
   return S.items.filter(i => (!c || i.course === c) && (!s || i.status === s) && (!ty || i.type === ty) && (!q || i.title.toLowerCase().includes(q)));
 }
 function renderProg() {
-  const P = $("prog"); P.innerHTML = "";
-  for (const [c, v] of Object.entries(S.courses).sort()) {
-    const span = document.createElement("span");
-    span.innerHTML = `${esc(c)} ${v.reviewed}/${v.total}<span class="bar"><i></i></span>`;
-    span.querySelector("i").style.width = (v.total ? 100 * v.reviewed / v.total : 0) + "%";
-    P.appendChild(span);
+  const P = $("prog"); if (!P) return; P.innerHTML = "";
+  for (const [c, v] of Object.entries(S.courses || {}).sort()) {
+    const row = document.createElement("div"); row.className = "prow";
+    row.innerHTML = `<span>${esc(c)}</span><span class="bar"><i></i></span><small>${v.reviewed}/${v.total}</small>`;
+    row.querySelector("i").style.width = (v.total ? 100 * v.reviewed / v.total : 0) + "%";
+    P.appendChild(row);
   }
-  const st = S.stats || {};
-  $("stats").textContent = `Today ${st.today || 0} · Streak ${st.streak || 0} day${st.streak === 1 ? "" : "s"}`;
+  const st = S.stats || {}, goal = +getSet().goal || 5, done = st.approved_today ?? st.today ?? 0;
+  $("goal-txt").textContent = `${Math.min(done, 999)}/${goal}`;
+  $("streak-txt").textContent = `today · 🔥${st.streak || 0}`;
+  const ring = $("goal-ring"), C = 2 * Math.PI * 15;
+  ring.style.strokeDasharray = C; ring.style.strokeDashoffset = C * (1 - Math.min(1, done / goal));
+  $("goal").classList.toggle("met", done >= goal);
 }
 function renderList() {
   const L = $("list");
@@ -46,7 +63,7 @@ function renderList() {
   }
   const f = filtered();
   L.innerHTML = `<div class="item"><small>${f.length} note${f.length === 1 ? "" : "s"}</small></div>` + f.slice(0, 500).map(i =>
-    `<div class="item${cur && cur.rel === i.rel ? " on" : ""}${hasDraft(i.rel) ? " draft" : ""}" data-r="${esc(i.rel)}"><b>${esc(i.title)}</b><small>${esc(i.course)} · ${esc(i.day)} · ${esc(i.type)}</small></div>`).join("");
+    `<div class="item${cur && cur.rel === i.rel ? " on" : ""}${hasDraft(i.rel) ? " draft" : ""}" data-r="${esc(i.rel)}"><span class="ico t-${esc(i.type)}">${({case: "🏢", core: "💡", hub: "🔗", reference: "📖"})[i.type] || "📄"}</span><div class="itxt"><b>${esc(i.title)}</b><small>${esc(i.course)} · ${esc(i.day)}</small></div>${i.status === "reviewed" ? '<span class="sdot ok" title="Approved"></span>' : i.status === "needs-fix" ? '<span class="sdot warn" title="Needs fix"></span>' : ""}</div>`).join("");
 }
 async function load() {
   S = await api("/api/summary");
@@ -105,11 +122,11 @@ async function showActivity() {
   const {days, stats} = await api("/api/days");
   const wk = days.filter(d => (Date.now() - new Date(d.day + "T12:00:00")) / 864e5 < 7)
     .reduce((a, d) => ({approve: a.approve + d.approve, take: a.take + d["my-take"], ans: a.ans + d.answer}), {approve: 0, take: 0, ans: 0});
-  $("view").innerHTML = `<div class="doc"><h1>My days</h1>
-    <p class="weekline"><b>Last 7 days:</b> ${plural(wk.approve, "approval")} · ${plural(wk.take, "take")} · ${plural(wk.ans, "reflection")} · streak ${plural(stats.streak || 0, "day")}</p>` +
+  $("view").innerHTML = `<div class="doc"><p class="hello">${esc(greeting())} 👋</p><h1>My days</h1>
+    <p class="weekline"><b>Last 7 days</b></p><div class="tiles weektiles"><span class="tile t-ok"><b>${wk.approve}</b>approved</span><span class="tile t-take"><b>${wk.take}</b>takes</span><span class="tile t-ref"><b>${wk.ans}</b>reflections</span><span class="tile"><b>${stats.streak || 0}🔥</b>day streak</span></div>` +
     (days.map(d => `<div class="daycard" data-day="${d.day}">
       <div class="dayhead"><b>${esc(niceDay(d.day))}</b>
-        <span>${d.approve} approved · ${d["my-take"]} takes · ${d.answer} reflections${d["needs-fix"] ? " · " + d["needs-fix"] + " needs fix" : ""}${d.no_take ? ` · <em class="notake">${d.no_take} approved without a take</em>` : ""}</span>
+        <span><div class="tiles"><span class="tile t-ok"><b>${d.approve}</b>approved</span><span class="tile t-take"><b>${d["my-take"]}</b>takes</span><span class="tile t-ref"><b>${d.answer}</b>reflections</span>${d["needs-fix"] ? `<span class="tile t-warn"><b>${d["needs-fix"]}</b>needs fix</span>` : ""}</div>${d.no_take ? `<em class="notake">${d.no_take} approved without a take</em>` : ""}</span>
         <small>${Object.entries(d.types).map(([t, n]) => { const w = (TYPES[t] || t).toLowerCase(); return `${n} ${n === 1 && w !== "core" ? w.replace(/s$/, "") : w}`; }).join(" · ")}</small>
         <span class="chev">▸</span></div>
       <div class="daybody" hidden></div></div>`).join("") || '<p class="empty">Nothing yet. Approve a note or write a take, and your day shows up here.</p>') + "</div>";
@@ -187,7 +204,7 @@ function setMode(m) {
   $("side").hidden = m === "activity"; document.querySelector("main").classList.toggle("noside", m === "activity"); $("actions").hidden = true;
   document.querySelector(".filters").hidden = $("f-q").hidden = m !== "notes";
   if (m === "activity") return showActivity();
-  $("view").innerHTML = `<div class="empty">${m === "journals" ? "Pick a journal with open prompts." : "Pick a note on the left."}</div>`;
+  $("view").innerHTML = `<div class="empty"><div class="hello">${esc(greeting())} 👋</div>${m === "journals" ? "Pick a journal on the left to reflect on." : "Pick a note on the left to start reviewing."}</div>`;
   renderList();
 }
 document.addEventListener("click", async e => {
@@ -211,6 +228,28 @@ document.addEventListener("click", async e => {
     if (await act("/api/answer", {i: +a.dataset.ans, answer: ta.value}, "Answer saved")) { const nx = cur.prompts.find(q => !q.answer); openQ = nx ? nx.i : +a.dataset.ans; show(); } }
 });
 $("b-ok").onclick = approve; $("b-fix").onclick = fix; $("b-skip").onclick = next;
+$("b-set").onclick = e => { e.stopPropagation(); $("settings").hidden = !$("settings").hidden; applySet(getSet()); };
+document.querySelectorAll(".seg[data-set] button").forEach(b => b.onclick = () => saveSet(b.parentElement.dataset.set, b.dataset.v));
+$("s-name").value = getSet().name; $("s-name").oninput = e => saveSet("name", e.target.value);
+$("b-user").onclick = e => { e.stopPropagation(); $("umenu").hidden = !$("umenu").hidden; };
+document.addEventListener("click", e => { if (!e.target.closest(".usermenu")) $("umenu").hidden = true; });
+document.addEventListener("click", e => { if (!e.target.closest("#settings,#b-set")) $("settings").hidden = true; });
+async function loadPhoto() {
+  try {
+    const r = await fetch("/api/background", {method: "HEAD", credentials: "same-origin", cache: "no-store"});
+    const el = $("bgphoto");
+    if (!r.ok) { el.hidden = true; document.body.classList.remove("hasphoto"); return; }
+    el.style.backgroundImage = `url("/api/background?v=${Date.now()}")`; el.hidden = false; document.body.classList.add("hasphoto");
+  } catch (e) {}
+}
+$("bg-file").onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  const fd = new FormData(); fd.append("photo", f);
+  const r = await fetch("/api/background", {method: "POST", credentials: "same-origin", headers: {"X-CSRF": CSRF}, body: fd});
+  const j = await r.json().catch(() => ({})); toast(r.ok ? "Photo set" : (j.error || "Could not use that photo")); e.target.value = ""; loadPhoto();
+};
+$("bg-remove").onclick = async () => { await api("/api/background/remove", {}); loadPhoto(); toast("Photo removed"); };
+loadPhoto();
 $("b-next").onclick = next; $("b-undo").onclick = undoLast; $("b-okn").onclick = approveNext;
 $("b-sync").onclick = async () => { try { const r = await api("/api/sync", {}); await load(); toast(`Refreshed: ${r.changed} change${r.changed === 1 ? "" : "s"}`); } catch (e) { toast(e.message); } };
 ["f-course", "f-status", "f-type"].forEach(id => $(id).onchange = renderList);
