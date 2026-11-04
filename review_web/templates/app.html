@@ -2,11 +2,12 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="csrf" content="{{ csrf }}">
 <title>myTutor Review</title>
+<link rel="icon" href="{{ url_for('static', filename='logo.svg') }}" type="image/svg+xml">
 <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
 <script src="{{ url_for('static', filename='marked.min.js') }}" defer></script>
 <script src="{{ url_for('static', filename='app.js') }}" defer></script></head>
 <body>
-<header><h1>myTutor Review</h1>
+<header><div class="brand"><img src="{{ url_for('static', filename='logo.svg') }}" alt="" width="34" height="34"><div><h1>myTutor <span>Review</span></h1><p class="tag">Your second brain · read, reflect, apply</p></div></div>
 <nav class="tabs"><button id="t-notes" class="on">Notes</button><button id="t-journals">Reflections</button><button id="t-activity">Activity</button></nav>
 <div class="prog" id="prog"></div>
 <div class="who"><span id="stats"></span><button class="b small" id="b-sync" title="Re-read the vault">Refresh</button>

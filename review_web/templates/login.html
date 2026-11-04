@@ -1,10 +1,12 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>myTutor Review · Log in</title><link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}"></head>
+<title>myTutor Review · Log in</title><link rel="icon" href="{{ url_for('static', filename='logo.svg') }}" type="image/svg+xml">
+<link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}"></head>
 <body class="login-page">
 <form class="login" method="post" action="{{ url_for('login') }}" autocomplete="on">
-  <h1>myTutor Review</h1>
-  <p class="sub">Your second brain, on this laptop only.</p>
+  <img class="logo" src="{{ url_for('static', filename='logo.svg') }}" alt="myTutor logo" width="72" height="72">
+  <h1>myTutor</h1>
+  <p class="sub">Your second brain · read, reflect, apply</p>
   {% if error %}<p class="err">{{ error }}</p>{% endif %}
   <input type="hidden" name="csrf" value="{{ csrf }}">
   <label>Email<input name="username" type="email" autocomplete="username" required {% if disabled %}disabled{% endif %} autofocus></label>
