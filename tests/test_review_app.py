@@ -218,6 +218,14 @@ class AppTests(unittest.TestCase):
         store.sync(self.app.vault)                                     # changed again, same entry: not counted twice
         self.assertEqual(len(store.q("SELECT 1 FROM activity WHERE rel=?", ("C/Day 1/Core/Kodak.md",))), 1)
 
+    def test_existing_obsidian_take_counted_at_start_up(self):
+        p = self.vault / "C/Day 1/Core/Kodak.md"
+        p.write_text(CORE.replace("Disruption", "Kodak") + "\n## My take\n\n### 2026-11-04\n\nWritten in Obsidian\n", encoding="utf-8")
+        self.app.store.sync(self.app.vault)                  # indexed before the import existed...
+        self.app.store.x("DELETE FROM activity")
+        self.assertEqual(self.app.store.import_all_takes(self.app.vault), 1)   # ...still picked up at start-up
+        self.assertEqual(self.app.store.import_all_takes(self.app.vault), 0)   # and only once
+
     def test_paths_outside_vault_are_refused(self):
         self.login()
         self.assertEqual(self.c.get("/api/note?rel=../jobs/mytutor.db").status_code, 404)

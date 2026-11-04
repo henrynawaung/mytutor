@@ -56,6 +56,7 @@ def create_app(vault_root: Path, jobs: Path, obsidian_vault: str = "", testing: 
     vault = core.Vault(vault_root, jobs, obsidian_vault)
     store = core.Store(jobs / "mytutor.db")
     store.sync(vault)
+    store.import_all_takes(vault)
     app.vault, app.store = vault, store
 
     @app.after_request

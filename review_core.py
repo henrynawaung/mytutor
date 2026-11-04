@@ -300,6 +300,18 @@ class Store:
             changed += 1
         return changed
 
+    def import_all_takes(self, vault) -> int:
+        """At start-up: count every dated take already in the vault that the history doesn't have yet."""
+        added = 0
+        for p, rel in vault.notes():
+            try:
+                text = read(p)
+            except OSError:
+                continue
+            if "## My take" in text:
+                added += self.import_takes(rel.as_posix(), text)
+        return added
+
     def import_takes(self, rel: str, text: str) -> int:
         """Takes written straight into a note in Obsidian (under '## My take' → '### YYYY-MM-DD')
         are added to the history once, so My days counts them like takes saved in the app."""
