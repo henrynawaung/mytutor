@@ -37,6 +37,21 @@ class CoreTests(unittest.TestCase):
         t2 = core.add_take(CORE, "First para.\r\n\r\n- point one\n- point two\n1. step", "2026-11-04")
         self.assertTrue(t2.endswith("## My take\n\n### 2026-11-04\n\nFirst para.\n\n- point one\n- point two\n1. step\n"))
 
+    def test_list_edit_and_delete_takes(self):
+        t = core.add_take(core.add_take(HUB, "First\n- a", "2026-11-04"), "Second", "2026-11-05")
+        ts = core.list_takes(t)
+        self.assertEqual([(x["date"], x["body"]) for x in ts], [("2026-11-04", "First\n- a"), ("2026-11-05", "Second")])
+        t2 = core.replace_take(t, 0, "First, improved")
+        self.assertEqual([x["body"] for x in core.list_takes(t2)], ["First, improved", "Second"])
+        self.assertIn("## Next\nx", t2)                                   # the section after stays
+        t3 = core.replace_take(t2, 1, "")
+        self.assertEqual([x["date"] for x in core.list_takes(t3)], ["2026-11-04"])
+        self.assertNotIn("My take", core.strip_take_section(t3))
+        self.assertIn("## Next", core.strip_take_section(t3))
+        bare = core.replace_take(core.add_take(CORE, "Only one", "2026-11-04"), 0, "")
+        self.assertNotIn("## My take", bare)                                # empty section removed
+        self.assertTrue(bare.startswith(CORE.rstrip("\n")))
+
     def test_prompts_and_answer(self):
         ps = core.prompts(JOURNAL)
         self.assertEqual([p["question"] for p in ps], ["Where is silence hiding disagreement?", "Second?"])
@@ -225,6 +240,22 @@ class AppTests(unittest.TestCase):
         self.app.store.x("DELETE FROM activity")
         self.assertEqual(self.app.store.import_all_takes(self.app.vault), 1)   # ...still picked up at start-up
         self.assertEqual(self.app.store.import_all_takes(self.app.vault), 0)   # and only once
+
+    def test_edit_and_delete_take_via_api(self):
+        self.login()
+        tok = self.api_csrf()
+        n = self.c.get("/api/note?rel=C/Day 1/Core/Kodak.md").get_json()
+        n = self.c.post("/api/take", json={"rel": n["rel"], "mtime": n["mtime"], "take": "Wrong note"}, headers={"X-CSRF": tok}).get_json()["note"]
+        n = self.c.post("/api/approve", json={"rel": n["rel"], "mtime": n["mtime"]}, headers={"X-CSRF": tok}).get_json()["note"]
+        self.assertEqual([x["body"] for x in n["takes"]], ["Wrong note"])
+        self.assertNotIn("My take", n["body"])
+        e = self.c.post("/api/take-edit", json={"rel": n["rel"], "mtime": n["mtime"], "i": 0, "body": "Better"}, headers={"X-CSRF": tok}).get_json()
+        self.assertEqual(e["note"]["takes"][0]["body"], "Better")
+        d = self.c.post("/api/take-edit", json={"rel": n["rel"], "mtime": e["note"]["mtime"], "i": 0, "body": ""}, headers={"X-CSRF": tok}).get_json()
+        self.assertEqual(d["note"]["takes"], [])
+        u = self.c.post("/api/undo", json={"rel": n["rel"], "mtime": d["note"]["mtime"], "status": "unreviewed"}, headers={"X-CSRF": tok})
+        day = self.c.get("/api/days").get_json()["days"][0]
+        self.assertEqual((day["approve"], day["my-take"]), (0, 0))            # deleted take and undone approval no longer count
 
     def test_paths_outside_vault_are_refused(self):
         self.login()

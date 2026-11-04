@@ -106,9 +106,17 @@ function show() {
     openQ = null;
     $("actions").hidden = true; return;
   }
-  V.innerHTML = `<div class="doc"><div class="meta">${chips}</div>${md(n.body)}</div>
-    <div class="take"><label for="take">My take (saved into the note, dated)</label><textarea id="take" placeholder="In my own words / where I have seen this / what I would do with it…"></textarea>
+  const takes = n.takes || [];
+  V.innerHTML = `<div class="doc"><div class="meta">${chips}${p.status === "reviewed" || p.status === "needs-fix" ? '<button class="b small" id="b-unrev" title="Set this note back to not reviewed">Mark not reviewed</button>' : ""}</div>${md(n.body)}</div>
+    ${takes.length ? `<div class="takes"><h3>✎ My takes on this note (${takes.length})</h3>` + takes.map(t => `
+      <div class="tk" data-tk="${t.i}"><div class="tkhead"><b>${t.date ? esc(niceDay(t.date)) : "Earlier (undated)"}</b>
+        <span><button class="b small" data-tkedit="${t.i}">Edit</button><button class="b small warn" data-tkdel="${t.i}">Delete</button></span></div>
+        <div class="md tkview">${md(t.body)}</div>
+        <div class="tkedit" hidden><textarea data-tkta="${t.i}">${esc(t.body)}</textarea>
+          <div class="gap"><button class="b ok small" data-tksave="${t.i}">Save changes</button> <button class="b small" data-tkcancel="${t.i}">Cancel</button></div></div></div>`).join("") + "</div>" : ""}
+    <div class="take"><label for="take">${takes.length ? "Add another take on" : "Your take on"}: <b class="takefor">${esc(n.title)}</b></label><textarea id="take" placeholder="In my own words / where I have seen this / what I would do with it…"></textarea>
     <div class="gap"><button class="b" id="b-take">Save my take</button></div></div>`;
+  if ($("b-unrev")) $("b-unrev").onclick = async () => { if (await act("/api/undo", {status: "unreviewed"}, "")) { show(); banner("↩ Back to not reviewed: " + cur.title, "info", false); } };
   $("actions").hidden = false;
   const o = $("b-obs"); if (n.obsidian) { o.href = n.obsidian; o.hidden = false; } else o.hidden = true;
   V.scrollTop = 0; $("b-take").onclick = saveTake; enhance($("take"), {template: true});
@@ -216,6 +224,18 @@ document.addEventListener("click", async e => {
   const it = e.target.closest(".item[data-r]"); if (it) return openNote(it.dataset.r);
   const wl = e.target.closest("a.wl");
   if (wl) { e.preventDefault(); const r = await api("/api/find?title=" + encodeURIComponent(wl.dataset.t)); r.rel ? openNote(r.rel) : toast(`No note called “${wl.dataset.t}” yet`); return; }
+  const te = e.target.closest("[data-tkedit]");
+  if (te) { const box = te.closest(".tk"); box.querySelector(".tkview").hidden = true; box.querySelector(".tkedit").hidden = false;
+    const ta = box.querySelector("textarea"); enhance(ta); ta.dispatchEvent(new Event("input")); ta.focus(); te.parentElement.hidden = true; return; }
+  const tc = e.target.closest("[data-tkcancel]");
+  if (tc) { show(); return; }
+  const ts = e.target.closest("[data-tksave]");
+  if (ts) { const i = +ts.dataset.tksave, body = document.querySelector(`[data-tkta="${i}"]`).value;
+    if (!body.trim()) return toast("Empty: use Delete to remove a take");
+    if (await act("/api/take-edit", {i, body}, "")) { show(); banner("✓ Take updated: " + cur.title, "ok", false); } return; }
+  const td = e.target.closest("[data-tkdel]");
+  if (td) { if (!confirmDelete(td)) return;
+    if (await act("/api/take-edit", {i: +td.dataset.tkdel, body: ""}, "")) { show(); banner("🗑 Take deleted from: " + cur.title, "info", false); } return; }
   const qh = e.target.closest("[data-qh]");
   if (qh) { const box = qh.parentElement, was = box.classList.contains("active");
     document.querySelectorAll(".prompt.acc").forEach(p => p.classList.remove("active"));
@@ -359,4 +379,11 @@ async function loadContext(rel) {
     + sec("🏢", "Cases", c.cases, false)
     + (c.phrases && c.phrases.length ? `<h3>🔤 Boardroom English</h3><ul class="phr">` + c.phrases.map(p => `<li><b>${esc(p.phrase)}</b> ${esc(p.meaning)}</li>`).join("") + "</ul>" : "")
     || '<p class="muted">No linked material for this day.</p>';
+}
+
+function confirmDelete(btn) {                 // two-step delete without a browser dialog: click again to confirm
+  if (btn.dataset.armed) return true;
+  btn.dataset.armed = "1"; const old = btn.textContent; btn.textContent = "Click again to delete";
+  setTimeout(() => { delete btn.dataset.armed; btn.textContent = old; }, 3000);
+  return false;
 }

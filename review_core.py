@@ -79,6 +79,75 @@ def add_take(text: str, take: str, today: str) -> str:
     return text[:m.end()] + section + f"\n\n{entry}" + ("\n" + text[end:] if nxt else "")
 
 
+TAKE_SECTION = re.compile(r"^## My take[ \t]*\n", re.M)
+TAKE_DATE = re.compile(r"^### (\d{4}-\d{2}-\d{2})[ \t]*$", re.M)
+TEMPLATE_ONLY = re.compile(r"\*\*[^*\n]+:\*\*|\s")
+
+
+def _take_span(text: str):
+    m = TAKE_SECTION.search(text)
+    if not m:
+        return None
+    nxt = re.search(r"^## ", text[m.end():], re.M)
+    return m.start(), m.end(), (m.end() + nxt.start() if nxt else len(text))
+
+
+def list_takes(text: str) -> list:
+    """The dated entries under '## My take': [{i, date, body}]. Text before the first date counts as an
+    undated entry only if it holds real writing (not just the hub's empty prompts)."""
+    sp = _take_span(text)
+    if not sp:
+        return []
+    sec = text[sp[1]:sp[2]]
+    marks = list(TAKE_DATE.finditer(sec))
+    out = []
+    pre = sec[:marks[0].start()] if marks else sec
+    if TEMPLATE_ONLY.sub("", pre):
+        out.append({"date": "", "body": pre.strip()})
+    for k, m in enumerate(marks):
+        end = marks[k + 1].start() if k + 1 < len(marks) else len(sec)
+        out.append({"date": m.group(1), "body": sec[m.end():end].strip()})
+    for i, e in enumerate(out):
+        e["i"] = i
+    return out
+
+
+def replace_take(text: str, i: int, body: str) -> str:
+    """Rewrite (or, with an empty body, delete) one entry under '## My take'; everything else stays."""
+    sp = _take_span(text)
+    takes = list_takes(text)
+    if not sp or not (0 <= i < len(takes)):
+        raise ValueError("no such take")
+    sec = text[sp[1]:sp[2]]
+    marks = list(TAKE_DATE.finditer(sec))
+    pre_end = marks[0].start() if marks else len(sec)
+    has_pre = takes[0]["date"] == ""
+    pieces = []                                                   # (start, end) of each entry inside sec
+    if has_pre:
+        pieces.append((0, pre_end))
+    for k, m in enumerate(marks):
+        pieces.append((m.start(), marks[k + 1].start() if k + 1 < len(marks) else len(sec)))
+    a, b = pieces[i]
+    body = clean_block(body)
+    if body:
+        new = (f"### {takes[i]['date']}\n\n{body}\n\n" if takes[i]["date"] else f"\n{body}\n\n")
+    else:
+        new = ""
+    sec2 = sec[:a] + new + sec[b:]
+    sec2 = re.sub(r"\n{3,}", "\n\n", sec2)
+    if not TEMPLATE_ONLY.sub("", sec2) and not TAKE_DATE.search(sec2) and "**" not in sec2:
+        head, tail = text[:sp[0]].rstrip("\n") + "\n", text[sp[2]:]       # nothing left: drop the empty section
+        return head + ("\n" + tail if tail else "")
+    tail = text[sp[2]:]
+    return text[:sp[1]] + "\n" + sec2.strip("\n") + "\n" + ("\n" + tail if tail else "")
+
+
+def strip_take_section(text: str) -> str:
+    """The note without its '## My take' section (shown separately in the app)."""
+    sp = _take_span(text)
+    return text if not sp else (text[:sp[0]].rstrip("\n") + "\n" + text[sp[2]:])
+
+
 BOUNDARY = re.compile(r"^(?:\*\*\d+\.|## |My answer:)", re.M)
 
 
@@ -182,7 +251,8 @@ class Vault:
     def note(self, rel: str) -> dict:
         p = self.path(rel)
         text = read(p)
-        out = {"rel": rel, "title": p.stem, "props": props(text), "body": body(text),
+        out = {"rel": rel, "title": p.stem, "props": props(text), "body": strip_take_section(body(text)),
+               "takes": list_takes(text),
                "mtime": str(p.stat().st_mtime_ns), "prompts": prompts(text)}
         if self.obsidian_vault:
             vault_rel = self.root.name + "/" + rel[:-3]
@@ -354,7 +424,7 @@ class Store:
         appr = self.q("SELECT COUNT(DISTINCT rel) n FROM activity WHERE substr(at,1,10)=? AND action='approve'", (today,))[0]["n"]
         return {"today": done, "streak": streak, "approved_today": appr}
 
-    WORK = ("approve", "needs-fix", "my-take", "answer", "undo")
+    WORK = ("approve", "needs-fix", "my-take", "answer", "undo", "edit-take", "delete-take")
 
     def has_take(self, vault, rel: str) -> bool:
         """A take saved in the app at any time, or one written straight into the note in Obsidian."""
@@ -374,28 +444,33 @@ class Store:
         rows = self.q("SELECT substr(a.at,1,10) d, a.action, a.rel, COALESCE(n.type,'') type FROM activity a "
                       "LEFT JOIN notes n ON n.rel=a.rel WHERE a.action IN (%s) ORDER BY a.id" % ",".join("?" * len(self.WORK)),
                       self.WORK)
-        out = {}
+        out, final = {}, {}
         for r in rows:
             d = out.setdefault(r["d"], {"day": r["d"], "approve": 0, "needs-fix": 0, "my-take": 0, "answer": 0,
                                         "notes": set(), "types": {}})
-            seen = d.setdefault("_seen", set())
-            if r["action"] in d and (r["action"] == "my-take" or (r["action"], r["rel"]) not in seen):
-                d[r["action"]] += 1                 # a note approved twice in a day counts once
-                seen.add((r["action"], r["rel"]))
+            if r["action"] in ("approve", "needs-fix", "undo"):
+                final[(r["d"], r["rel"])] = r["action"]          # the note's last status action that day
+            elif r["action"] in ("my-take", "answer"):
+                d[r["action"]] += 1
             if r["rel"] not in d["notes"]:
                 d["notes"].add(r["rel"])
                 t = "reflection" if r["type"] == "theme" else (r["type"] or "other")
                 d["types"][t] = d["types"].get(t, 0) + 1
-        days = sorted(out.values(), key=lambda x: x["day"], reverse=True)[:n]
         approved = {}
-        for r in rows:
-            if r["action"] == "approve" and r["type"] != "theme":
-                approved.setdefault(r["d"], set()).add(r["rel"])
+        for (day, rel), act in final.items():
+            if act in ("approve", "needs-fix"):
+                out[day][act] += 1                                  # approved twice or undone: counted correctly
+            if act == "approve":
+                approved.setdefault(day, set()).add(rel)
+        days = sorted(out.values(), key=lambda x: x["day"], reverse=True)[:n]
         for d in days:
-            d.pop("_seen", None)
             d["notes"] = len(d["notes"])
             d["no_take"] = sum(1 for rel in approved.get(d["day"], ()) if vault and not self.has_take(vault, rel))
         return days
+
+    def forget_take(self, rel: str, day: str):
+        """A take deleted in the app no longer counts for that day."""
+        self.x("DELETE FROM activity WHERE rel=? AND action='my-take' AND substr(at,1,10)=?", (rel, day))
 
     def day(self, day: str, vault=None) -> list:
         """Everything done on one day, grouped by note: title, type, course and each action with its text."""

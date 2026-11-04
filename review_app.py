@@ -289,6 +289,23 @@ def create_app(vault_root: Path, jobs: Path, obsidian_vault: str = "", testing: 
             pass
         return change(lambda t: core.set_props(t, {"status": "reviewed", "reviewed_on": today}), "approve")
 
+    @app.post("/api/take-edit")
+    @login_required
+    def take_edit():
+        d = request.get_json(silent=True) or {}
+        try:
+            i, text = int(d.get("i", -1)), str(d.get("body", ""))
+            entry = core.list_takes(core.read(vault.path(d["rel"])))[i]
+        except (KeyError, ValueError, IndexError, OSError):
+            return jsonify(ok=False, error="That take was not found. Reload the note."), 400
+        r = change(lambda t: core.replace_take(t, i, text), "edit-take" if text.strip() else "delete-take",
+                   text.strip() or entry["body"])
+        if not text.strip() and entry["date"] and r[1] == 200:
+            left = [e for e in core.list_takes(core.read(vault.path(d["rel"]))) if e["date"] == entry["date"]]
+            if not left:
+                store.forget_take(d["rel"], entry["date"])
+        return r
+
     @app.post("/api/undo")
     @login_required
     def undo():
