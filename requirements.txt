@@ -10,3 +10,6 @@ anthropic==1.15.0
 # Only for "mode": "graph" in retrieve.py. Synced mode needs nothing extra.
 msal>=1.28
 requests>=2.31
+
+# Review web app (review_app.py)
+flask==3.1.3

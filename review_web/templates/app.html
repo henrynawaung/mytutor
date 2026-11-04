@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="csrf" content="{{ csrf }}">
+<title>myTutor Review</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+<script src="{{ url_for('static', filename='marked.min.js') }}" defer></script>
+<script src="{{ url_for('static', filename='app.js') }}" defer></script></head>
+<body>
+<header><h1>myTutor Review</h1>
+<nav class="tabs"><button id="t-notes" class="on">Notes</button><button id="t-journals">Reflections</button><button id="t-activity">Activity</button></nav>
+<div class="prog" id="prog"></div>
+<div class="who"><span id="stats"></span><button class="b small" id="b-sync" title="Re-read the vault">Refresh</button>
+<form method="post" action="{{ url_for('logout') }}"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="b small">Log out ({{ user }})</button></form></div>
+</header>
+<main><aside id="side"><div class="filters">
+<select id="f-course"><option value="">All courses</option></select>
+<select id="f-status"><option value="unreviewed">To review</option><option value="needs-fix">Needs fix</option><option value="reviewed">Reviewed</option><option value="">All</option></select>
+<select id="f-type"><option value="">All types</option><option>core</option><option>case</option><option>hub</option><option>reference</option></select>
+</div><input id="f-q" class="search" placeholder="Search titles…"><div id="list"></div></aside>
+<section id="view"><div class="empty">Pick a note on the left.</div></section></main>
+<div class="actions" id="actions" hidden><div class="row">
+<button class="b ok" id="b-ok" title="A">Approve</button>
+<button class="b warn" id="b-fix" title="F">Needs fix</button>
+<button class="b" id="b-skip" title="S or →">Skip</button>
+<a class="b" id="b-obs">Open in Obsidian</a>
+<span class="kbd">A approve · F needs fix · S / → next · ← back · T my take</span></div></div>
+<div class="toast" id="toast"></div>
+</body></html>
