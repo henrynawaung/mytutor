@@ -160,6 +160,10 @@ class AppTests(unittest.TestCase):
         self.assertEqual([a["action"] for a in items[0]["actions"]], ["my-take", "approve"])
         self.assertEqual(items[0]["actions"][0]["detail"], "- my point")
         self.assertTrue(items[0]["has_take"])
+        k = self.c.get("/api/note?rel=C/Day 1/Core/Kodak.md").get_json()
+        again = self.c.post("/api/approve", json={"rel": k["rel"], "mtime": k["mtime"]}, headers={"X-CSRF": tok}).get_json()
+        self.assertTrue(again.get("already"))
+        self.assertEqual(self.c.get("/api/days").get_json()["days"][0]["approve"], 1)    # approving twice counts once
         m = self.c.get("/api/note?rel=C/Day 1/Core/Disruption.md").get_json()
         self.c.post("/api/approve", json={"rel": m["rel"], "mtime": m["mtime"]}, headers={"X-CSRF": tok})
         self.assertEqual(self.c.get("/api/days").get_json()["days"][0]["no_take"], 1)

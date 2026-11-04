@@ -326,8 +326,10 @@ class Store:
         for r in rows:
             d = out.setdefault(r["d"], {"day": r["d"], "approve": 0, "needs-fix": 0, "my-take": 0, "answer": 0,
                                         "notes": set(), "types": {}})
-            if r["action"] in d:
-                d[r["action"]] += 1
+            seen = d.setdefault("_seen", set())
+            if r["action"] in d and (r["action"] == "my-take" or (r["action"], r["rel"]) not in seen):
+                d[r["action"]] += 1                 # a note approved twice in a day counts once
+                seen.add((r["action"], r["rel"]))
             if r["rel"] not in d["notes"]:
                 d["notes"].add(r["rel"])
                 t = "reflection" if r["type"] == "theme" else (r["type"] or "other")
@@ -338,6 +340,7 @@ class Store:
             if r["action"] == "approve" and r["type"] != "theme":
                 approved.setdefault(r["d"], set()).add(r["rel"])
         for d in days:
+            d.pop("_seen", None)
             d["notes"] = len(d["notes"])
             d["no_take"] = sum(1 for rel in approved.get(d["day"], ()) if vault and not self.has_take(vault, rel))
         return days

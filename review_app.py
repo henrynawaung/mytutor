@@ -197,6 +197,12 @@ def create_app(vault_root: Path, jobs: Path, obsidian_vault: str = "", testing: 
     @login_required
     def approve():
         today = date.today().isoformat()
+        d = request.get_json(silent=True) or {}
+        try:
+            if core.props(core.read(vault.path(d.get("rel", "")))).get("status") == "reviewed":
+                return jsonify(ok=True, note=vault.note(d["rel"]), already=True)   # approve once, count once
+        except (KeyError, ValueError, OSError):
+            pass
         return change(lambda t: core.set_props(t, {"status": "reviewed", "reviewed_on": today}), "approve")
 
     @app.post("/api/undo")

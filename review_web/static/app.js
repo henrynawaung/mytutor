@@ -63,8 +63,10 @@ async function openNote(rel, push = true) {
 }
 function show() {
   const n = cur, p = n.props, V = $("view");
-  const chips = [p.course, p.type, n.rel.split("/")[1], p.status].filter(Boolean).map(x => `<span class="chip st-${esc(x)}">${esc(x)}</span>`).join("")
-    + (p.reviewed_on ? `<span class="chip">reviewed ${esc(p.reviewed_on)}</span>` : "")
+  const ST = {"reviewed": ["✓ Approved", "ok"], "needs-fix": ["⚑ Needs fix", "warn"], "unreviewed": ["○ Not reviewed yet", "todo"]};
+  const st = ST[p.status] || (p.status ? [p.status, "todo"] : null);
+  const pill = st && mode !== "journals" ? `<div class="statuspill ${st[1]}">${st[0]}${p.status === "reviewed" && p.reviewed_on ? `<small>on ${esc(p.reviewed_on)}</small>` : ""}</div>` : "";
+  const chips = pill + [p.course, p.type, n.rel.split("/")[1]].filter(Boolean).map(x => `<span class="chip">${esc(x)}</span>`).join("")
     + (p.fix_note ? `<span class="chip st-needs-fix">fix: ${esc(p.fix_note)}</span>` : "");
   if (mode === "journals") {
     V.innerHTML = `<div class="doc"><div class="meta">${chips}</div><h1>${esc(n.title)}</h1>` + n.prompts.map(q =>
@@ -143,19 +145,30 @@ async function setStatus(path, extra, msg, kind) {
   if (draft && !(await act("/api/take", {take: draft}, ""))) return;     // never lose an unsaved take
   if (await act(path, extra, "")) { show(); undoStatus = before; banner(msg + title + (draft ? " (your take was saved too)" : ""), kind, true); }
 }
-async function approve() { await setStatus("/api/approve", null, "✓ Approved and saved: ", "ok"); }
+async function approve() {
+  if (cur.props.status === "reviewed") return saveTake();     // already approved: just save the take
+  await setStatus("/api/approve", null, "✓ Approved and saved: ", "ok");
+}
 async function approveNext() {
   const title = cur.title, draft = $("take") && $("take").value.trim();
   if (draft && !(await act("/api/take", {take: draft}, ""))) return;
+  if (cur.props.status === "reviewed") {                      // already approved: save take (if any) and move on
+    await next(); if (draft) banner("✓ Take saved: " + title + "  ·  now on the next note", "ok", false, false); return;
+  }
   if (await act("/api/approve", null, "")) { await next(); banner("✓ Approved" + (draft ? " and take saved" : "") + ": " + title + "  ·  now on the next note", "ok", false, false); }
 }
 function labels() {
-  const has = $("take") && $("take").value.trim();
-  $("b-okn").textContent = has ? "Save take, Approve & Next →" : "Approve & Next →";
-  $("b-ok").textContent = has ? "Save take & Approve" : "Approve";
+  const has = $("take") && $("take").value.trim(), done = cur && cur.props.status === "reviewed";
+  if (done) {                                   // already approved: only saving takes from now on
+    $("b-okn").textContent = has ? "Save take & Next →" : "Next →";
+    $("b-ok").textContent = "Save take"; $("b-ok").disabled = !has;
+  } else {
+    $("b-okn").textContent = has ? "Save take, Approve & Next →" : "Approve & Next →";
+    $("b-ok").textContent = has ? "Save take & Approve" : "Approve"; $("b-ok").disabled = false;
+  }
 }
 async function fix() { const why = prompt("What needs fixing?"); if (why === null) return; await setStatus("/api/needs-fix", {why}, "⚑ Marked for fixing: ", "warn"); }
-async function undoLast() { if (!undoStatus) return; const s = undoStatus; if (await act("/api/undo", {status: s}, "")) { show(); banner("↩ Undone. Status is back to " + s + ": " + cur.title, "info", false); } }
+async function undoLast() { if (!undoStatus) return; const s = undoStatus; if (await act("/api/undo", {status: s}, "")) { show(); banner("↩ Undone. Back to " + ({"unreviewed": "not reviewed yet", "reviewed": "approved", "needs-fix": "needs fix"}[s] || s) + ": " + cur.title, "info", false); } }
 async function saveTake() { const t = $("take").value.trim(); if (!t) return; if (await act("/api/take", {take: t}, "")) { show(); banner("✓ Take saved: " + cur.title, "ok", false); } }
 function setMode(m) {
   mode = m; cur = null;

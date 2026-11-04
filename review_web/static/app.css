@@ -88,3 +88,9 @@ table.act td:first-child{color:var(--muted);white-space:nowrap}
 .upd{margin:8px 0}.upd small{color:var(--muted)}.upd .md{border-left:3px solid var(--brand);padding-left:10px;margin-top:4px}
 main.noside{grid-template-columns:1fr}
 .notake{color:var(--warn);font-style:normal}.chip.notake{color:var(--warn);border:1px dashed var(--warn);background:none}p.notake{font-size:13px;margin:6px 0}
+.meta{align-items:center}
+.statuspill{display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:14px;padding:5px 14px;border-radius:999px;margin-right:6px}
+.statuspill small{font-weight:500;opacity:.8}
+.statuspill.ok{background:color-mix(in srgb,var(--ok) 22%,transparent);color:var(--ok);border:1px solid var(--ok)}
+.statuspill.warn{background:color-mix(in srgb,var(--warn) 20%,transparent);color:var(--warn);border:1px solid var(--warn)}
+.statuspill.todo{background:var(--chip);color:var(--muted);border:1px dashed var(--muted)}
