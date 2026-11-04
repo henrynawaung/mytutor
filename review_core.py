@@ -111,6 +111,24 @@ def answer_prompt(text: str, i: int, answer: str) -> str:
     return text[:m.start()] + block + ("\n" + rest if rest else "")
 
 
+LISTLINE = re.compile(r"^- (Reference|Core|Cases)\s*:\s*(.*)$", re.M | re.I)
+WIKI = re.compile(r"\[\[([^\]|#]+)(?:[#|][^\]]*)?\]\]")
+PHRASE = re.compile(r"^- \*\*(.+?)\*\*:\s*(.*?)\s*\*\((\S+?),")
+
+
+def safe_title(name: str) -> str:
+    name = re.sub(r'[\\\\/:*?"<>|]+', " ", name)
+    return re.sub(r"\\s{2,}", " ", name).strip().rstrip(". ")
+
+
+def journal_links(text: str) -> dict:
+    """{'reference': [titles], 'core': [...], 'cases': [...]} from the journal's 'This day's notes' list."""
+    out = {"reference": [], "core": [], "cases": []}
+    for kind, rest in LISTLINE.findall(text):
+        out[kind.lower()] += [t.strip() for t in WIKI.findall(rest)]
+    return out
+
+
 # ------------------------------------------------------------------ vault index
 
 class Vault:

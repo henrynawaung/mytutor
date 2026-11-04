@@ -94,3 +94,14 @@ main.noside{grid-template-columns:1fr}
 .statuspill.ok{background:color-mix(in srgb,var(--ok) 22%,transparent);color:var(--ok);border:1px solid var(--ok)}
 .statuspill.warn{background:color-mix(in srgb,var(--warn) 20%,transparent);color:var(--warn);border:1px solid var(--warn)}
 .statuspill.todo{background:var(--chip);color:var(--muted);border:1px dashed var(--muted)}
+.jgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start}
+.ctx{position:sticky;top:0;max-height:calc(100vh - 110px);overflow:auto;padding-right:6px}
+.ctxhead{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:4px}
+.ctx h3{font-size:14px;margin:16px 0 6px}.muted{color:var(--muted)}
+.cc{border:1px solid var(--line);border-radius:10px;background:var(--panel);margin:6px 0;padding:0 12px}
+.cc summary{cursor:pointer;padding:9px 0;font-weight:600}.cc[open] summary{border-bottom:1px solid var(--line);margin-bottom:6px}
+.cc .md{font-size:14px}.cc .b{margin:6px 0 10px}.cc.missing{padding:9px 12px;color:var(--muted)}
+.phr{padding-left:1.1em;font-size:14px}.phr li{margin:4px 0}.phr b{display:block}
+.qcol{margin:0;max-width:none}
+@media (max-width:1100px){.jgrid{grid-template-columns:1fr}.ctx{position:static;max-height:none}}
+.ctx a{color:var(--accent);word-break:break-word}.ctx a.wl{border-bottom:1px dotted var(--accent);cursor:pointer;text-decoration:none}

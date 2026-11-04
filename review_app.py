@@ -175,6 +175,42 @@ def create_app(vault_root: Path, jobs: Path, obsidian_vault: str = "", testing: 
             return jsonify(error="Bad date."), 400
         return jsonify(store.day(d, vault=vault))
 
+    @app.get("/api/context")
+    @login_required
+    def context():
+        """The day's material for a journal: brief, core concepts, cases and Boardroom English phrases."""
+        try:
+            jp = vault.path(request.args["rel"])
+        except (KeyError, ValueError):
+            return jsonify(error="Not found."), 404
+        text = core.read(jp)
+        day_dir = Path(request.args["rel"]).parent.as_posix()
+        out = {}
+        for kind, titles in core.journal_links(text).items():
+            items = []
+            for title in titles:
+                rows = store.q("SELECT rel FROM notes WHERE lower(trim(title))=lower(trim(?)) "
+                               "ORDER BY (rel LIKE ?) DESC LIMIT 1", (core.safe_title(title) if hasattr(core, "safe_title") else title,
+                                                                    day_dir + "/%"))
+                if not rows:
+                    rows = store.q("SELECT rel FROM notes WHERE lower(trim(title))=lower(trim(?)) LIMIT 1", (title,))
+                if rows:
+                    n = vault.note(rows[0]["rel"])
+                    items.append({"title": n["title"], "rel": n["rel"], "body": n["body"]})
+                else:
+                    items.append({"title": title, "rel": None, "body": ""})
+            out[kind] = items
+        day = Path(request.args["rel"]).parent.name
+        phrases = []
+        book = jp.parent.parent / "Boardroom English Phrasebook.md"
+        if book.exists():
+            for line in core.read(book).splitlines():
+                m = core.PHRASE.match(line)
+                if m and m.group(3) == day:
+                    phrases.append({"phrase": m.group(1), "meaning": m.group(2)})
+        out["phrases"] = phrases
+        return jsonify(out)
+
     @app.get("/api/recent")
     @login_required
     def recent():

@@ -69,12 +69,13 @@ function show() {
   const chips = pill + [p.course, p.type, n.rel.split("/")[1]].filter(Boolean).map(x => `<span class="chip">${esc(x)}</span>`).join("")
     + (p.fix_note ? `<span class="chip st-needs-fix">fix: ${esc(p.fix_note)}</span>` : "");
   if (mode === "journals") {
-    V.innerHTML = `<div class="doc"><div class="meta">${chips}</div><h1>${esc(n.title)}</h1>` + n.prompts.map(q =>
+    V.innerHTML = `<div class="jgrid"><div class="ctx" id="ctx"><p class="muted">Loading the day's material…</p></div><div class="doc qcol"><div class="meta">${chips}</div><h1>${esc(n.title)}</h1>` + n.prompts.map(q =>
       `<div class="prompt"><p>${esc(q.question)}</p>` + (q.answer
         ? `<div class="done md">${md(q.answer)}</div><div class="gap"><button class="b small" data-edit="${q.i}">Edit answer</button></div>
            <div class="editwrap" data-w="${q.i}" hidden><textarea data-i="${q.i}">${esc(q.answer)}</textarea><div class="gap"><button class="b ok" data-ans="${q.i}">Save answer</button></div></div>`
         : `<textarea data-i="${q.i}" placeholder="My answer, in my own words…"></textarea><div class="gap"><button class="b ok" data-ans="${q.i}">Save answer</button></div>`)
-      + `</div>`).join("") + "</div>";
+      + `</div>`).join("") + "</div></div>";
+    loadContext(n.rel);
     V.querySelectorAll("textarea").forEach(ta => { keepDraft(ta, dkey("ans", n.rel, ta.dataset.i)); enhance(ta); });
     $("actions").hidden = true; return;
   }
@@ -287,4 +288,20 @@ function insertTemplate(ta) {
   const at = ta.value.indexOf("#### 💭 My experience and observation\n", pos) + "#### 💭 My experience and observation\n".length;
   ta.setSelectionRange(at, at);                                    // cursor ready under "My experience"
   ta.dispatchEvent(new Event("input"));
+}
+
+async function loadContext(rel) {
+  let c; try { c = await api("/api/context?rel=" + encodeURIComponent(rel)); } catch (e) { $("ctx").innerHTML = `<p class="muted">${esc(e.message)}</p>`; return; }
+  if (!cur || cur.rel !== rel) return;
+  const card = (n, open) => n.rel
+    ? `<details class="cc"${open ? " open" : ""}><summary>${esc(n.title)}</summary><div class="md">${md(n.body.replace(/^#\s.*\n/, ""))}</div>
+        <button class="b small" data-open="${esc(n.rel)}" data-kind="notes">Open note</button></details>`
+    : `<div class="cc missing">${esc(n.title)} <small>(note not found)</small></div>`;
+  const sec = (icon, title, items, open) => items && items.length ? `<h3>${icon} ${title}</h3>` + items.map(i => card(i, open)).join("") : "";
+  $("ctx").innerHTML = `<div class="ctxhead">The day's material</div>`
+    + sec("📖", "The brief", c.reference, true)
+    + sec("💡", `Core concepts (${(c.core || []).length})`, c.core, false)
+    + sec("🏢", "Cases", c.cases, false)
+    + (c.phrases && c.phrases.length ? `<h3>🔤 Boardroom English</h3><ul class="phr">` + c.phrases.map(p => `<li><b>${esc(p.phrase)}</b> ${esc(p.meaning)}</li>`).join("") + "</ul>" : "")
+    || '<p class="muted">No linked material for this day.</p>';
 }

@@ -171,6 +171,21 @@ class AppTests(unittest.TestCase):
         self.assertEqual(noted, {"Kodak": True, "Disruption": False})
         self.assertEqual(self.c.get("/api/day?d=../x").status_code, 400)
 
+    def test_journal_context(self):
+        p = self.vault / "B" / "2026-11-01" / "J.md"
+        p.write_text(JOURNAL.replace("# J\n", "# J\n\n## This day's notes\n- Reference: [[Kodak]]\n- Core: [[Disruption]], [[Missing One]]\n- Cases: (none)\n"),
+                     encoding="utf-8")
+        (self.vault / "B" / "Boardroom English Phrasebook.md").write_text(
+            "# P\n- **Staged commitment**: fund in steps. *(2026-11-01, [[Kodak]])*\n- **Other**: x. *(2026-10-10, [[Y]])*\n", encoding="utf-8")
+        self.app.store.sync(self.app.vault)
+        self.login()
+        c = self.c.get("/api/context?rel=B/2026-11-01/J.md").get_json()
+        self.assertEqual(c["reference"][0]["title"], "Kodak")
+        self.assertIn("Text [[Kodak]]", c["reference"][0]["body"].replace("Disruption", "Kodak"))
+        self.assertEqual([x["title"] for x in c["core"]], ["Disruption", "Missing One"])
+        self.assertIsNone(c["core"][1]["rel"])
+        self.assertEqual(c["phrases"], [{"phrase": "Staged commitment", "meaning": "fund in steps."}])
+
     def test_paths_outside_vault_are_refused(self):
         self.login()
         self.assertEqual(self.c.get("/api/note?rel=../jobs/mytutor.db").status_code, 404)
