@@ -70,3 +70,5 @@ table.act td:first-child{color:var(--muted);white-space:nowrap}
 .banner span{flex:1}.banner.ok{background:color-mix(in srgb,var(--ok) 18%,transparent);color:var(--ok)}
 .banner.warn{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
 .banner.info{background:var(--chip);color:var(--ink)}
+.tb .tpbtn{margin-left:8px;font-weight:600;color:var(--teal);border:1px solid var(--line)}
+.md h4{margin:.9em 0 .3em;font-size:15px}

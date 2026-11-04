@@ -80,7 +80,7 @@ function show() {
     <div class="gap"><button class="b" id="b-take">Save my take</button></div></div>`;
   $("actions").hidden = false;
   const o = $("b-obs"); if (n.obsidian) { o.href = n.obsidian; o.hidden = false; } else o.hidden = true;
-  V.scrollTop = 0; $("b-take").onclick = saveTake; enhance($("take"));
+  V.scrollTop = 0; $("b-take").onclick = saveTake; enhance($("take"), {template: true});
 }
 async function showActivity() {
   const rows = await api("/api/recent");
@@ -150,7 +150,7 @@ document.addEventListener("keydown", e => {
 load().then(() => { const f = filtered(); if (f.length) openNote(f[0].rel); }).catch(e => toast(e.message));
 
 // ---------------------------------------------------------------- Markdown editor (toolbar, preview, auto-grow)
-function enhance(ta) {
+function enhance(ta, opts = {}) {
   if (!ta || ta.dataset.enh) return;
   ta.dataset.enh = "1";
   const bar = document.createElement("div"); bar.className = "tb";
@@ -162,6 +162,10 @@ function enhance(ta) {
   for (const [label, title, fn] of tools) {
     const b = document.createElement("button"); b.type = "button"; b.textContent = label; b.title = title;
     b.onclick = () => { fn(); ta.focus(); grow(); }; bar.appendChild(b);
+  }
+  if (opts.template) {
+    const tp = document.createElement("button"); tp.type = "button"; tp.textContent = "Template"; tp.className = "tpbtn";
+    tp.title = "Insert my four headings"; tp.onclick = () => { insertTemplate(ta); ta.focus(); grow(); }; bar.appendChild(tp);
   }
   const prev = document.createElement("button"); prev.type = "button"; prev.textContent = "Preview"; prev.className = "pvbtn";
   prev.onclick = () => { const on = pv.hidden; pv.hidden = !on; ta.hidden = on; prev.textContent = on ? "Edit" : "Preview";
@@ -198,4 +202,17 @@ function continueList(ta, e) {
   if (!m[4].trim()) { ta.setRangeText("\n", s, pos, "end"); ta.dispatchEvent(new Event("input")); return; }  // empty item ends the list
   const next = m[3] ? `${+m[3] + 1}. ` : m[2];
   ta.setRangeText("\n" + m[1] + next, pos, ta.selectionEnd, "end"); ta.dispatchEvent(new Event("input"));
+}
+
+function insertTemplate(ta) {
+  // the note's own source: "**Source:** [[X]]" in the body, else the source property, else blank
+  const m = cur && cur.body.match(/\*\*Source:\*\*\s*(\[\[[^\]]+\]\])/);
+  const src = m ? m[1] : (cur && cur.props.source ? cur.props.source : "");
+  const t = `#### 📖 Where I came across this\n${src}\n\n#### 💭 My experience and observation\n\n\n#### 🎯 What I would apply in the future\n- \n\n#### 💡 My key takeaway\n`;
+  const pos = ta.selectionStart, before = ta.value.slice(0, pos);
+  const sep = before && !before.endsWith("\n\n") ? (before.endsWith("\n") ? "\n" : "\n\n") : "";
+  ta.setRangeText(sep + t, pos, ta.selectionEnd, "end");
+  const at = ta.value.indexOf("#### 💭 My experience and observation\n", pos) + "#### 💭 My experience and observation\n".length;
+  ta.setSelectionRange(at, at);                                    // cursor ready under "My experience"
+  ta.dispatchEvent(new Event("input"));
 }
