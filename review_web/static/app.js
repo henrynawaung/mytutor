@@ -67,8 +67,12 @@ function show() {
     + (p.fix_note ? `<span class="chip st-needs-fix">fix: ${esc(p.fix_note)}</span>` : "");
   if (mode === "journals") {
     V.innerHTML = `<div class="doc"><div class="meta">${chips}</div><h1>${esc(n.title)}</h1>` + n.prompts.map(q =>
-      `<div class="prompt"><p>${esc(q.question)}</p>${q.answer ? `<div class="done">✓ ${esc(q.answer)}</div>` :
-      `<textarea data-i="${q.i}" placeholder="My answer, in my own words…"></textarea><div class="gap"><button class="b ok" data-ans="${q.i}">Save answer</button></div>`}</div>`).join("") + "</div>";
+      `<div class="prompt"><p>${esc(q.question)}</p>` + (q.answer
+        ? `<div class="done md">${md(q.answer)}</div><div class="gap"><button class="b small" data-edit="${q.i}">Edit answer</button></div>
+           <div class="editwrap" data-w="${q.i}" hidden><textarea data-i="${q.i}">${esc(q.answer)}</textarea><div class="gap"><button class="b ok" data-ans="${q.i}">Save answer</button></div></div>`
+        : `<textarea data-i="${q.i}" placeholder="My answer, in my own words…"></textarea><div class="gap"><button class="b ok" data-ans="${q.i}">Save answer</button></div>`)
+      + `</div>`).join("") + "</div>";
+    V.querySelectorAll("textarea").forEach(enhance);
     $("actions").hidden = true; return;
   }
   V.innerHTML = `<div class="doc"><div class="meta">${chips}</div>${md(n.body)}</div>
@@ -76,7 +80,7 @@ function show() {
     <div class="gap"><button class="b" id="b-take">Save my take</button></div></div>`;
   $("actions").hidden = false;
   const o = $("b-obs"); if (n.obsidian) { o.href = n.obsidian; o.hidden = false; } else o.hidden = true;
-  V.scrollTop = 0; $("b-take").onclick = saveTake;
+  V.scrollTop = 0; $("b-take").onclick = saveTake; enhance($("take"));
 }
 async function showActivity() {
   const rows = await api("/api/recent");
@@ -111,6 +115,8 @@ document.addEventListener("click", async e => {
   const it = e.target.closest(".item[data-r]"); if (it) return openNote(it.dataset.r);
   const wl = e.target.closest("a.wl");
   if (wl) { e.preventDefault(); const r = await api("/api/find?title=" + encodeURIComponent(wl.dataset.t)); r.rel ? openNote(r.rel) : toast(`No note called “${wl.dataset.t}” yet`); return; }
+  const ed = e.target.closest("[data-edit]");
+  if (ed) { const w = document.querySelector(`[data-w="${ed.dataset.edit}"]`); w.hidden = false; ed.hidden = true; w.querySelector("textarea").dispatchEvent(new Event("input")); return; }
   const a = e.target.closest("[data-ans]");
   if (a) { const ta = document.querySelector(`textarea[data-i="${a.dataset.ans}"]`); if (!ta.value.trim()) return;
     if (await act("/api/answer", {i: +a.dataset.ans, answer: ta.value}, "Answer saved")) show(); }
@@ -128,3 +134,54 @@ document.addEventListener("keydown", e => {
   else if (k === "t") { e.preventDefault(); $("take").focus(); }
 });
 load().then(() => { const f = filtered(); if (f.length) openNote(f[0].rel); }).catch(e => toast(e.message));
+
+// ---------------------------------------------------------------- Markdown editor (toolbar, preview, auto-grow)
+function enhance(ta) {
+  if (!ta || ta.dataset.enh) return;
+  ta.dataset.enh = "1";
+  const bar = document.createElement("div"); bar.className = "tb";
+  const pv = document.createElement("div"); pv.className = "pv md"; pv.hidden = true;
+  const tools = [["B", "Bold (Ctrl+B)", () => wrap(ta, "**")], ["I", "Italic (Ctrl+I)", () => wrap(ta, "*")],
+    ["H", "Heading", () => prefix(ta, "#### ")], ["•", "Bullet list", () => prefix(ta, "- ")],
+    ["1.", "Numbered list", () => prefix(ta, "1. ", true)], ["❝", "Quote", () => prefix(ta, "> ")],
+    ["🔗", "Link", () => wrap(ta, "[", "](https://)")], ["[[ ]]", "Link to a note", () => wrap(ta, "[[", "]]")]];
+  for (const [label, title, fn] of tools) {
+    const b = document.createElement("button"); b.type = "button"; b.textContent = label; b.title = title;
+    b.onclick = () => { fn(); ta.focus(); grow(); }; bar.appendChild(b);
+  }
+  const prev = document.createElement("button"); prev.type = "button"; prev.textContent = "Preview"; prev.className = "pvbtn";
+  prev.onclick = () => { const on = pv.hidden; pv.hidden = !on; ta.hidden = on; prev.textContent = on ? "Edit" : "Preview";
+    if (on) pv.innerHTML = md(ta.value || "*Nothing yet.*"); else ta.focus(); };
+  bar.appendChild(prev);
+  ta.before(bar); ta.after(pv);
+  const grow = () => { ta.style.height = "auto"; ta.style.height = Math.min(ta.scrollHeight + 4, window.innerHeight * 0.6) + "px"; };
+  ta.addEventListener("input", grow); setTimeout(grow, 0);
+  ta.addEventListener("keydown", e => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b") { e.preventDefault(); wrap(ta, "**"); }
+    else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "i") { e.preventDefault(); wrap(ta, "*"); }
+    else if (e.key === "Enter" && !e.shiftKey) continueList(ta, e);
+  });
+}
+function wrap(ta, a, b = a) {
+  const {selectionStart: s, selectionEnd: e, value: v} = ta, sel = v.slice(s, e);
+  ta.setRangeText(a + sel + b, s, e, "end");
+  if (!sel) ta.setSelectionRange(s + a.length, s + a.length);
+  ta.dispatchEvent(new Event("input"));
+}
+function prefix(ta, p, numbered = false) {
+  const v = ta.value, s = v.lastIndexOf("\n", ta.selectionStart - 1) + 1;
+  let e = v.indexOf("\n", ta.selectionEnd); if (e < 0) e = v.length;
+  const lines = v.slice(s, e).split("\n");
+  const has = lines.every(l => numbered ? /^\d+\. /.test(l) : l.startsWith(p));
+  const out = lines.map((l, i) => has ? l.replace(numbered ? /^\d+\. / : p, "") : (numbered ? `${i + 1}. ` : p) + l.replace(/^(- |\d+\. |> |#### )/, ""));
+  ta.setRangeText(out.join("\n"), s, e, "end"); ta.dispatchEvent(new Event("input"));
+}
+function continueList(ta, e) {
+  const v = ta.value, pos = ta.selectionStart, s = v.lastIndexOf("\n", pos - 1) + 1, line = v.slice(s, pos);
+  const m = line.match(/^(\s*)(- |\* |> |(\d+)\. )(.*)$/);
+  if (!m) return;
+  e.preventDefault();
+  if (!m[4].trim()) { ta.setRangeText("\n", s, pos, "end"); ta.dispatchEvent(new Event("input")); return; }  // empty item ends the list
+  const next = m[3] ? `${+m[3] + 1}. ` : m[2];
+  ta.setRangeText("\n" + m[1] + next, pos, ta.selectionEnd, "end"); ta.dispatchEvent(new Event("input"));
+}

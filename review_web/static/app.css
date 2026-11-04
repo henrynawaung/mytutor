@@ -32,7 +32,7 @@ section{overflow:auto;padding:28px 40px 130px}
 .b{font:inherit;font-weight:600;border-radius:8px;border:1px solid var(--line);padding:8px 14px;cursor:pointer;background:var(--panel);color:var(--ink);text-decoration:none;display:inline-block}
 .b.small{padding:4px 10px;font-size:13px;font-weight:500}.b.wide{width:100%}
 .b.ok{background:var(--ok);border-color:var(--ok);color:#fff}.b.warn{color:var(--warn)}.b:disabled{opacity:.5;cursor:default}
-textarea{width:100%;font:inherit;border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--bg);color:var(--ink);min-height:70px}
+textarea{width:100%;font:inherit;border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--bg);color:var(--ink);min-height:150px;resize:vertical;line-height:1.55;border-top-left-radius:0;border-top-right-radius:0}
 .take{max-width:760px;margin:22px auto 0;padding:14px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
 .take label{font-weight:600;font-size:13px;color:var(--muted)}
 .gap{margin-top:8px}
@@ -60,3 +60,9 @@ table.act td:first-child{color:var(--muted);white-space:nowrap}
 .item.on{box-shadow:inset 3px 0 0 var(--brand)}
 .login{text-align:center}.login label{text-align:left}.login .logo{border-radius:18px;margin:0 auto 12px;display:block}
 .login h1{font-size:26px}
+.tb{display:flex;flex-wrap:wrap;gap:2px;border:1px solid var(--line);border-bottom:0;border-radius:8px 8px 0 0;padding:4px;background:var(--chip);margin-top:6px}
+.tb button{font:inherit;font-size:13px;min-width:30px;padding:3px 8px;border:0;border-radius:6px;background:none;color:var(--ink);cursor:pointer}
+.tb button:hover{background:var(--panel)}.tb button:first-child{font-weight:800}.tb button:nth-child(2){font-style:italic}
+.tb .pvbtn{margin-left:auto;font-weight:600;color:var(--accent)}
+.pv{border:1px solid var(--line);border-radius:0 0 8px 8px;padding:8px 12px;min-height:150px;background:var(--bg)}
+.md p{margin:.4em 0}.md ul,.md ol{margin:.4em 0;padding-left:1.4em}.done.md{color:var(--ink);border-left:3px solid var(--ok);padding-left:12px}

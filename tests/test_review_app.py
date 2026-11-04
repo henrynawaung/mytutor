@@ -33,9 +33,9 @@ class CoreTests(unittest.TestCase):
 
     def test_take_goes_under_existing_section_or_new_one(self):
         t = core.add_take(HUB, "Seen this at work", "2026-11-04")
-        self.assertIn("**In my own words:**\n- 2026-11-04: Seen this at work\n\n## Next", t)
-        t2 = core.add_take(CORE, "New  idea", "2026-11-04")
-        self.assertTrue(t2.endswith("## My take\n\n- 2026-11-04: New idea\n"))
+        self.assertIn("**In my own words:**\n\n### 2026-11-04\n\nSeen this at work\n\n## Next", t)
+        t2 = core.add_take(CORE, "First para.\r\n\r\n- point one\n- point two\n1. step", "2026-11-04")
+        self.assertTrue(t2.endswith("## My take\n\n### 2026-11-04\n\nFirst para.\n\n- point one\n- point two\n1. step\n"))
 
     def test_prompts_and_answer(self):
         ps = core.prompts(JOURNAL)
@@ -44,6 +44,16 @@ class CoreTests(unittest.TestCase):
         self.assertEqual([p["answer"] for p in core.prompts(t)], ["", "Only in budget meetings"])
         with self.assertRaises(ValueError):
             core.answer_prompt(JOURNAL, 5, "x")
+
+    def test_multi_line_answer_kept_and_counted(self):
+        t = core.answer_prompt(JOURNAL, 0, "Two things:\n\n- budget meetings\n- board prep")
+        self.assertIn("My answer:\n\nTwo things:\n\n- budget meetings\n- board prep\n\n**2. Second?**", t)
+        ps = core.prompts(t)
+        self.assertEqual(ps[0]["answer"], "Two things:\n\n- budget meetings\n- board prep")
+        self.assertEqual(ps[1]["answer"], "")
+        t = core.answer_prompt(t, 0, "Changed my mind")           # re-answering replaces, not appends
+        self.assertEqual([p["answer"] for p in core.prompts(t)], ["Changed my mind", ""])
+        self.assertIn("**2. Second?**", t)
 
 
 @unittest.skipUnless(HAVE_FLASK, "needs flask")

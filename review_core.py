@@ -51,25 +51,42 @@ def set_props(text: str, values: dict) -> str:
     return f"---\n{fm}\n---\n{rest}"
 
 
+def clean_block(t: str) -> str:
+    """Keep the writer's paragraphs, bullets and numbering; just tidy line endings and blank runs."""
+    t = t.replace("\r\n", "\n").replace("\r", "\n")
+    t = "\n".join(line.rstrip() for line in t.split("\n")).strip("\n")
+    return re.sub(r"\n{3,}", "\n\n", t)
+
+
 def add_take(text: str, take: str, today: str) -> str:
-    """Add a dated line under '## My take' (creating the section if needed)."""
-    entry = f"- {today}: " + " ".join(take.split())
+    """Add a dated entry (### date + the take, formatting kept) at the end of '## My take'."""
+    entry = f"### {today}\n\n{clean_block(take)}\n"
     m = re.search(r"^## My take[ \t]*$", text, re.M)
     if not m:
-        return text.rstrip("\n") + f"\n\n## My take\n\n{entry}\n"
+        return text.rstrip("\n") + f"\n\n## My take\n\n{entry}"
     nxt = re.search(r"^## ", text[m.end():], re.M)
     end = m.end() + nxt.start() if nxt else len(text)
     section = text[m.end():end].rstrip("\n")
-    return text[:m.end()] + section + f"\n{entry}\n" + ("\n" + text[end:] if nxt else "")
+    return text[:m.end()] + section + f"\n\n{entry}" + ("\n" + text[end:] if nxt else "")
+
+
+BOUNDARY = re.compile(r"^(?:\*\*\d+\.|## |My answer:)", re.M)
+
+
+def _answer_end(text: str, m) -> int:
+    """Where the answer after 'My answer:' stops: the next prompt, section or answer line."""
+    b = BOUNDARY.search(text, m.end())
+    return b.start() if b else len(text)
 
 
 def prompts(text: str) -> list:
-    """Reflection prompts in a journal: [{i, question, answer}]."""
+    """Reflection prompts in a journal: [{i, question, answer}] (answers may be several lines)."""
     out = []
     for i, m in enumerate(ANSWER.finditer(text)):
         before = text[:m.start()].rstrip().splitlines()
         q = next((l.strip("* ").strip() for l in reversed(before) if l.strip()), "")
-        out.append({"i": i, "question": re.sub(r"^\d+\.\s*", "", q), "answer": m.group(1).strip()})
+        answer = (m.group(1) + text[m.end():_answer_end(text, m)]).strip()
+        out.append({"i": i, "question": re.sub(r"^\d+\.\s*", "", q), "answer": answer})
     return out
 
 
@@ -78,7 +95,11 @@ def answer_prompt(text: str, i: int, answer: str) -> str:
     if i < 0 or i >= len(ms):
         raise ValueError("no such prompt")
     m = ms[i]
-    return text[:m.start()] + "My answer: " + " ".join(answer.split()) + text[m.end():]
+    a = clean_block(answer)
+    block = f"My answer: {a}\n" if "\n" not in a and not re.match(r"[-*+>#]|\d+\.", a) else f"My answer:\n\n{a}\n"
+    end = _answer_end(text, m)
+    rest = text[end:]
+    return text[:m.start()] + block + ("\n" + rest if rest else "")
 
 
 # ------------------------------------------------------------------ vault index
