@@ -38,6 +38,15 @@ def body(text: str) -> str:
     return text[m.end():] if m else text
 
 
+def drop_props(text: str, keys) -> str:
+    """Remove frontmatter keys (used by Undo)."""
+    m = FM.match(text)
+    if not m:
+        return text
+    fm = "\n".join(l for l in m.group(1).splitlines() if l.split(":", 1)[0].strip() not in set(keys))
+    return f"---\n{fm}\n---\n" + text[m.end():]
+
+
 def set_props(text: str, values: dict) -> str:
     """Set or add frontmatter keys, keeping every other line as it is."""
     m = FM.match(text)

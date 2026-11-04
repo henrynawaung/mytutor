@@ -57,7 +57,7 @@ async function load() {
 async function openNote(rel, push = true) {
   try {
     if (cur && push) hist.push(cur.rel);
-    cur = await api("/api/note?rel=" + encodeURIComponent(rel)); renderList(); show();
+    cur = await api("/api/note?rel=" + encodeURIComponent(rel)); hideBanner(); renderList(); show();
   } catch (e) { toast(e.message); }
 }
 function show() {
@@ -96,12 +96,25 @@ function next() {
   if (n && (!cur || n.rel !== cur.rel)) openNote(n.rel); else toast("That was the last one");
 }
 async function act(path, extra, msg) {
-  try { const r = await api(path, Object.assign({rel: cur.rel, mtime: cur.mtime}, extra || {})); cur = r.note; toast(msg); await load(); return true; }
+  try { const r = await api(path, Object.assign({rel: cur.rel, mtime: cur.mtime}, extra || {})); cur = r.note; if (msg) toast(msg); await load(); return true; }
   catch (e) { toast(e.message); return false; }
 }
-async function approve() { if (await act("/api/approve", null, "Approved ✓")) next(); }
-async function fix() { const why = prompt("What needs fixing?"); if (why === null) return; if (await act("/api/needs-fix", {why}, "Marked: needs fix")) next(); }
-async function saveTake() { const t = $("take").value.trim(); if (!t) return; if (await act("/api/take", {take: t}, "Saved to the note")) show(); }
+let undoStatus = null;
+function banner(msg, kind, canUndo) {
+  const b = $("banner"); $("banner-msg").textContent = msg; b.className = "banner " + kind; b.hidden = false;
+  $("b-undo").hidden = !canUndo; $("b-next").focus({preventScroll: true});
+}
+function hideBanner() { $("banner").hidden = true; undoStatus = null; }
+async function setStatus(path, extra, msg, kind) {
+  const before = cur.props.status || "unreviewed", title = cur.title;
+  const draft = $("take") && $("take").value.trim();
+  if (draft && !(await act("/api/take", {take: draft}, ""))) return;     // never lose an unsaved take
+  if (await act(path, extra, "")) { show(); undoStatus = before; banner(msg + title + (draft ? " (your take was saved too)" : ""), kind, true); }
+}
+async function approve() { await setStatus("/api/approve", null, "✓ Approved and saved: ", "ok"); }
+async function fix() { const why = prompt("What needs fixing?"); if (why === null) return; await setStatus("/api/needs-fix", {why}, "⚑ Marked for fixing: ", "warn"); }
+async function undoLast() { if (!undoStatus) return; const s = undoStatus; if (await act("/api/undo", {status: s}, "")) { show(); banner("↩ Undone. Status is back to " + s + ": " + cur.title, "info", false); } }
+async function saveTake() { const t = $("take").value.trim(); if (!t) return; if (await act("/api/take", {take: t}, "")) { show(); banner("✓ Take saved: " + cur.title, "ok", false); } }
 function setMode(m) {
   mode = m; cur = null;
   for (const t of ["notes", "journals", "activity"]) $("t-" + t).classList.toggle("on", t === m);
@@ -122,6 +135,7 @@ document.addEventListener("click", async e => {
     if (await act("/api/answer", {i: +a.dataset.ans, answer: ta.value}, "Answer saved")) show(); }
 });
 $("b-ok").onclick = approve; $("b-fix").onclick = fix; $("b-skip").onclick = next;
+$("b-next").onclick = next; $("b-undo").onclick = undoLast;
 $("b-sync").onclick = async () => { try { const r = await api("/api/sync", {}); await load(); toast(`Refreshed: ${r.changed} change${r.changed === 1 ? "" : "s"}`); } catch (e) { toast(e.message); } };
 ["f-course", "f-status", "f-type"].forEach(id => $(id).onchange = renderList);
 $("f-q").oninput = renderList;
@@ -129,7 +143,7 @@ $("t-notes").onclick = () => setMode("notes"); $("t-journals").onclick = () => s
 document.addEventListener("keydown", e => {
   if (/TEXTAREA|INPUT|SELECT/.test(e.target.tagName) || !cur || mode !== "notes") return;
   const k = e.key.toLowerCase();
-  if (k === "a") approve(); else if (k === "f") fix(); else if (k === "s" || k === "arrowright") next();
+  if (k === "a") approve(); else if (k === "f") fix(); else if (k === "s" || k === "n" || k === "arrowright") next();
   else if (k === "arrowleft" && hist.length) openNote(hist.pop(), false);
   else if (k === "t") { e.preventDefault(); $("take").focus(); }
 });

@@ -19,11 +19,13 @@
 <select id="f-type"><option value="">All types</option><option>core</option><option>case</option><option>hub</option><option>reference</option></select>
 </div><input id="f-q" class="search" placeholder="Search titles…"><div id="list"></div></aside>
 <section id="view"><div class="empty">Pick a note on the left.</div></section></main>
-<div class="actions" id="actions" hidden><div class="row">
+<div class="actions" id="actions" hidden>
+<div class="banner" id="banner" hidden><span id="banner-msg"></span><button class="b small" id="b-undo">Undo</button><button class="b small ok" id="b-next">Next note →</button></div>
+<div class="row">
 <button class="b ok" id="b-ok" title="A">Approve</button>
 <button class="b warn" id="b-fix" title="F">Needs fix</button>
 <button class="b" id="b-skip" title="S or →">Skip</button>
 <a class="b" id="b-obs">Open in Obsidian</a>
-<span class="kbd">A approve · F needs fix · S / → next · ← back · T my take</span></div></div>
+<span class="kbd">A approve · F needs fix · → next · ← back · T my take</span></div></div>
 <div class="toast" id="toast"></div>
 </body></html>

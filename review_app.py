@@ -186,6 +186,15 @@ def create_app(vault_root: Path, jobs: Path, obsidian_vault: str = "", testing: 
         today = date.today().isoformat()
         return change(lambda t: core.set_props(t, {"status": "reviewed", "reviewed_on": today}), "approve")
 
+    @app.post("/api/undo")
+    @login_required
+    def undo():
+        prev = str((request.get_json(silent=True) or {}).get("status", "unreviewed"))
+        if prev not in ("unreviewed", "reviewed", "needs-fix"):
+            return jsonify(ok=False, error="Unknown status."), 400
+        return change(lambda t: core.set_props(core.drop_props(t, ["reviewed_on", "fix_note"]), {"status": prev}),
+                      "undo", prev)
+
     @app.post("/api/needs-fix")
     @login_required
     def needs_fix():

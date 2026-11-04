@@ -133,6 +133,19 @@ class AppTests(unittest.TestCase):
         r = self.c.post("/api/approve", json={"rel": n["rel"], "mtime": n["mtime"]}, headers={"X-CSRF": self.api_csrf()})
         self.assertEqual(r.status_code, 200)
 
+    def test_undo_puts_status_back(self):
+        self.login()
+        tok = self.api_csrf()
+        n = self.c.get("/api/note?rel=C/Day 1/Core/Kodak.md").get_json()
+        n = self.c.post("/api/approve", json={"rel": n["rel"], "mtime": n["mtime"]}, headers={"X-CSRF": tok}).get_json()["note"]
+        r = self.c.post("/api/undo", json={"rel": n["rel"], "mtime": n["mtime"], "status": "unreviewed"}, headers={"X-CSRF": tok})
+        text = (self.vault / n["rel"]).read_text(encoding="utf-8")
+        self.assertIn("status: unreviewed", text)
+        self.assertNotIn("reviewed_on", text)
+        bad = self.c.post("/api/undo", json={"rel": n["rel"], "mtime": r.get_json()["note"]["mtime"], "status": "evil"},
+                          headers={"X-CSRF": tok})
+        self.assertEqual(bad.status_code, 400)
+
     def test_paths_outside_vault_are_refused(self):
         self.login()
         self.assertEqual(self.c.get("/api/note?rel=../jobs/mytutor.db").status_code, 404)
