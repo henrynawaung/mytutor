@@ -115,6 +115,14 @@ class AppTests(unittest.TestCase):
         self.assertEqual(acts, ["answer", "my-take", "approve"])
         self.assertEqual(self.c.get("/api/summary").get_json()["stats"]["today"], 3)
 
+    def test_timestamp_survives_a_browser_round_trip(self):
+        # browsers turn big JSON numbers into doubles; the timestamp must travel as text
+        self.login()
+        n = self.c.get("/api/note?rel=C/Day 1/Core/Kodak.md").get_json()
+        self.assertIsInstance(n["mtime"], str)
+        r = self.c.post("/api/approve", json={"rel": n["rel"], "mtime": n["mtime"]}, headers={"X-CSRF": self.api_csrf()})
+        self.assertEqual(r.status_code, 200)
+
     def test_paths_outside_vault_are_refused(self):
         self.login()
         self.assertEqual(self.c.get("/api/note?rel=../jobs/mytutor.db").status_code, 404)

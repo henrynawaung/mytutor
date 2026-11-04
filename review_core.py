@@ -135,16 +135,16 @@ class Vault:
         p = self.path(rel)
         text = read(p)
         out = {"rel": rel, "title": p.stem, "props": props(text), "body": body(text),
-               "mtime": p.stat().st_mtime_ns, "prompts": prompts(text)}
+               "mtime": str(p.stat().st_mtime_ns), "prompts": prompts(text)}
         if self.obsidian_vault:
             vault_rel = self.root.name + "/" + rel[:-3]
             out["obsidian"] = f"obsidian://open?vault={quote(self.obsidian_vault)}&file={quote(vault_rel)}"
         return out
 
-    def change(self, rel: str, mtime: int, fn, action: str, detail: str = "", store=None, user: str = "") -> dict:
+    def change(self, rel: str, mtime: str, fn, action: str, detail: str = "", store=None, user: str = "") -> dict:
         with self.lock:
             p = self.path(rel)
-            if p.stat().st_mtime_ns != int(mtime):
+            if str(p.stat().st_mtime_ns) != str(mtime).strip():
                 return {"ok": False, "error": "This note changed since you opened it (maybe in Obsidian). Reload it first."}
             new = fn(read(p))
             p.write_text(new, encoding="utf-8", newline="\n")
