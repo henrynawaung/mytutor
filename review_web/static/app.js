@@ -58,6 +58,7 @@ async function openNote(rel, push = true) {
   try {
     if (cur && push) hist.push(cur.rel);
     cur = await api("/api/note?rel=" + encodeURIComponent(rel)); hideBanner(); renderList(); show();
+    curIdx = Math.max(0, (mode === "journals" ? S.journals : filtered()).findIndex(x => x.rel === rel));
   } catch (e) { toast(e.message); }
 }
 function show() {
@@ -81,6 +82,7 @@ function show() {
   $("actions").hidden = false;
   const o = $("b-obs"); if (n.obsidian) { o.href = n.obsidian; o.hidden = false; } else o.hidden = true;
   V.scrollTop = 0; $("b-take").onclick = saveTake; enhance($("take"), {template: true});
+  $("take").addEventListener("input", labels); labels();
 }
 async function showActivity() {
   const rows = await api("/api/recent");
@@ -89,20 +91,22 @@ async function showActivity() {
     || "<tr><td>No activity yet.</td></tr>") + "</table></div>";
   $("actions").hidden = true;
 }
+let curIdx = 0;
 function next() {
   const f = mode === "journals" ? S.journals : filtered();
   const i = f.findIndex(x => cur && x.rel === cur.rel);
-  const n = f[i + 1] || f[0];
-  if (n && (!cur || n.rel !== cur.rel)) openNote(n.rel); else toast("That was the last one");
+  // if the note just left this list (e.g. approved while viewing "To review"), the next one now sits at its old place
+  const n = i >= 0 ? (f[i + 1] || f[0]) : (f[curIdx] || f[0]);
+  if (n && (!cur || n.rel !== cur.rel)) return openNote(n.rel); toast("That was the last one");
 }
 async function act(path, extra, msg) {
   try { const r = await api(path, Object.assign({rel: cur.rel, mtime: cur.mtime}, extra || {})); cur = r.note; if (msg) toast(msg); await load(); return true; }
   catch (e) { toast(e.message); return false; }
 }
 let undoStatus = null;
-function banner(msg, kind, canUndo) {
+function banner(msg, kind, canUndo, showNext = true) {
   const b = $("banner"); $("banner-msg").textContent = msg; b.className = "banner " + kind; b.hidden = false;
-  $("b-undo").hidden = !canUndo; $("b-next").focus({preventScroll: true});
+  $("b-undo").hidden = !canUndo; $("b-next").hidden = !showNext; if (showNext) $("b-next").focus({preventScroll: true});
 }
 function hideBanner() { $("banner").hidden = true; undoStatus = null; }
 async function setStatus(path, extra, msg, kind) {
@@ -112,6 +116,16 @@ async function setStatus(path, extra, msg, kind) {
   if (await act(path, extra, "")) { show(); undoStatus = before; banner(msg + title + (draft ? " (your take was saved too)" : ""), kind, true); }
 }
 async function approve() { await setStatus("/api/approve", null, "✓ Approved and saved: ", "ok"); }
+async function approveNext() {
+  const title = cur.title, draft = $("take") && $("take").value.trim();
+  if (draft && !(await act("/api/take", {take: draft}, ""))) return;
+  if (await act("/api/approve", null, "")) { await next(); banner("✓ Approved" + (draft ? " and take saved" : "") + ": " + title + "  ·  now on the next note", "ok", false, false); }
+}
+function labels() {
+  const has = $("take") && $("take").value.trim();
+  $("b-okn").textContent = has ? "Save take, Approve & Next →" : "Approve & Next →";
+  $("b-ok").textContent = has ? "Save take & Approve" : "Approve";
+}
 async function fix() { const why = prompt("What needs fixing?"); if (why === null) return; await setStatus("/api/needs-fix", {why}, "⚑ Marked for fixing: ", "warn"); }
 async function undoLast() { if (!undoStatus) return; const s = undoStatus; if (await act("/api/undo", {status: s}, "")) { show(); banner("↩ Undone. Status is back to " + s + ": " + cur.title, "info", false); } }
 async function saveTake() { const t = $("take").value.trim(); if (!t) return; if (await act("/api/take", {take: t}, "")) { show(); banner("✓ Take saved: " + cur.title, "ok", false); } }
@@ -135,7 +149,7 @@ document.addEventListener("click", async e => {
     if (await act("/api/answer", {i: +a.dataset.ans, answer: ta.value}, "Answer saved")) show(); }
 });
 $("b-ok").onclick = approve; $("b-fix").onclick = fix; $("b-skip").onclick = next;
-$("b-next").onclick = next; $("b-undo").onclick = undoLast;
+$("b-next").onclick = next; $("b-undo").onclick = undoLast; $("b-okn").onclick = approveNext;
 $("b-sync").onclick = async () => { try { const r = await api("/api/sync", {}); await load(); toast(`Refreshed: ${r.changed} change${r.changed === 1 ? "" : "s"}`); } catch (e) { toast(e.message); } };
 ["f-course", "f-status", "f-type"].forEach(id => $(id).onchange = renderList);
 $("f-q").oninput = renderList;
@@ -143,7 +157,7 @@ $("t-notes").onclick = () => setMode("notes"); $("t-journals").onclick = () => s
 document.addEventListener("keydown", e => {
   if (/TEXTAREA|INPUT|SELECT/.test(e.target.tagName) || !cur || mode !== "notes") return;
   const k = e.key.toLowerCase();
-  if (k === "a") approve(); else if (k === "f") fix(); else if (k === "s" || k === "n" || k === "arrowright") next();
+  if (k === "a" && e.shiftKey) approveNext(); else if (k === "a") approve(); else if (k === "f") fix(); else if (k === "s" || k === "n" || k === "arrowright") next();
   else if (k === "arrowleft" && hist.length) openNote(hist.pop(), false);
   else if (k === "t") { e.preventDefault(); $("take").focus(); }
 });
