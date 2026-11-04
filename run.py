@@ -114,7 +114,9 @@ class Lock:
             self.path.unlink(missing_ok=True)
 
 
-def run(cfg: dict, client=None, dry_run: bool = False, log=print) -> dict:
+def run(cfg: dict, client=None, dry_run: bool = False, log=print, after_day=None) -> dict:
+    """after_day(day) is called right after each day is generated, e.g. to file it into the vault
+    before the next day starts, so later days can link to its notes instead of writing them again."""
     import extract
     import generate
     import practice
@@ -184,6 +186,8 @@ def run(cfg: dict, client=None, dry_run: bool = False, log=print) -> dict:
                 summary["failed"] += day["failed"]
                 log(f"done       {label}: {day['sources']} sources, {day['notes']} notes, "
                     f"US${day['cost_usd']:.2f}, {day['failed']} failed")
+                if after_day and day["sources"]:
+                    after_day(day)
             except Exception as exc:                 # one bad day must not stop the others
                 day["error"] = f"{type(exc).__name__}: {exc}"
                 summary["failed"] += 1
@@ -202,27 +206,31 @@ def run(cfg: dict, client=None, dry_run: bool = False, log=print) -> dict:
     return summary
 
 
-def file_new_days(summary: dict, here: Path, cfg_path: Path, sample: int) -> None:
-    """Run file.py for every day processed in this run (notes into the vault, spot-check sample picked)."""
+def file_day(day: dict, here: Path, cfg_path: Path, sample: int) -> bool:
+    """Run file.py for one processed day (notes into the vault, spot-check sample picked)."""
     import subprocess
-    filed = 0
+    cmd = [sys.executable, str(here / "file.py"), "--config", str(cfg_path), "--job", day["job"],
+           "--sample", str(sample)]
+    res = subprocess.run(cmd, cwd=str(here), capture_output=True, text=True)
+    print(res.stdout.rstrip())
+    day["filed"] = res.returncode == 0
+    if not day["filed"]:
+        day["file_error"] = (res.stderr.strip().splitlines() or ["file.py failed"])[-1]
+        print(f"FAILED     filing {day['folder']}: {day['file_error']}")
+    return day["filed"]
+
+
+def file_new_days(summary: dict, here: Path, cfg_path: Path, sample: int) -> None:
+    """File every processed day not filed yet (days are normally filed one by one during the run)."""
     for day in summary["days"]:
-        if not day.get("job") or not day.get("sources"):
+        if not day.get("job") or not day.get("sources") or "filed" in day:
             continue
-        cmd = [sys.executable, str(here / "file.py"), "--config", str(cfg_path), "--job", day["job"],
-               "--sample", str(sample)]
-        res = subprocess.run(cmd, cwd=str(here), capture_output=True, text=True)
-        print(res.stdout.rstrip())
-        if res.returncode == 0:
-            day["filed"] = True
-            filed += 1
-        else:
-            day["filed"] = False
-            day["file_error"] = (res.stderr.strip().splitlines() or ["file.py failed"])[-1]
-            summary["failed"] += 1
-            summary["status"] = "some failed"
-            print(f"FAILED     filing {day['folder']}: {day['file_error']}")
-    summary["days_filed"] = filed
+        file_day(day, here, cfg_path, sample)
+    bad = [d for d in summary["days"] if d.get("filed") is False]
+    if bad:
+        summary["failed"] += len(bad)
+        summary["status"] = "some failed"
+    summary["days_filed"] = sum(1 for d in summary["days"] if d.get("filed") is True)
 
 
 def main(argv=None) -> int:
@@ -239,7 +247,10 @@ def main(argv=None) -> int:
         sys.exit(f"Config not found: {cfg_path}")
     sys.path.insert(0, str(here))
     cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
-    summary = run(cfg, dry_run=args.dry_run)
+    after = None
+    if args.file and not args.dry_run:
+        after = lambda day: file_day(day, here, cfg_path, args.sample)   # file each day before the next
+    summary = run(cfg, dry_run=args.dry_run, after_day=after)
     if args.file and not args.dry_run:
         file_new_days(summary, here, cfg_path, args.sample)
     if not args.dry_run and summary["status"] not in ("already running",):

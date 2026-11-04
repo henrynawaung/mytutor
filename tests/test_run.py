@@ -59,6 +59,14 @@ class RunTests(unittest.TestCase):
         self.assertEqual((s["days_processed"], s["sources"], s["status"]), (1, 2, "ok"))
         self.assertTrue((Path(self.cfg["jobs_root"]) / "practice.html").exists())
 
+    def test_each_day_is_filed_before_the_next_day_is_generated(self):
+        make_pdf(self.inbox / "MBAM601_Digital" / "Day 2" / "c.pdf", "Ecosystems compound. " * 40)
+        client = FakeClient([answer("A"), answer("B"), answer("C")])
+        seen = []
+        self.go(client, after_day=lambda day: seen.append((day["folder"], len(client.calls))))
+        self.assertEqual([f for f, _ in seen], ["MBAM601_Digital/Day 1", "MBAM601_Digital/Day 2"])
+        self.assertEqual([n for _, n in seen], [2, 3])   # day 1 filed after its 2 calls, before day 2's
+
     def test_second_run_finds_nothing_and_calls_no_one(self):
         self.go(FakeClient([answer("A"), answer("B")]))
         client = FakeClient([])
@@ -112,3 +120,17 @@ def test_file_new_days_runs_file_py_for_each_processed_day(monkeypatch, tmp_path
     runmod.file_new_days(summary, tmp_path, tmp_path / "config.json", 10)
     assert len(calls) == 1 and "--job" in calls[0] and "j2" in calls[0]
     assert summary["days_filed"] == 1 and summary["days"][0]["filed"] is True
+
+
+def test_file_new_days_skips_days_already_filed(monkeypatch, tmp_path):
+    import subprocess, types
+    import run as runmod
+    calls = []
+    monkeypatch.setattr(subprocess, "run", lambda cmd, **kw: calls.append(cmd) or
+                        types.SimpleNamespace(returncode=0, stdout="", stderr=""))
+    summary = {"failed": 0, "status": "ok", "days": [
+        {"folder": "C/Day 1", "job": "j1", "sources": 2, "filed": True},
+        {"folder": "C/Day 2", "job": "j2", "sources": 3}]}
+    runmod.file_new_days(summary, tmp_path, tmp_path / "config.json", 10)
+    assert len(calls) == 1 and "j2" in calls[0]
+    assert summary["days_filed"] == 2
