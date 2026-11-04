@@ -291,12 +291,33 @@ class Store:
             seen.add(rel)
             m = p.stat().st_mtime_ns
             if known.get(rel) != m:
-                self.upsert_note(note_row(rel, p, read(p)))
+                text = read(p)
+                self.upsert_note(note_row(rel, p, text))
+                self.import_takes(rel, text)
                 changed += 1
         for rel in set(known) - seen:
             self.x("DELETE FROM notes WHERE rel=?", (rel,))
             changed += 1
         return changed
+
+    def import_takes(self, rel: str, text: str) -> int:
+        """Takes written straight into a note in Obsidian (under '## My take' → '### YYYY-MM-DD')
+        are added to the history once, so My days counts them like takes saved in the app."""
+        m = re.search(r"^## My take[ \t]*\n(.*?)(?=^## |\Z)", text, re.M | re.S)
+        if not m:
+            return 0
+        parts = re.split(r"^### (\d{4}-\d{2}-\d{2})[ \t]*$", m.group(1), flags=re.M)
+        added = 0
+        for day, body in zip(parts[1::2], parts[2::2]):
+            body = body.strip()
+            if not body or self.q("SELECT 1 FROM activity WHERE rel=? AND action='my-take' AND substr(at,1,10)=? LIMIT 1",
+                                  (rel, day)):
+                continue
+            at = now() if day == now()[:10] else day + "T12:00:00"
+            self.x("INSERT INTO activity(at,user,action,rel,detail) VALUES (?,?,?,?,?)",
+                   (at, "obsidian", "my-take", rel, body[:20000]))
+            added += 1
+        return added
 
     def log(self, user: str, action: str, rel: str, detail: str):
         self.x("INSERT INTO activity(at,user,action,rel,detail) VALUES (?,?,?,?,?)",

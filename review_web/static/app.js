@@ -262,6 +262,7 @@ document.addEventListener("keydown", e => {
   else if (k === "arrowleft" && hist.length) openNote(hist.pop(), false);
   else if (k === "t") { e.preventDefault(); $("take").focus(); }
 });
+window.addEventListener("focus", () => { load().then(() => { if (mode === "activity") showActivity(); }).catch(() => {}); });
 load().then(() => { const f = filtered(); if (f.length) openNote(f[0].rel); }).catch(e => toast(e.message));
 
 // ---------------------------------------------------------------- drafts (kept in this browser until saved)

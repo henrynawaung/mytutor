@@ -204,6 +204,20 @@ class AppTests(unittest.TestCase):
         self.c.post("/api/background/remove", json={}, headers={"X-CSRF": tok})
         self.assertEqual(self.c.get("/api/background").status_code, 404)
 
+    def test_take_written_in_obsidian_is_counted_once(self):
+        import os, time
+        p = self.vault / "C/Day 1/Core/Kodak.md"
+        p.write_text(CORE.replace("Disruption", "Kodak") + "\n## My take\n\n### 2026-11-04\n\n#### 📖 Where\nMy words\n", encoding="utf-8")
+        os.utime(p, ns=(time.time_ns(), time.time_ns() + 10**9))
+        store = self.app.store
+        store.sync(self.app.vault)
+        rows = store.q("SELECT action, detail, user FROM activity WHERE rel=?", ("C/Day 1/Core/Kodak.md",))
+        self.assertEqual([(r["action"], r["user"]) for r in rows], [("my-take", "obsidian")])
+        self.assertIn("My words", rows[0]["detail"])
+        os.utime(p, ns=(time.time_ns(), time.time_ns() + 2 * 10**9))
+        store.sync(self.app.vault)                                     # changed again, same entry: not counted twice
+        self.assertEqual(len(store.q("SELECT 1 FROM activity WHERE rel=?", ("C/Day 1/Core/Kodak.md",))), 1)
+
     def test_paths_outside_vault_are_refused(self):
         self.login()
         self.assertEqual(self.c.get("/api/note?rel=../jobs/mytutor.db").status_code, 404)

@@ -130,6 +130,7 @@ def create_app(vault_root: Path, jobs: Path, obsidian_vault: str = "", testing: 
     @app.get("/api/summary")
     @login_required
     def summary():
+        store.sync(vault)                      # pick up edits made in Obsidian (only changed files are read)
         rows = store.q("SELECT rel,title,course,type,status,day,created FROM notes "
                        "WHERE status != '' AND type IN ('core','case','hub','reference') "
                        "ORDER BY created, course, day, title")
