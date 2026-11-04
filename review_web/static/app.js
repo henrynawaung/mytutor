@@ -69,14 +69,24 @@ function show() {
   const chips = pill + [p.course, p.type, n.rel.split("/")[1]].filter(Boolean).map(x => `<span class="chip">${esc(x)}</span>`).join("")
     + (p.fix_note ? `<span class="chip st-needs-fix">fix: ${esc(p.fix_note)}</span>` : "");
   if (mode === "journals") {
-    V.innerHTML = `<div class="jgrid"><div class="ctx" id="ctx"><p class="muted">Loading the day's material…</p></div><div class="doc qcol"><div class="meta">${chips}</div><h1>${esc(n.title)}</h1>` + n.prompts.map(q =>
-      `<div class="prompt"><p>${esc(q.question)}</p>` + (q.answer
+    const firstOpen = (n.prompts.find(q => !q.answer) || n.prompts[0] || {}).i;
+    V.innerHTML = `<div class="jgrid"><div class="ctx" id="ctx"><p class="muted">Loading the day's material…</p></div><div class="doc qcol"><div class="meta">${chips}</div><h1>${esc(n.title)}</h1>
+      <p class="muted small">${n.prompts.filter(q => q.answer).length} of ${n.prompts.length} answered · click a question to open it</p>` + n.prompts.map(q =>
+      `<div class="prompt acc${q.i === (openQ ?? firstOpen) ? " active" : ""}" data-q="${q.i}">
+         <div class="qhead" data-qh="${q.i}"><span class="qstate${q.answer ? " ok" : ""}" data-st="${q.i}">${q.answer ? "✓" : "○"}</span><p>${esc(q.question)}</p><span class="chev">▸</span></div>
+         <div class="qbody">` + (q.answer
         ? `<div class="done md">${md(q.answer)}</div><div class="gap"><button class="b small" data-edit="${q.i}">Edit answer</button></div>
            <div class="editwrap" data-w="${q.i}" hidden><textarea data-i="${q.i}">${esc(q.answer)}</textarea><div class="gap"><button class="b ok" data-ans="${q.i}">Save answer</button></div></div>`
         : `<textarea data-i="${q.i}" placeholder="My answer, in my own words…"></textarea><div class="gap"><button class="b ok" data-ans="${q.i}">Save answer</button></div>`)
-      + `</div>`).join("") + "</div></div>";
+      + `</div></div>`).join("") + "</div></div>";
     loadContext(n.rel);
-    V.querySelectorAll("textarea").forEach(ta => { keepDraft(ta, dkey("ans", n.rel, ta.dataset.i)); enhance(ta); });
+    V.querySelectorAll("textarea").forEach(ta => {
+      keepDraft(ta, dkey("ans", n.rel, ta.dataset.i)); enhance(ta);
+      const st = V.querySelector(`[data-st="${ta.dataset.i}"]`);
+      const mark = () => { if (st && st.textContent !== "✓") st.textContent = ta.value.trim() ? "✎" : "○"; };
+      ta.addEventListener("input", mark); mark();
+    });
+    openQ = null;
     $("actions").hidden = true; return;
   }
   V.innerHTML = `<div class="doc"><div class="meta">${chips}</div>${md(n.body)}</div>
@@ -120,7 +130,7 @@ async function openDay(card) {
        <button class="b small" data-open="${esc(n.rel)}" data-kind="${n.type === "theme" ? "journals" : "notes"}">${n.has_take ? "Open note" : "Open note to add a take"}</button></div></div>`).join("")).join("");
   body.dataset.loaded = "1";
 }
-let curIdx = 0;
+let curIdx = 0, openQ = null;
 function next() {
   const f = mode === "journals" ? S.journals : filtered();
   const i = f.findIndex(x => cur && x.rel === cur.rel);
@@ -189,11 +199,16 @@ document.addEventListener("click", async e => {
   const it = e.target.closest(".item[data-r]"); if (it) return openNote(it.dataset.r);
   const wl = e.target.closest("a.wl");
   if (wl) { e.preventDefault(); const r = await api("/api/find?title=" + encodeURIComponent(wl.dataset.t)); r.rel ? openNote(r.rel) : toast(`No note called “${wl.dataset.t}” yet`); return; }
+  const qh = e.target.closest("[data-qh]");
+  if (qh) { const box = qh.parentElement, was = box.classList.contains("active");
+    document.querySelectorAll(".prompt.acc").forEach(p => p.classList.remove("active"));
+    if (!was) { box.classList.add("active"); const ta = box.querySelector("textarea:not([hidden])"); if (ta) { ta.dispatchEvent(new Event("input")); ta.focus(); } box.scrollIntoView({block: "start", behavior: "smooth"}); }
+    return; }
   const ed = e.target.closest("[data-edit]");
   if (ed) { const w = document.querySelector(`[data-w="${ed.dataset.edit}"]`); w.hidden = false; ed.hidden = true; w.querySelector("textarea").dispatchEvent(new Event("input")); return; }
   const a = e.target.closest("[data-ans]");
   if (a) { const ta = document.querySelector(`textarea[data-i="${a.dataset.ans}"]`); if (!ta.value.trim()) return;
-    if (await act("/api/answer", {i: +a.dataset.ans, answer: ta.value}, "Answer saved")) show(); }
+    if (await act("/api/answer", {i: +a.dataset.ans, answer: ta.value}, "Answer saved")) { const nx = cur.prompts.find(q => !q.answer); openQ = nx ? nx.i : +a.dataset.ans; show(); } }
 });
 $("b-ok").onclick = approve; $("b-fix").onclick = fix; $("b-skip").onclick = next;
 $("b-next").onclick = next; $("b-undo").onclick = undoLast; $("b-okn").onclick = approveNext;
