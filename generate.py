@@ -200,12 +200,28 @@ SAVE_NOTES_TOOL = {
 
 # ---------------------------------------------------------------- helpers
 
+def safe_title(name: str) -> str:
+    """A title Windows can save: 'Who Owns the Decision?' -> 'Who Owns the Decision'."""
+    if name.lower().endswith(".md"):
+        name = name[:-3]
+    name = re.sub(r'[\\/:*?"<>|\r\n\t]+', " ", name)
+    name = re.sub(r"\s{2,}", " ", name).strip().rstrip(". ")
+    return name[:147].rstrip()
+
+
 def safe_filename(name: str) -> str:
-    name = re.sub(r'[\\/:*?"<>|\r\n\t]+', " ", name).strip().rstrip(".")
-    name = re.sub(r"\s{2,}", " ", name)
-    if not name.lower().endswith(".md"):
-        name += ".md"
-    return name[:150]
+    return safe_title(name) + ".md"
+
+
+def safe_links(content: str) -> str:
+    """[[Who Owns the Decision?]] -> [[Who Owns the Decision|Who Owns the Decision?]] so links match file names."""
+    def fix(m):
+        target, rest = m.group(1), m.group(2) or ""
+        good = safe_title(target)
+        if good == target.strip():
+            return m.group(0)
+        return f"[[{good}{rest}]]" if "|" in rest else f"[[{good}{rest}|{target.strip()}]]"
+    return re.sub(r"\[\[([^\]|#^]+)([#^|][^\]]*)?\]\]", fix, content)
 
 
 def file_link(path: str) -> str:
@@ -405,7 +421,7 @@ def write_notes(notes_dir: Path, result: dict, known_titles: set, origin_link: s
         title = fname[:-3]
         if folder in ("core", "cases") and title in existing_before:
             continue                      # already in the vault: link, don't duplicate
-        content = note.get("content", "").strip() + "\n"
+        content = safe_links(note.get("content", "").strip()) + "\n"
         if folder == "reference" and origin_link and origin_link not in content:
             content += f"\nOriginal document: [{Path(origin_link).name}]({origin_link})\n"
         dest = notes_dir / folder / fname

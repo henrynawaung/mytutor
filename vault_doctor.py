@@ -111,7 +111,7 @@ def check(vault: Path) -> dict:
 
     no_fm = [rel for rel, n in notes.items() if not n["fm"].get("type") and not rel.endswith("Phrasebook.md")]
     unreviewed = [rel for rel, n in notes.items() if n["fm"].get("status") == "unreviewed"]
-    per_course = Counter(rel.split("/")[0] for rel in notes)
+    per_course = Counter(rel.split("/")[0] if "/" in rel else "(top level)" for rel in notes)
     kinds = Counter((n["fm"].get("type") or "none") for n in notes.values())
     return {"notes": len(notes), "per_course": per_course, "kinds": kinds,
             "broken": {k: v for k, v in sorted(broken.items(), key=lambda kv: -len(kv[1]))},

@@ -262,6 +262,15 @@ class GenerateTests(unittest.TestCase):
         self.assertFalse((self.job / "notes").exists())
 
 
+class SafeNameTests(unittest.TestCase):
+    def test_question_mark_title_and_links(self):
+        import generate as g
+        self.assertEqual(g.safe_filename("AI Can Analyse Faster. Who Owns the Decision?.md"),
+                         "AI Can Analyse Faster. Who Owns the Decision.md")
+        self.assertEqual(g.safe_links("See [[Who Owns It?]] and [[Fine]] and [[What? #x|alias]]"),
+                         "See [[Who Owns It|Who Owns It?]] and [[Fine]] and [[What#x|alias]]")
+
+
 if __name__ == "__main__":
     unittest.main()
 
