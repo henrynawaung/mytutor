@@ -296,6 +296,11 @@ class Centre:
             if not port_open(REVIEW_PORT):
                 msgs.append(j.start("review"))
             return " ".join(msgs) or "Everything is already running."
+        if name in ("stop-n8n", "stop-review"):
+            key = name.split("-", 1)[1]
+            n = int(j.stop(key)) + stop_port(N8N_PORT if key == "n8n" else REVIEW_PORT)
+            label = "n8n" if key == "n8n" else "the Review app"
+            return f"Stopped {label}." if n else f"{label[0].upper() + label[1:]} was not running."
         if name in ("start-n8n", "start-review"):
             key = name.split("-", 1)[1]
             return "Already running." if port_open(N8N_PORT if key == "n8n" else REVIEW_PORT) else j.start(key)
@@ -327,7 +332,13 @@ class Centre:
         raise KeyError(name)
 
     def state(self) -> dict:
-        return {"n8n": port_open(N8N_PORT), "review": port_open(REVIEW_PORT), "jobs": self.jobs.status(),
+        jobs = self.jobs.status()
+        mine = {j["name"] for j in jobs if j["running"]}
+        services = [{"key": k, "name": nm, "port": port, "up": port_open(port), "detail": det,
+                     "here": k in mine} for k, nm, port, det in (
+            ("n8n", "n8n automation", N8N_PORT, "runs myTutor every 15 min"),
+            ("review", "Review app", REVIEW_PORT, "notes, takes, My days"))]
+        return {"n8n": services[0]["up"], "review": services[1]["up"], "services": services, "jobs": jobs,
                 "autostart": STARTUP.exists(), "goal": int(self.cfg.get("daily_goal", 5) or 5),
                 "dashboard": dashboard_data(jobs_folder(self.cfg))}
 

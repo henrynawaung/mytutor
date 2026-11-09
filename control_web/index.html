@@ -14,7 +14,7 @@ header .tag{margin:0;font-size:12px;color:var(--muted)}
 .svc{margin-left:auto;display:flex;gap:10px}
 .pill{display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);font-size:13px}
 .dot{width:9px;height:9px;border-radius:50%;background:var(--muted)}.dot.on{background:var(--ok);box-shadow:0 0 0 3px rgba(60,196,168,.18)}.dot.off{background:var(--bad)}
-.wrap{display:grid;grid-template-columns:280px 1fr;gap:18px;padding:18px 22px;max-width:1500px;margin:0 auto}
+.wrap{display:grid;grid-template-columns:310px 1fr;gap:18px;padding:18px 22px;max-width:1500px;margin:0 auto}
 aside{display:flex;flex-direction:column;gap:14px}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
 .card h2{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:0 0 10px;font-weight:650}
@@ -23,6 +23,18 @@ aside{display:flex;flex-direction:column;gap:14px}
 .btn.primary{background:var(--brand);border-color:var(--brand);color:#1a1205;font-weight:700;justify-content:center;padding:12px}
 .btn.danger{color:var(--bad)}.btn.small{font-size:13px;padding:6px 10px}
 .btn[disabled]{opacity:.5;cursor:default;transform:none}
+.svc-row{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.svc-row:last-child{border-bottom:0}.svc-row b{display:block;font-size:14px}.svc-row small{display:block;color:var(--muted);font-size:12px}
+.svc-row .st{font-size:12px;font-weight:700;padding:2px 9px;border-radius:999px}
+.st.up{color:var(--ok);background:rgba(60,196,168,.12)}.st.down{color:var(--bad);background:rgba(248,113,113,.12)}
+.svc-row .mini{font:inherit;font-size:12px;padding:3px 9px;border-radius:7px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);cursor:pointer;margin-left:6px}
+.svc-row .mini.stop{color:var(--bad);border-color:rgba(248,113,113,.45)}.svc-row .mini:hover{border-color:var(--brand)}
+.svc-row .acts{grid-column:2;display:flex;align-items:center;gap:6px;margin-top:4px}.svc-row .mini{margin-left:auto}
+.big-dot{width:11px;height:11px;border-radius:50%}.big-dot.on{background:var(--ok);box-shadow:0 0 0 4px rgba(60,196,168,.16)}.big-dot.off{background:var(--bad)}
+.jobsline{font-size:12.5px;color:var(--brand);margin:6px 0 2px;min-height:4px}
+.btn.stopall{background:#7f1d1d;border-color:#b91c1c;color:#fff;font-weight:700;justify-content:center;padding:11px}
+.btn.stopall:hover{background:#991b1b;border-color:#ef4444}
+.hint{font-size:12px;color:var(--muted);margin:6px 2px 0}
 .opt{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin:6px 0;cursor:pointer}
 main{display:flex;flex-direction:column;gap:18px;min-width:0}
 .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
@@ -68,8 +80,16 @@ th:first-child,td:first-child{text-align:left}tr.total td{font-weight:700;color:
 
 <div class="wrap">
 <aside>
-  <div class="card">
+  <div class="card svcs">
+    <h2>Services</h2>
+    <div id="svcs"><span class="muted">Checking…</span></div>
+    <div class="jobsline" id="jobsline"></div>
     <button class="btn primary" data-a="start-all">▶&nbsp; Start everything</button>
+    <button class="btn stopall" data-a="stop-all" data-confirm="1">■&nbsp; Stop all services</button>
+    <p class="hint">Stopping ends n8n and the Review app. Automatic runs pause until you start again.</p>
+  </div>
+  <div class="card">
+    <h2>Open</h2>
     <button class="btn" data-a="open-review"><span class="i">📚</span>Open Review app</button>
     <button class="btn" data-a="practice"><span class="i">📝</span>Practice quizzes</button>
     <button class="btn" data-a="open-obsidian"><span class="i">🟣</span>Open Obsidian</button>
@@ -84,7 +104,6 @@ th:first-child,td:first-child{text-align:left}tr.total td{font-weight:700;color:
   </div>
   <div class="card">
     <h2>System</h2>
-    <button class="btn danger" data-a="stop-all" data-confirm="1"><span class="i">■</span>Stop everything</button>
     <label class="opt"><input type="checkbox" id="autostart"> Start everything when I sign in to Windows</label>
     <button class="btn small" data-a="desktop-shortcut"><span class="i">🖥</span>Add desktop shortcut</button>
   </div>
@@ -138,6 +157,12 @@ function svc(key, up) { $("d-" + key).className = "dot " + (up ? "on" : "off"); 
 
 function paint(s) {
   svc("n8n", s.n8n); svc("review", s.review);
+  if (!document.querySelector("#svcs [data-armed]")) $("svcs").innerHTML = (s.services || []).map(v => `<div class="svc-row"><span class="big-dot ${v.up ? "on" : "off"}"></span>
+      <div><b>${esc(v.name)}</b><small>${esc(v.detail)} · port ${v.port}${v.up && !v.here ? " · started elsewhere" : ""}</small></div>
+      <div class="acts"><span class="st ${v.up ? "up" : "down"}">${v.up ? "Running" : "Stopped"}</span>${v.up
+        ? `<button class="mini stop" data-a="stop-${v.key}" data-confirm="1">Stop</button>` : `<button class="mini" data-a="start-${v.key}">Start</button>`}</div></div>`).join("");
+  const busy = (s.jobs || []).filter(j => j.running && !["n8n", "review"].includes(j.name)).map(j => j.name);
+  $("jobsline").textContent = busy.length ? "⏳ Working: " + busy.join(", ") : "";
   $("autostart").checked = s.autostart;
   const d = s.dashboard;
   $("k-appr").textContent = `${d.approved_today}/${s.goal}`; $("k-appr-l").textContent = d.approved_today >= s.goal ? "approved today · goal met ✓" : "approved today";
