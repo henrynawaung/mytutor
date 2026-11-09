@@ -329,6 +329,9 @@ class Centre:
             return "Automatic start is off."
         if name == "desktop-shortcut":
             DESKTOP.write_text(shortcut_bat(HERE), encoding="utf-8"); return "Shortcut added to your desktop."
+        if name == "quit":
+            threading.Timer(0.5, lambda: os._exit(0)).start()     # close this page's helper; services keep running
+            return "Control Centre closed. Double-click 'myTutor Control Centre.bat' to open it again."
         raise KeyError(name)
 
     def state(self) -> dict:
