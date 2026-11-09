@@ -329,10 +329,32 @@ class Centre:
             return "Automatic start is off."
         if name == "desktop-shortcut":
             DESKTOP.write_text(shortcut_bat(HERE), encoding="utf-8"); return "Shortcut added to your desktop."
+        if name in ("restart-n8n", "restart-review", "restart-all"):
+            keys = ["n8n", "review"] if name == "restart-all" else [name.split("-", 1)[1]]
+            threading.Thread(target=self._restart, args=(keys,), daemon=True).start()
+            return "Restarting " + " and ".join("n8n" if k == "n8n" else "the Review app" for k in keys) + "…"
+        if name == "restart-centre":
+            DETACHED = getattr(subprocess, "DETACHED_PROCESS", 0) | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+            subprocess.Popen([windowed_python(), str(HERE / "launcher.py"), "--after-restart"], cwd=str(HERE),
+                             creationflags=DETACHED, close_fds=True)
+            threading.Timer(0.5, lambda: os._exit(0)).start()
+            return "Restarting the Control Centre… the page reloads by itself."
         if name == "quit":
             threading.Timer(0.5, lambda: os._exit(0)).start()     # close this page's helper; services keep running
             return "Control Centre closed. Double-click 'myTutor Control Centre.bat' to open it again."
         raise KeyError(name)
+
+    def _restart(self, keys):
+        import time
+        for k in keys:
+            port = N8N_PORT if k == "n8n" else REVIEW_PORT
+            self.jobs.stop(k)
+            stop_port(port)
+            for _ in range(40):                      # wait until the old copy has let go of its port
+                if not port_open(port):
+                    break
+                time.sleep(0.25)
+            self.console.add("control", self.jobs.start(k))
 
     def state(self) -> dict:
         jobs = self.jobs.status()
@@ -412,13 +434,21 @@ def main(argv=None) -> int:
     from http.server import ThreadingHTTPServer
     argv = sys.argv[1:] if argv is None else argv
     url = f"http://127.0.0.1:{CONTROL_PORT}/"
-    if port_open(CONTROL_PORT):                       # already open: just show it
+    if "--after-restart" in argv:                     # wait for the old copy to close its port
+        import time
+        for _ in range(40):
+            if not port_open(CONTROL_PORT):
+                break
+            time.sleep(0.25)
+    elif port_open(CONTROL_PORT):                     # already open: just show it
         webbrowser.open(url)
         return 0
     centre = Centre(load_cfg())
     srv = ThreadingHTTPServer(("127.0.0.1", CONTROL_PORT), make_handler(centre))
     if "--autostart" in argv:
         centre.console.add("control", centre.action("start-all"))
+    elif "--after-restart" in argv:
+        centre.console.add("control", "Control Centre restarted.")
     else:
         webbrowser.open(url)
     try:

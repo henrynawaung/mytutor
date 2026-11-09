@@ -29,7 +29,7 @@ aside{display:flex;flex-direction:column;gap:14px}
 .st.up{color:var(--ok);background:rgba(60,196,168,.12)}.st.down{color:var(--bad);background:rgba(248,113,113,.12)}
 .svc-row .mini{font:inherit;font-size:12px;padding:3px 9px;border-radius:7px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);cursor:pointer;margin-left:6px}
 .svc-row .mini.stop{color:var(--bad);border-color:rgba(248,113,113,.45)}.svc-row .mini:hover{border-color:var(--brand)}
-.svc-row .acts{grid-column:2;display:flex;align-items:center;gap:6px;margin-top:4px}.svc-row .mini{margin-left:auto}
+.svc-row .acts{grid-column:2;display:flex;align-items:center;gap:6px;margin-top:4px}.svc-row .st{margin-right:auto}
 .big-dot{width:11px;height:11px;border-radius:50%}.big-dot.on{background:var(--ok);box-shadow:0 0 0 4px rgba(60,196,168,.16)}.big-dot.off{background:var(--bad)}
 .jobsline{font-size:12.5px;color:var(--brand);margin:6px 0 2px;min-height:4px}
 .btn.stopall{background:#7f1d1d;border-color:#b91c1c;color:#fff;font-weight:700;justify-content:center;padding:11px}
@@ -85,6 +85,7 @@ th:first-child,td:first-child{text-align:left}tr.total td{font-weight:700;color:
     <div id="svcs"><span class="muted">Checking…</span></div>
     <div class="jobsline" id="jobsline"></div>
     <button class="btn primary" data-a="start-all">▶&nbsp; Start everything</button>
+    <button class="btn" data-a="restart-all"><span class="i">↻</span>Restart all services</button>
     <button class="btn stopall" data-a="stop-all" data-confirm="1">■&nbsp; Stop all services</button>
     <p class="hint">Stopping ends n8n and the Review app. Automatic runs pause until you start again.</p>
   </div>
@@ -106,6 +107,7 @@ th:first-child,td:first-child{text-align:left}tr.total td{font-weight:700;color:
     <h2>System</h2>
     <label class="opt"><input type="checkbox" id="autostart"> Start everything when I sign in to Windows</label>
     <button class="btn small" data-a="desktop-shortcut"><span class="i">🖥</span>Add desktop shortcut</button>
+    <button class="btn small" data-a="restart-centre"><span class="i">↻</span>Restart Control Centre (after updates)</button>
     <button class="btn small" data-a="quit" data-confirm="1"><span class="i">⏏</span>Close Control Centre (services keep running)</button>
   </div>
 </aside>
@@ -161,7 +163,7 @@ function paint(s) {
   if (!document.querySelector("#svcs [data-armed]")) $("svcs").innerHTML = (s.services || []).map(v => `<div class="svc-row"><span class="big-dot ${v.up ? "on" : "off"}"></span>
       <div><b>${esc(v.name)}</b><small>${esc(v.detail)} · port ${v.port}${v.up && !v.here ? " · started elsewhere" : ""}</small></div>
       <div class="acts"><span class="st ${v.up ? "up" : "down"}">${v.up ? "Running" : "Stopped"}</span>${v.up
-        ? `<button class="mini stop" data-a="stop-${v.key}" data-confirm="1">Stop</button>` : `<button class="mini" data-a="start-${v.key}">Start</button>`}</div></div>`).join("");
+        ? `<button class="mini" data-a="restart-${v.key}">↻ Restart</button><button class="mini stop" data-a="stop-${v.key}" data-confirm="1">Stop</button>` : `<button class="mini" data-a="start-${v.key}">Start</button>`}</div></div>`).join("");
   const busy = (s.jobs || []).filter(j => j.running && !["n8n", "review"].includes(j.name)).map(j => j.name);
   $("jobsline").textContent = busy.length ? "⏳ Working: " + busy.join(", ") : "";
   $("autostart").checked = s.autostart;
@@ -201,11 +203,20 @@ document.addEventListener("click", async e => {
   const b = e.target.closest("[data-a]"); if (!b || b.disabled) return;
   if (b.dataset.confirm && !b.dataset.armed) { b.dataset.armed = "1"; const t = b.innerHTML; b.innerHTML = "Click again to confirm"; setTimeout(() => { delete b.dataset.armed; b.innerHTML = t; }, 3000); return; }
   delete b.dataset.armed;
-  try { const r = await api("/api/action", {action: b.dataset.a}); toast(r.message); } catch (err) { toast(err.message); }
+  try { const r = await api("/api/action", {action: b.dataset.a}); toast(r.message);
+    if (b.dataset.a === "restart-centre") return waitAndReload(); } catch (err) { toast(err.message); }
   poll(); pollLog();
 });
 $("autostart").onchange = async e => { const r = await api("/api/action", {action: e.target.checked ? "autostart-on" : "autostart-off"}); toast(r.message); };
 $("cfilter").onchange = renderLog; $("cclear").onclick = () => { lines = []; renderLog(); };
+async function waitAndReload() {
+  document.body.style.opacity = .5;
+  for (let i = 0; i < 60; i++) {
+    await new Promise(r => setTimeout(r, 1000));
+    try { const r = await fetch("/", {cache: "no-store"}); if (r.ok) { location.reload(); return; } } catch (e) {}
+  }
+  toast("The Control Centre did not come back. Double-click 'myTutor Control Centre.bat'.");
+}
 poll(); pollLog(); setInterval(poll, 4000); setInterval(pollLog, 1000);
 </script>
 </body></html>
