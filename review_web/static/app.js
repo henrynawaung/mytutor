@@ -1,6 +1,6 @@
 "use strict";
 // ---- display settings (kept in this browser) ----
-const SET_DEF = {size: "m", theme: "auto", font: "sans", width: "normal", photo: "soft", goal: "5", accent: "amber", density: "comfy", name: ""};
+const SET_DEF = {remind: "off", size: "m", theme: "auto", font: "sans", width: "normal", photo: "soft", goal: "5", accent: "amber", density: "comfy", name: ""};
 function getSet() { try { return Object.assign({}, SET_DEF, JSON.parse(localStorage.getItem("mytutor-settings") || "{}")); } catch (e) { return {...SET_DEF}; } }
 function applySet(s) {
   const r = document.documentElement;
@@ -134,7 +134,7 @@ async function showActivity() {
     <p class="weekline"><b>Last 7 days</b></p><div class="tiles weektiles"><span class="tile t-ok"><b>${wk.approve}</b>approved</span><span class="tile t-take"><b>${wk.take}</b>takes</span><span class="tile t-ref"><b>${wk.ans}</b>reflections</span><span class="tile"><b>${stats.streak || 0}🔥</b>day streak</span></div>` +
     (days.map(d => `<div class="daycard" data-day="${d.day}">
       <div class="dayhead"><b>${esc(niceDay(d.day))}</b>
-        <span><div class="tiles"><span class="tile t-ok"><b>${d.approve}</b>approved</span><span class="tile t-take"><b>${d["my-take"]}</b>takes</span><span class="tile t-ref"><b>${d.answer}</b>reflections</span>${d["needs-fix"] ? `<span class="tile t-warn"><b>${d["needs-fix"]}</b>needs fix</span>` : ""}</div>${d.no_take ? `<em class="notake">${d.no_take} approved without a take</em>` : ""}</span>
+        <span><div class="tiles"><span class="tile t-ok"><b>${d.approve}</b>approved</span><span class="tile t-take"><b>${d["my-take"]}</b>takes</span><span class="tile t-ref"><b>${d.answer}</b>reflections</span>${d["needs-fix"] ? `<span class="tile t-warn"><b>${d["needs-fix"]}</b>needs fix</span>` : ""}</div>${d.no_take && getSet().remind === "on" ? `<em class="notake">${d.no_take} approved without a take</em>` : ""}</span>
         <small>${Object.entries(d.types).map(([t, n]) => { const w = (TYPES[t] || t).toLowerCase(); return `${n} ${n === 1 && w !== "core" ? w.replace(/s$/, "") : w}`; }).join(" · ")}</small>
         <span class="chev">▸</span></div>
       <div class="daybody" hidden></div></div>`).join("") || '<p class="empty">Nothing yet. Approve a note or write a take, and your day shows up here.</p>') + "</div>";
@@ -149,10 +149,10 @@ async function openDay(card) {
   for (const n of notes) (groups[n.type === "theme" ? "reflection" : (n.type || "other")] ||= []).push(n);
   body.innerHTML = Object.keys(TYPES).filter(t => groups[t]).map(t => `<h3>${TYPES[t]} (${groups[t].length})</h3>` + groups[t].map(n =>
     `<div class="dayitem"><div class="dayitemhead" data-x="1"><b>${esc(n.title)}</b><small>${esc(n.course)}</small>
-       <span class="tags">${[...new Set(n.actions.map(a => ACT[a.action] || a.action))].map(x => `<span class="chip">${esc(x)}</span>`).join("")}${n.has_take ? "" : '<span class="chip notake">no take yet</span>'}</span><span class="chev">▸</span></div>
+       <span class="tags">${[...new Set(n.actions.map(a => ACT[a.action] || a.action))].map(x => `<span class="chip">${esc(x)}</span>`).join("")}${noTakeChip(n)}</span><span class="chev">▸</span></div>
      <div class="dayitembody" hidden>${n.actions.map(a => `<div class="upd"><small>${esc(a.at)} · ${esc(ACT[a.action] || a.action)}</small>${a.detail ? `<div class="md">${md(a.detail)}</div>` : ""}</div>`).join("")}
-       ${n.has_take ? "" : '<p class="notake">No take on this note yet. Open it to add one.</p>'}
-       <button class="b small" data-open="${esc(n.rel)}" data-kind="${n.type === "theme" ? "journals" : "notes"}">${n.has_take ? "Open note" : "Open note to add a take"}</button></div></div>`).join("")).join("");
+       ${n.has_take || getSet().remind !== "on" ? "" : '<p class="notake">No take on this note yet. Open it to add one.</p>'}
+       <button class="b small" data-open="${esc(n.rel)}" data-kind="${n.type === "theme" ? "journals" : "notes"}">${n.has_take || getSet().remind !== "on" ? "Open note" : "Open note to add a take"}</button></div></div>`).join("")).join("");
   body.dataset.loaded = "1";
 }
 let curIdx = 0, openQ = null;
@@ -386,4 +386,10 @@ function confirmDelete(btn) {                 // two-step delete without a brows
   btn.dataset.armed = "1"; const old = btn.textContent; btn.textContent = "Click again to delete";
   setTimeout(() => { delete btn.dataset.armed; btn.textContent = old; }, 3000);
   return false;
+}
+
+function noTakeChip(n) {
+  // approved without a take: a deliberate choice unless reminders are switched on
+  if (n.has_take || !n.actions.some(a => a.action === "approve")) return "";
+  return getSet().remind === "on" ? '<span class="chip notake">no take yet</span>' : '<span class="chip nt-ok">no take needed</span>';
 }

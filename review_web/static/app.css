@@ -199,3 +199,4 @@ header{flex-wrap:nowrap;gap:18px;padding:10px 18px}
 .tkhead{display:flex;align-items:center;gap:8px}.tkhead b{flex:1}.tkhead span{display:flex;gap:6px}
 .takefor{color:var(--brand)}
 body.hasphoto .takes .tk{background:color-mix(in srgb,var(--panel) 90%,transparent)}
+.chip.nt-ok{color:var(--muted);border:1px solid var(--line);background:none}
