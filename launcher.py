@@ -107,7 +107,7 @@ def dashboard_data(jobs: Path, today: date | None = None) -> dict:
     today = today or date.today()
     t = today.isoformat()
     out = {"approved_today": 0, "takes_today": 0, "answers_today": 0, "streak": 0, "to_review": 0,
-           "approved_week": 0, "active_days_week": 0,
+           "approved_week": 0, "active_days_week": 0, "total_takes": 0,
            "courses": [], "recent": [], "last_run": None, "month_cost": 0.0, "month_runs": 0,
            "inventory": [], "hubs": 0, "history": []}
     db = jobs / "mytutor.db"
@@ -146,6 +146,7 @@ def dashboard_data(jobs: Path, today: date | None = None) -> dict:
                 c["days"] = len(c["days"])
             out["inventory"] = sorted(inv.values(), key=lambda c: c["course"])
             out["hubs"] = q("SELECT COUNT(*) FROM notes WHERE type='hub'")[0][0]
+            out["total_takes"] = q("SELECT COUNT(*) FROM activity WHERE action='my-take'")[0][0]
             # review history: one row per day with activity (last 10 days with work)
             out["history"] = [{"day": d, "approved": a or 0, "takes": tk or 0, "reflections": rf or 0, "notes": n or 0}
                               for d, a, tk, rf, n in q(
