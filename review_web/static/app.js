@@ -313,7 +313,7 @@ function enhance(ta, opts = {}) {
   }
   if (opts.template) {
     const tp = document.createElement("button"); tp.type = "button"; tp.textContent = "Template"; tp.className = "tpbtn";
-    tp.title = "Insert my four headings"; tp.onclick = () => { insertTemplate(ta); ta.focus(); grow(); }; bar.appendChild(tp);
+    tp.title = "Insert my headings: source, experience, apply, takeaway, memory line"; tp.onclick = () => { insertTemplate(ta); ta.focus(); grow(); }; bar.appendChild(tp);
   }
   const prev = document.createElement("button"); prev.type = "button"; prev.textContent = "Preview"; prev.className = "pvbtn";
   prev.onclick = () => { const on = pv.hidden; pv.hidden = !on; ta.hidden = on; prev.textContent = on ? "Edit" : "Preview";
@@ -356,7 +356,7 @@ function insertTemplate(ta) {
   // the note's own source: "**Source:** [[X]]" in the body, else the source property, else blank
   const m = cur && cur.body.match(/\*\*Source:\*\*\s*(\[\[[^\]]+\]\])/);
   const src = m ? m[1] : (cur && cur.props.source ? cur.props.source : "");
-  const t = `#### 📖 Where I came across this\n${src}\n\n#### 💭 My experience and observation\n\n\n#### 🎯 What I would apply in the future\n- \n\n#### 💡 My key takeaway\n`;
+  const t = `#### 📖 Where I came across this\n${src}\n\n#### 💭 My experience and observation\n\n\n#### 🎯 What I would apply in the future\n- \n\n#### 💡 Key takeaway: what I would tell the C-suite or the board\n\n\n#### 🧠 Memory line: one line to remember\n`;
   const pos = ta.selectionStart, before = ta.value.slice(0, pos);
   const sep = before && !before.endsWith("\n\n") ? (before.endsWith("\n") ? "\n" : "\n\n") : "";
   ta.setRangeText(sep + t, pos, ta.selectionEnd, "end");

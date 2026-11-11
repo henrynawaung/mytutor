@@ -67,9 +67,17 @@ def clean_block(t: str) -> str:
     return re.sub(r"\n{3,}", "\n\n", t)
 
 
+def take_block(t: str) -> str:
+    """A take's text, made safe to sit inside '## My take': headings written as # or ## (which would
+    end the section) and ### dates (which would split it) become #### headings. Words stay the same."""
+    t = clean_block(t)
+    t = re.sub(r"^#{1,2}[ \t]+", "#### ", t, flags=re.M)
+    return re.sub(r"^### (?=\d{4}-\d{2}-\d{2}[ \t]*$)", "#### ", t, flags=re.M)
+
+
 def add_take(text: str, take: str, today: str) -> str:
     """Add a dated entry (### date + the take, formatting kept) at the end of '## My take'."""
-    entry = f"### {today}\n\n{clean_block(take)}\n"
+    entry = f"### {today}\n\n{take_block(take)}\n"
     m = re.search(r"^## My take[ \t]*$", text, re.M)
     if not m:
         return text.rstrip("\n") + f"\n\n## My take\n\n{entry}"
@@ -128,7 +136,7 @@ def replace_take(text: str, i: int, body: str) -> str:
     for k, m in enumerate(marks):
         pieces.append((m.start(), marks[k + 1].start() if k + 1 < len(marks) else len(sec)))
     a, b = pieces[i]
-    body = clean_block(body)
+    body = take_block(body)
     if body:
         new = (f"### {takes[i]['date']}\n\n{body}\n\n" if takes[i]["date"] else f"\n{body}\n\n")
     else:

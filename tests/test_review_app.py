@@ -52,6 +52,15 @@ class CoreTests(unittest.TestCase):
         self.assertNotIn("## My take", bare)                                # empty section removed
         self.assertTrue(bare.startswith(CORE.rstrip("\n")))
 
+    def test_big_headings_inside_a_take_do_not_break_the_section(self):
+        take = "Intro\n\n## **Classify → Align**\n\n### **1. Classify**\ntext\n\n#### 🧠 Memory line\nLine"
+        t = core.add_take(HUB, take, "2026-11-12")
+        ts = core.list_takes(t)
+        self.assertEqual(len(ts), 1)
+        self.assertIn("#### **Classify → Align**", ts[0]["body"])
+        self.assertIn("### **1. Classify**", ts[0]["body"])
+        self.assertIn("## Next\nx", t)
+
     def test_prompts_and_answer(self):
         ps = core.prompts(JOURNAL)
         self.assertEqual([p["question"] for p in ps], ["Where is silence hiding disagreement?", "Second?"])
