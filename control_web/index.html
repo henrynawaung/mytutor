@@ -30,7 +30,8 @@ aside{display:flex;flex-direction:column;gap:14px}
 .svc-row .mini{font:inherit;font-size:12px;padding:3px 9px;border-radius:7px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);cursor:pointer;margin-left:6px}
 .svc-row .mini.stop{color:var(--bad);border-color:rgba(248,113,113,.45)}.svc-row .mini:hover{border-color:var(--brand)}
 .svc-row .acts{grid-column:2;display:flex;align-items:center;gap:6px;margin-top:4px}.svc-row .st{margin-right:auto}
-.big-dot{width:11px;height:11px;border-radius:50%}.big-dot.on{background:var(--ok);box-shadow:0 0 0 4px rgba(60,196,168,.16)}.big-dot.off{background:var(--bad)}
+.big-dot{width:11px;height:11px;border-radius:50%}.big-dot.on{background:var(--ok);box-shadow:0 0 0 4px rgba(60,196,168,.16)}.big-dot.off{background:var(--bad)}.big-dot.wait{background:var(--warn);animation:pulse 1s infinite}@keyframes pulse{50%{opacity:.35}}
+.st.wait{color:var(--warn);background:rgba(251,191,36,.12)}
 .jobsline{font-size:12.5px;color:var(--brand);margin:6px 0 2px;min-height:4px}
 .btn.stopall{background:#7f1d1d;border-color:#b91c1c;color:#fff;font-weight:700;justify-content:center;padding:11px}
 .btn.stopall:hover{background:#991b1b;border-color:#ef4444}
@@ -160,9 +161,9 @@ function svc(key, up) { $("d-" + key).className = "dot " + (up ? "on" : "off"); 
 
 function paint(s) {
   svc("n8n", s.n8n); svc("review", s.review);
-  if (!document.querySelector("#svcs [data-armed]")) $("svcs").innerHTML = (s.services || []).map(v => `<div class="svc-row"><span class="big-dot ${v.up ? "on" : "off"}"></span>
+  if (!document.querySelector("#svcs [data-armed]")) $("svcs").innerHTML = (s.services || []).map(v => `<div class="svc-row"><span class="big-dot ${v.up ? "on" : v.starting ? "wait" : "off"}"></span>
       <div><b>${esc(v.name)}</b><small>${esc(v.detail)} · port ${v.port}${v.up && !v.here ? " · started elsewhere" : ""}</small></div>
-      <div class="acts"><span class="st ${v.up ? "up" : "down"}">${v.up ? "Running" : "Stopped"}</span>${v.up
+      <div class="acts"><span class="st ${v.up ? "up" : v.starting ? "wait" : "down"}">${v.up ? "Running" : v.starting ? `Starting… ${v.since}s` : "Stopped"}</span>${v.up || v.starting
         ? `<button class="mini" data-a="restart-${v.key}">↻ Restart</button><button class="mini stop" data-a="stop-${v.key}" data-confirm="1">Stop</button>` : `<button class="mini" data-a="start-${v.key}">Start</button>`}</div></div>`).join("");
   const busy = (s.jobs || []).filter(j => j.running && !["n8n", "review"].includes(j.name)).map(j => j.name);
   $("jobsline").textContent = busy.length ? "⏳ Working: " + busy.join(", ") : "";

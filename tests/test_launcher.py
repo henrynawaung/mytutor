@@ -33,6 +33,16 @@ class LauncherTests(unittest.TestCase):
         s.close()
         self.assertFalse(launcher.port_open(port))
 
+    def test_port_open_sees_ipv6_only_listener(self):
+        try:
+            s = socket.socket(socket.AF_INET6)
+            s.bind(("::1", 0))
+        except OSError:
+            self.skipTest("no IPv6 here")
+        s.listen()
+        self.assertTrue(launcher.port_open(s.getsockname()[1]))
+        s.close()
+
     def test_shortcut_bat_points_at_the_folder(self):
         bat = launcher.shortcut_bat(Path("C:/Users/henry/mytutor"), autostart=True)
         self.assertIn('cd /d "C:', bat)

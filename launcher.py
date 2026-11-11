@@ -23,6 +23,7 @@ import sqlite3
 import subprocess
 import sys
 import threading
+import time
 import webbrowser
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -37,12 +38,16 @@ DESKTOP = Path.home() / "Desktop" / "myTutor Control Centre.bat"
 
 # ------------------------------------------------------------------ helpers (no GUI, tested)
 
-def port_open(port: int, host: str = "127.0.0.1", timeout: float = 0.3) -> bool:
-    try:
-        with socket.create_connection((host, port), timeout=timeout):
-            return True
-    except OSError:
-        return False
+def port_open(port: int, host: str | None = None, timeout: float = 0.3) -> bool:
+    """True if something is listening on this port. Checks IPv4 and IPv6, because newer Node.js
+    (and so n8n) may listen only on ::1 / localhost, not on 127.0.0.1."""
+    for h in ([host] if host else ["127.0.0.1", "::1"]):
+        try:
+            with socket.create_connection((h, port), timeout=timeout):
+                return True
+        except OSError:
+            continue
+    return False
 
 
 def pids_on_port(netstat_output: str, port: int) -> set:
@@ -51,7 +56,7 @@ def pids_on_port(netstat_output: str, port: int) -> set:
     for line in netstat_output.splitlines():
         parts = line.split()
         if len(parts) >= 5 and parts[0].upper() == "TCP" and parts[3].upper() == "LISTENING" \
-                and re.search(rf":{port}$", parts[1]):
+                and re.search(rf":{port}$", parts[1]) and parts[4].isdigit() and int(parts[4]) > 0:
             pids.add(int(parts[4]))
     return pids
 
@@ -197,6 +202,7 @@ class Jobs:
     def __init__(self, console: Console, cfg: dict, popen=subprocess.Popen):
         self.console, self.cfg, self.popen = console, cfg, popen
         self.procs = {}                              # name -> Popen
+        self.started = {}                            # name -> start time
         self.lock = threading.Lock()
 
     def py(self, *args) -> list:
@@ -220,6 +226,10 @@ class Jobs:
     def start(self, name: str) -> str:
         with self.lock:
             if self.running(name):
+                if name in ("n8n", "review") and not port_open(N8N_PORT if name == "n8n" else REVIEW_PORT):
+                    secs = int(time.time() - self.started.get(name, time.time()))
+                    return (f"{name} is still starting ({secs}s). Watch the console (filter: {name}); "
+                            "if nothing changes after 2 minutes, click Restart.")
                 return f"{name} is already running."
             argv, extra = self.commands()[name]
             env = dict(os.environ, PYTHONIOENCODING="utf-8", PYTHONUNBUFFERED="1", **extra)
@@ -228,6 +238,7 @@ class Jobs:
             p = self.popen(argv, cwd=str(HERE), env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                            stdin=subprocess.DEVNULL, creationflags=NO_WINDOW)
             self.procs[name] = p
+            self.started[name] = time.time()
         threading.Thread(target=self._pump, args=(name, p), daemon=True).start()
         return f"Started {name}."
 
@@ -360,7 +371,8 @@ class Centre:
         jobs = self.jobs.status()
         mine = {j["name"] for j in jobs if j["running"]}
         services = [{"key": k, "name": nm, "port": port, "up": port_open(port), "detail": det,
-                     "here": k in mine} for k, nm, port, det in (
+                     "here": k in mine, "starting": k in mine and not port_open(port),
+                     "since": int(time.time() - self.jobs.started.get(k, time.time()))} for k, nm, port, det in (
             ("n8n", "n8n automation", N8N_PORT, "runs myTutor every 15 min"),
             ("review", "Review app", REVIEW_PORT, "notes, takes, My days"))]
         return {"n8n": services[0]["up"], "review": services[1]["up"], "services": services, "jobs": jobs,
