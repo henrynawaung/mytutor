@@ -414,23 +414,19 @@ class Store:
                (now(), user, action, rel, (detail or "")[:20000]))
 
     def stats(self) -> dict:
-        today = datetime.now().date().isoformat()
-        days = [r["d"] for r in self.q(
-            "SELECT DISTINCT substr(at,1,10) d FROM activity WHERE action IN ('approve','needs-fix','my-take','answer') "
-            "ORDER BY d DESC")]
-        streak, d = 0, datetime.now().date()
-        if days and days[0] != today:
-            d -= timedelta(days=1)
-        for x in days:
-            if x == d.isoformat():
-                streak += 1
-                d -= timedelta(days=1)
-            elif x < d.isoformat():
-                break
+        today = datetime.now().date()
+        days = {r["d"] for r in self.q(
+            "SELECT DISTINCT substr(at,1,10) d FROM activity WHERE action IN ('approve','needs-fix','my-take','answer')")}
+        t = today.isoformat()
         done = self.q("SELECT COUNT(*) n FROM activity WHERE substr(at,1,10)=? AND action IN "
-                      "('approve','needs-fix','my-take','answer')", (today,))[0]["n"]
-        appr = self.q("SELECT COUNT(DISTINCT rel) n FROM activity WHERE substr(at,1,10)=? AND action='approve'", (today,))[0]["n"]
-        return {"today": done, "streak": streak, "approved_today": appr}
+                      "('approve','needs-fix','my-take','answer')", (t,))[0]["n"]
+        appr = self.q("SELECT COUNT(DISTINCT rel) n FROM activity WHERE substr(at,1,10)=? AND action='approve'", (t,))[0]["n"]
+        monday = (today - timedelta(days=today.weekday())).isoformat()
+        appr_wk = self.q("SELECT COUNT(DISTINCT rel) n FROM activity WHERE substr(at,1,10)>=? AND action='approve'",
+                         (monday,))[0]["n"]
+        return {"today": done, "approved_today": appr, "approved_week": appr_wk,
+                "week_streak": week_streak(days, today), "active_days_week": sum(1 for d in days if d >= monday),
+                "streak": week_streak(days, today)}
 
     WORK = ("approve", "needs-fix", "my-take", "answer", "undo", "edit-take", "delete-take")
 
@@ -497,6 +493,20 @@ class Store:
     def recent(self, n: int = 30) -> list:
         return self.q("SELECT at, action, rel, detail FROM activity WHERE action NOT LIKE 'login%' "
                       "ORDER BY id DESC LIMIT ?", (n,))
+
+
+def week_streak(active_days, today) -> int:
+    """Weeks in a row (Monday to Sunday) with at least one review, take or reflection.
+    This week counts as soon as there is activity; an empty current week doesn't break the streak yet."""
+    weeks = {datetime.fromisoformat(d).date().isocalendar()[:2] for d in active_days}
+    wk = today - timedelta(days=today.weekday())
+    if wk.isocalendar()[:2] not in weeks:
+        wk -= timedelta(days=7)
+    n = 0
+    while wk.isocalendar()[:2] in weeks:
+        n += 1
+        wk -= timedelta(days=7)
+    return n
 
 
 def now() -> str:

@@ -11,7 +11,7 @@
 <div class="brand"><img src="{{ url_for('static', filename='logo.svg') }}" alt="" width="34" height="34"><div><h1>myTutor <span>Review</span></h1><p class="tag" id="tagline">Your second brain · read, reflect, apply</p></div></div>
 <nav class="tabs"><button id="t-notes" class="on"><span class="ti">📚</span>Notes</button><button id="t-journals"><span class="ti">💬</span>Reflections</button><button id="t-activity"><span class="ti">📅</span>My days</button></nav>
 <div class="hright">
-  <div class="goal" id="goal" title="Today's goal"><svg viewBox="0 0 36 36" width="34" height="34"><circle cx="18" cy="18" r="15" class="gbg"/><circle cx="18" cy="18" r="15" class="gfg" id="goal-ring"/></svg><div><b id="goal-txt">0/5</b><small id="streak-txt">today</small></div></div>
+  <div class="goal" id="goal" title="This week's goal"><svg viewBox="0 0 36 36" width="34" height="34"><circle cx="18" cy="18" r="15" class="gbg"/><circle cx="18" cy="18" r="15" class="gfg" id="goal-ring"/></svg><div><b id="goal-txt">0/20</b><small id="streak-txt">this week</small></div></div>
   <button class="iconbtn" id="b-sync" title="Re-read the vault">⟳</button>
   <button class="iconbtn" id="b-set" title="Personalise">⚙</button>
   <div class="usermenu"><button class="avatar" id="b-user" title="{{ user }}">{{ user[:1]|upper }}</button>
@@ -37,7 +37,7 @@
 <span class="kbd">Shift+A approve &amp; next · A approve · F needs fix · → next · T my take</span></div></div>
 <div class="settings" id="settings" hidden><h4>Personalise</h4>
 <div class="grp"><span>Your name (for the greeting)</span><input class="sinput" id="s-name" maxlength="40" placeholder="e.g. Henry"></div>
-<div class="grp"><span>Daily goal (notes approved)</span><div class="seg" data-set="goal"><button data-v="3">3</button><button data-v="5">5</button><button data-v="10">10</button><button data-v="15">15</button></div></div>
+<div class="grp"><span>Weekly goal (notes approved)</span><div class="seg" data-set="wgoal"><button data-v="10">10</button><button data-v="20">20</button><button data-v="30">30</button><button data-v="50">50</button></div></div>
 <div class="grp"><span>Accent colour</span><div class="seg swatches" data-set="accent"><button data-v="amber" title="Amber"></button><button data-v="teal" title="Teal"></button><button data-v="indigo" title="Indigo"></button><button data-v="rose" title="Rose"></button><button data-v="green" title="Green"></button></div></div>
 <div class="grp"><span>Remind me about notes approved without a take</span><div class="seg" data-set="remind"><button data-v="off">Off</button><button data-v="on">On</button></div></div>
 <div class="grp"><span>Layout density</span><div class="seg" data-set="density"><button data-v="comfy">Comfortable</button><button data-v="compact">Compact</button></div></div>

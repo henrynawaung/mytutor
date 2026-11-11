@@ -61,6 +61,14 @@ class CoreTests(unittest.TestCase):
         self.assertIn("### **1. Classify**", ts[0]["body"])
         self.assertIn("## Next\nx", t)
 
+    def test_week_streak(self):
+        from datetime import date
+        thu = date(2026, 11, 12)                       # Thursday
+        self.assertEqual(core.week_streak({"2026-11-10", "2026-11-04", "2026-10-28"}, thu), 3)
+        self.assertEqual(core.week_streak({"2026-11-04", "2026-10-28"}, thu), 2)      # quiet week so far: not broken
+        self.assertEqual(core.week_streak({"2026-10-28"}, thu), 0)                    # a whole week missed
+        self.assertEqual(core.week_streak(set(), thu), 0)
+
     def test_prompts_and_answer(self):
         ps = core.prompts(JOURNAL)
         self.assertEqual([p["question"] for p in ps], ["Where is silence hiding disagreement?", "Second?"])

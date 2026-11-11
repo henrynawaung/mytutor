@@ -76,6 +76,7 @@ class DashboardTests(unittest.TestCase):
         a = next(c for c in out["inventory"] if c["course"] == "MBAM601")
         self.assertEqual((a["days"], a["sources"], a["core"], a["cases"], a["quizzes"]), (2, 1, 1, 1, 1))
         self.assertEqual(next(c for c in out["inventory"] if c["course"] == "BusinessMentor")["journals"], 1)
+        self.assertEqual([(h["day"], h["approved"], h["takes"]) for h in out["history"]], [("2026-11-09", 1, 0), ("2026-11-08", 0, 1)])
         self.assertEqual((out["last_run"]["notes"], round(out["month_cost"], 2), out["month_runs"]), ("14", 0.25, 1))
 
 

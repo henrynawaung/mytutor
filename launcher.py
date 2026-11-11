@@ -107,8 +107,9 @@ def dashboard_data(jobs: Path, today: date | None = None) -> dict:
     today = today or date.today()
     t = today.isoformat()
     out = {"approved_today": 0, "takes_today": 0, "answers_today": 0, "streak": 0, "to_review": 0,
+           "approved_week": 0, "active_days_week": 0,
            "courses": [], "recent": [], "last_run": None, "month_cost": 0.0, "month_runs": 0,
-           "inventory": [], "hubs": 0}
+           "inventory": [], "hubs": 0, "history": []}
     db = jobs / "mytutor.db"
     if db.exists():
         con = sqlite3.connect(f"file:{db.as_posix()}?mode=ro", uri=True, timeout=2)
@@ -119,10 +120,12 @@ def dashboard_data(jobs: Path, today: date | None = None) -> dict:
             out["answers_today"] = q("SELECT COUNT(*) FROM activity WHERE substr(at,1,10)=? AND action='answer'", (t,))[0][0]
             days = {r[0] for r in q("SELECT DISTINCT substr(at,1,10) FROM activity WHERE action IN "
                                     "('approve','my-take','answer','needs-fix')")}
-            d = today if t in days else today - timedelta(days=1)
-            while d.isoformat() in days:
-                out["streak"] += 1
-                d -= timedelta(days=1)
+            from review_core import week_streak
+            out["streak"] = week_streak(days, today)
+            monday = (today - timedelta(days=today.weekday())).isoformat()
+            out["approved_week"] = q("SELECT COUNT(DISTINCT rel) FROM activity WHERE substr(at,1,10)>=? AND action='approve'",
+                                     (monday,))[0][0]
+            out["active_days_week"] = sum(1 for d in days if d >= monday)
             rows = q("SELECT course, SUM(status='reviewed'), COUNT(*) FROM notes WHERE status != '' AND "
                      "type IN ('core','case','hub','reference') GROUP BY course ORDER BY course")
             out["courses"] = [(c or "other", int(r or 0), int(n)) for c, r, n in rows]
@@ -143,6 +146,12 @@ def dashboard_data(jobs: Path, today: date | None = None) -> dict:
                 c["days"] = len(c["days"])
             out["inventory"] = sorted(inv.values(), key=lambda c: c["course"])
             out["hubs"] = q("SELECT COUNT(*) FROM notes WHERE type='hub'")[0][0]
+            # review history: one row per day with activity (last 10 days with work)
+            out["history"] = [{"day": d, "approved": a or 0, "takes": tk or 0, "reflections": rf or 0, "notes": n or 0}
+                              for d, a, tk, rf, n in q(
+                "SELECT substr(at,1,10) d, COUNT(DISTINCT CASE WHEN action='approve' THEN rel END), "
+                "SUM(action='my-take'), SUM(action='answer'), COUNT(DISTINCT rel) FROM activity "
+                "WHERE action IN ('approve','my-take','answer','needs-fix') GROUP BY d ORDER BY d DESC LIMIT 10")]
             for at, action, rel in q("SELECT at, action, rel FROM activity WHERE action NOT LIKE 'login%' "
                                      "AND action != 'background' ORDER BY id DESC LIMIT 4"):
                 out["recent"].append((at[5:16].replace("T", " "), ACT_NAMES.get(action, action),
@@ -323,6 +332,8 @@ class Centre:
             return j.start(name)
         if name == "open-review":
             self.open(REVIEW_URL); return "Opening the Review app."
+        if name == "open-days":
+            self.open(REVIEW_URL + "#days"); return "Opening your review history (My days)."
         if name == "open-n8n":
             self.open(N8N_URL); return "Opening n8n."
         if name == "open-obsidian":
@@ -376,7 +387,7 @@ class Centre:
             ("n8n", "n8n automation", N8N_PORT, "runs myTutor every 15 min"),
             ("review", "Review app", REVIEW_PORT, "notes, takes, My days"))]
         return {"n8n": services[0]["up"], "review": services[1]["up"], "services": services, "jobs": jobs,
-                "autostart": STARTUP.exists(), "goal": int(self.cfg.get("daily_goal", 5) or 5),
+                "autostart": STARTUP.exists(), "goal": int(self.cfg.get("weekly_goal", 20) or 20),
                 "dashboard": dashboard_data(jobs_folder(self.cfg))}
 
 

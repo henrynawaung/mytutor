@@ -1,6 +1,6 @@
 "use strict";
 // ---- display settings (kept in this browser) ----
-const SET_DEF = {remind: "off", size: "m", theme: "auto", font: "sans", width: "normal", photo: "soft", goal: "5", accent: "amber", density: "comfy", name: ""};
+const SET_DEF = {wgoal: "20", remind: "off", size: "m", theme: "auto", font: "sans", width: "normal", photo: "soft", goal: "5", accent: "amber", density: "comfy", name: ""};
 function getSet() { try { return Object.assign({}, SET_DEF, JSON.parse(localStorage.getItem("mytutor-settings") || "{}")); } catch (e) { return {...SET_DEF}; } }
 function applySet(s) {
   const r = document.documentElement;
@@ -47,9 +47,9 @@ function renderProg() {
     row.querySelector("i").style.width = (v.total ? 100 * v.reviewed / v.total : 0) + "%";
     P.appendChild(row);
   }
-  const st = S.stats || {}, goal = +getSet().goal || 5, done = st.approved_today ?? st.today ?? 0;
+  const st = S.stats || {}, goal = +getSet().wgoal || 20, done = st.approved_week ?? 0;
   $("goal-txt").textContent = `${Math.min(done, 999)}/${goal}`;
-  $("streak-txt").textContent = `today · 🔥${st.streak || 0}`;
+  $("streak-txt").textContent = `this week · 🔥${st.week_streak || 0} wk`;
   const ring = $("goal-ring"), C = 2 * Math.PI * 15;
   ring.style.strokeDasharray = C; ring.style.strokeDashoffset = C * (1 - Math.min(1, done / goal));
   $("goal").classList.toggle("met", done >= goal);
@@ -131,7 +131,7 @@ async function showActivity() {
   const wk = days.filter(d => (Date.now() - new Date(d.day + "T12:00:00")) / 864e5 < 7)
     .reduce((a, d) => ({approve: a.approve + d.approve, take: a.take + d["my-take"], ans: a.ans + d.answer}), {approve: 0, take: 0, ans: 0});
   $("view").innerHTML = `<div class="doc"><p class="hello">${esc(greeting())} 👋</p><h1>My days</h1>
-    <p class="weekline"><b>Last 7 days</b></p><div class="tiles weektiles"><span class="tile t-ok"><b>${wk.approve}</b>approved</span><span class="tile t-take"><b>${wk.take}</b>takes</span><span class="tile t-ref"><b>${wk.ans}</b>reflections</span><span class="tile"><b>${stats.streak || 0}🔥</b>day streak</span></div>` +
+    <p class="weekline"><b>Last 7 days</b></p><div class="tiles weektiles"><span class="tile t-ok"><b>${wk.approve}</b>approved</span><span class="tile t-take"><b>${wk.take}</b>takes</span><span class="tile t-ref"><b>${wk.ans}</b>reflections</span><span class="tile"><b>${stats.week_streak || 0}🔥</b>week streak</span></div>` +
     (days.map(d => `<div class="daycard" data-day="${d.day}">
       <div class="dayhead"><b>${esc(niceDay(d.day))}</b>
         <span><div class="tiles"><span class="tile t-ok"><b>${d.approve}</b>approved</span><span class="tile t-take"><b>${d["my-take"]}</b>takes</span><span class="tile t-ref"><b>${d.answer}</b>reflections</span>${d["needs-fix"] ? `<span class="tile t-warn"><b>${d["needs-fix"]}</b>needs fix</span>` : ""}</div>${d.no_take && getSet().remind === "on" ? `<em class="notake">${d.no_take} approved without a take</em>` : ""}</span>
@@ -283,7 +283,8 @@ document.addEventListener("keydown", e => {
   else if (k === "t") { e.preventDefault(); $("take").focus(); }
 });
 window.addEventListener("focus", () => { load().then(() => { if (mode === "activity") showActivity(); }).catch(() => {}); });
-load().then(() => { const f = filtered(); if (f.length) openNote(f[0].rel); }).catch(e => toast(e.message));
+window.addEventListener("hashchange", () => { if (location.hash === "#days") setMode("activity"); });
+load().then(() => { if (location.hash === "#days") return setMode("activity"); const f = filtered(); if (f.length) openNote(f[0].rel); }).catch(e => toast(e.message));
 
 // ---------------------------------------------------------------- drafts (kept in this browser until saved)
 function dkey(kind, rel, i) { return `mytutor-draft:${kind}:${rel}${i === undefined ? "" : ":" + i}`; }
