@@ -200,3 +200,5 @@ header{flex-wrap:nowrap;gap:18px;padding:10px 18px}
 .takefor{color:var(--brand)}
 body.hasphoto .takes .tk{background:color-mix(in srgb,var(--panel) 90%,transparent)}
 .chip.nt-ok{color:var(--muted);border:1px solid var(--line);background:none}
+.weekhead{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px;margin:22px 0 6px;padding-bottom:6px;border-bottom:2px solid var(--brand)}
+.weekhead b{font-size:1.05rem}.weekhead span{color:var(--muted);font-size:.85rem}

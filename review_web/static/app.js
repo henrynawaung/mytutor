@@ -132,7 +132,7 @@ async function showActivity() {
     .reduce((a, d) => ({approve: a.approve + d.approve, take: a.take + d["my-take"], ans: a.ans + d.answer}), {approve: 0, take: 0, ans: 0});
   $("view").innerHTML = `<div class="doc"><p class="hello">${esc(greeting())} 👋</p><h1>My days</h1>
     <p class="weekline"><b>Last 7 days</b></p><div class="tiles weektiles"><span class="tile t-ok"><b>${wk.approve}</b>approved</span><span class="tile t-take"><b>${wk.take}</b>takes</span><span class="tile t-ref"><b>${wk.ans}</b>reflections</span><span class="tile"><b>${stats.week_streak || 0}🔥</b>week streak</span></div>` +
-    (days.map(d => `<div class="daycard" data-day="${d.day}">
+    (days.map(d => weekHeader(d, days) + `<div class="daycard" data-day="${d.day}">
       <div class="dayhead"><b>${esc(niceDay(d.day))}</b>
         <span><div class="tiles"><span class="tile t-ok"><b>${d.approve}</b>approved</span><span class="tile t-take"><b>${d["my-take"]}</b>takes</span><span class="tile t-ref"><b>${d.answer}</b>reflections</span>${d["needs-fix"] ? `<span class="tile t-warn"><b>${d["needs-fix"]}</b>needs fix</span>` : ""}</div>${d.no_take && getSet().remind === "on" ? `<em class="notake">${d.no_take} approved without a take</em>` : ""}</span>
         <small>${Object.entries(d.types).map(([t, n]) => { const w = (TYPES[t] || t).toLowerCase(); return `${n} ${n === 1 && w !== "core" ? w.replace(/s$/, "") : w}`; }).join(" · ")}</small>
@@ -393,4 +393,18 @@ function noTakeChip(n) {
   // approved without a take: a deliberate choice unless reminders are switched on
   if (n.has_take || !n.actions.some(a => a.action === "approve")) return "";
   return getSet().remind === "on" ? '<span class="chip notake">no take yet</span>' : '<span class="chip nt-ok">no take needed</span>';
+}
+
+function weekMonday(iso) { const d = new Date(iso + "T12:00:00"); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d; }
+function weekHeader(d, days) {
+  // a heading before the first day of each week, with that week's totals
+  const key = weekMonday(d.day).toDateString(), i = days.indexOf(d);
+  if (i > 0 && weekMonday(days[i - 1].day).toDateString() === key) return "";
+  const wk = days.filter(x => weekMonday(x.day).toDateString() === key);
+  const sum = k => wk.reduce((a, x) => a + (x[k] || 0), 0);
+  const m = weekMonday(d.day), sun = new Date(m); sun.setDate(m.getDate() + 6);
+  const f = o => o.toLocaleDateString(undefined, {day: "numeric", month: "short"});
+  const now = weekMonday(new Date().toISOString().slice(0, 10)).toDateString() === key;
+  return `<div class="weekhead"><b>${now ? "This week" : "Week"} · ${esc(f(m))} – ${esc(f(sun))}</b>
+    <span>${sum("approve")} approved · ${sum("my-take")} takes · ${sum("answer")} reflections · ${wk.length} active day${wk.length === 1 ? "" : "s"}</span></div>`;
 }

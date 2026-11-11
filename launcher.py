@@ -151,7 +151,7 @@ def dashboard_data(jobs: Path, today: date | None = None) -> dict:
                               for d, a, tk, rf, n in q(
                 "SELECT substr(at,1,10) d, COUNT(DISTINCT CASE WHEN action='approve' THEN rel END), "
                 "SUM(action='my-take'), SUM(action='answer'), COUNT(DISTINCT rel) FROM activity "
-                "WHERE action IN ('approve','my-take','answer','needs-fix') GROUP BY d ORDER BY d DESC LIMIT 10")]
+                "WHERE action IN ('approve','my-take','answer','needs-fix') GROUP BY d ORDER BY d DESC LIMIT 60")]
             for at, action, rel in q("SELECT at, action, rel FROM activity WHERE action NOT LIKE 'login%' "
                                      "AND action != 'background' ORDER BY id DESC LIMIT 4"):
                 out["recent"].append((at[5:16].replace("T", " "), ACT_NAMES.get(action, action),
