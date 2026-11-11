@@ -13,7 +13,7 @@ header h1{font-size:17px;margin:0;font-weight:700}header h1 span{color:var(--mut
 header .tag{margin:0;font-size:12px;color:var(--muted)}
 .svc{margin-left:auto;display:flex;gap:10px}
 .pill{display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);font-size:13px}
-.dot{width:9px;height:9px;border-radius:50%;background:var(--muted)}.dot.on{background:var(--ok);box-shadow:0 0 0 3px rgba(60,196,168,.18)}.dot.off{background:var(--bad)}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--muted)}.dot.on{background:var(--ok);box-shadow:0 0 8px 2px rgba(60,196,168,.7)}.dot.off{background:var(--bad)}
 .wrap{display:grid;grid-template-columns:310px 1fr;gap:18px;padding:18px 22px;max-width:1500px;margin:0 auto}
 aside{display:flex;flex-direction:column;gap:14px}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
@@ -23,6 +23,12 @@ aside{display:flex;flex-direction:column;gap:14px}
 .btn.primary{background:var(--brand);border-color:var(--brand);color:#1a1205;font-weight:700;justify-content:center;padding:12px}
 .btn.danger{color:var(--bad)}.btn.small{font-size:13px;padding:6px 10px}
 .btn[disabled]{opacity:.5;cursor:default;transform:none}
+.svc-row{border-radius:12px;padding:10px 12px!important;margin:6px 0;border:1px solid var(--line)!important;transition:background .3s}
+.svc-row.is-up{background:rgba(60,196,168,.10);border-color:rgba(60,196,168,.45)!important}
+.svc-row.is-down{background:rgba(239,68,68,.07);border-color:rgba(239,68,68,.35)!important}
+.svc-row.is-wait{background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.4)!important}
+.svc-row .st.up::before{content:'● ';}
+.svc-row .mini,.svc-row .st{white-space:nowrap}
 .svc-row{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
 .svc-row:last-child{border-bottom:0}.svc-row b{display:block;font-size:14px}.svc-row small{display:block;color:var(--muted);font-size:12px}
 .svc-row .st{font-size:12px;font-weight:700;padding:2px 9px;border-radius:999px}
@@ -30,7 +36,7 @@ aside{display:flex;flex-direction:column;gap:14px}
 .svc-row .mini{font:inherit;font-size:12px;padding:3px 9px;border-radius:7px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);cursor:pointer;margin-left:6px}
 .svc-row .mini.stop{color:var(--bad);border-color:rgba(248,113,113,.45)}.svc-row .mini:hover{border-color:var(--brand)}
 .svc-row .acts{grid-column:2;display:flex;align-items:center;gap:6px;margin-top:4px}.svc-row .st{margin-right:auto}
-.big-dot{width:11px;height:11px;border-radius:50%}.big-dot.on{background:var(--ok);box-shadow:0 0 0 4px rgba(60,196,168,.16)}.big-dot.off{background:var(--bad)}.big-dot.wait{background:var(--warn);animation:pulse 1s infinite}@keyframes pulse{50%{opacity:.35}}
+.big-dot{width:22px;height:22px;border-radius:50%;position:relative}.big-dot.on{background:radial-gradient(circle at 35% 35%,#b9f5e6,#3CC4A8 45%,#138a73);box-shadow:0 0 14px 4px rgba(60,196,168,.55);animation:glow 2.2s ease-in-out infinite}@keyframes glow{50%{box-shadow:0 0 22px 8px rgba(60,196,168,.75)}}.big-dot.off{background:radial-gradient(circle at 35% 35%,#fecaca,#ef4444 50%,#991b1b);box-shadow:0 0 8px 2px rgba(239,68,68,.35)}.big-dot.wait{background:radial-gradient(circle at 35% 35%,#fde68a,#f59e0b 50%,#b45309);box-shadow:0 0 12px 3px rgba(245,158,11,.5);animation:pulse 1s infinite}@keyframes pulse{50%{opacity:.35}}
 .st.wait{color:var(--warn);background:rgba(251,191,36,.12)}
 .jobsline{font-size:12.5px;color:var(--brand);margin:6px 0 2px;min-height:4px}
 .btn.stopall{background:#7f1d1d;border-color:#b91c1c;color:#fff;font-weight:700;justify-content:center;padding:11px}
@@ -161,10 +167,12 @@ function svc(key, up) { $("d-" + key).className = "dot " + (up ? "on" : "off"); 
 
 function paint(s) {
   svc("n8n", s.n8n); svc("review", s.review);
-  if (!document.querySelector("#svcs [data-armed]")) $("svcs").innerHTML = (s.services || []).map(v => `<div class="svc-row"><span class="big-dot ${v.up ? "on" : v.starting ? "wait" : "off"}"></span>
+  if (!document.querySelector("#svcs [data-armed]")) $("svcs").innerHTML = (s.services || []).map(v => `<div class="svc-row ${v.up ? "is-up" : v.starting ? "is-wait" : "is-down"}"><span class="big-dot ${v.up ? "on" : v.starting ? "wait" : "off"}"></span>
       <div><b>${esc(v.name)}</b><small>${esc(v.detail)} · port ${v.port}${v.up && !v.here ? " · started elsewhere" : ""}</small></div>
-      <div class="acts"><span class="st ${v.up ? "up" : v.starting ? "wait" : "down"}">${v.up ? "Running" : v.starting ? `Starting… ${v.since}s` : "Stopped"}</span>${v.up || v.starting
+      <div class="acts"><span class="st ${v.up ? "up" : v.starting ? "wait" : "down"}">${v.up ? "RUNNING" : v.starting ? `Starting… ${v.since}s` : "Stopped"}</span>${v.up || v.starting
         ? `<button class="mini" data-a="restart-${v.key}">↻ Restart</button><button class="mini stop" data-a="stop-${v.key}" data-confirm="1">Stop</button>` : `<button class="mini" data-a="start-${v.key}">Start</button>`}</div></div>`).join("");
+  const nUp = (s.services || []).filter(v => v.up).length, nAll = (s.services || []).length;
+  document.title = (nUp === nAll ? "🟢 " : nUp ? "🟡 " : "🔴 ") + `${nUp}/${nAll} running · myTutor Control Centre`;
   const busy = (s.jobs || []).filter(j => j.running && !["n8n", "review"].includes(j.name)).map(j => j.name);
   $("jobsline").textContent = busy.length ? "⏳ Working: " + busy.join(", ") : "";
   $("autostart").checked = s.autostart;
