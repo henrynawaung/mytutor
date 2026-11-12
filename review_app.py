@@ -280,6 +280,13 @@ def create_app(vault_root: Path, jobs: Path, obsidian_vault: str = "", testing: 
         core.save_prefs(jobs, {"weekly_goal": g})
         return jsonify(weekly_goal=g)
 
+    @app.get("/api/search")
+    @login_required
+    def search():
+        q = request.args.get("q", "")[:200]
+        hits = vault.search(q)
+        return jsonify(q=q, results=hits, count=len(hits))
+
     @app.get("/api/version")
     def api_version():                      # lets the Control Centre spot an old copy still answering
         return jsonify(version=version.VERSION, pid=os.getpid())

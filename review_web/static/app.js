@@ -38,7 +38,7 @@ function md(t) {
 }
 function filtered() {
   const c = $("f-course").value, s = $("f-status").value, ty = $("f-type").value, q = $("f-q").value.trim().toLowerCase();
-  return S.items.filter(i => (!c || i.course === c) && (!s || i.status === s) && (!ty || i.type === ty) && (!q || i.title.toLowerCase().includes(q)))
+  return S.items.filter(i => (!c || i.course === c) && (!s || i.status === s) && (!ty || i.type === ty))
     .sort(byCourseDay);
 }
 // Library order: course A-Z, then Day 1, 2 … 10 (or dates oldest first), Hubs last; notes keep their order inside a day
@@ -78,7 +78,8 @@ function renderList() {
       || '<div class="item"><small>No open prompts. Nice.</small></div>';
     return;
   }
-  const f = filtered(), q = $("f-q").value.trim();
+  if ($("f-q").value.trim().length >= 2) return renderSearch();
+  const f = filtered(), q = "";
   // group by course and day; each group folds open/closed, so the list stays short
   const groups = [];
   for (const i of f) {
@@ -153,7 +154,7 @@ function show() {
   $("actions").hidden = false;
   { const tk = V.querySelector(".take"); if (tk) { tk.appendChild($("actions")); $("actions").classList.add("inline"); } }   // buttons sit right under your take
   const o = $("b-obs"); if (n.obsidian) { o.href = n.obsidian; o.hidden = false; } else o.hidden = true;
-  V.scrollTop = 0; stickyHead(); $("b-take").onclick = saveTake; enhance($("take"), {template: true});
+  V.scrollTop = 0; stickyHead(); highlightSearch(); $("b-take").onclick = saveTake; enhance($("take"), {template: true});
   $("take").addEventListener("keydown", e => { if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); if ($("take").value.trim()) $("b-take").click(); } });
   keepDraft($("take"), dkey("take", n.rel)); $("take").addEventListener("input", labels); $("take").addEventListener("input", () => { if (!$("banner").hidden) hideBanner(); }, {once: true}); labels();
 }
@@ -371,7 +372,36 @@ loadAvatar();
 $("b-next").onclick = next; $("b-undo").onclick = undoLast; $("b-okn").onclick = approveNext;
 $("b-sync").onclick = async () => { try { const r = await api("/api/sync", {}); await load(); toast(`Refreshed: ${r.changed} change${r.changed === 1 ? "" : "s"}`); } catch (e) { toast(e.message); } };
 ["f-course", "f-status", "f-type"].forEach(id => $(id).onchange = renderList);
-$("f-q").oninput = renderList;
+let searchT = null, SR = {q: "", results: []};
+$("f-q").oninput = () => { clearTimeout(searchT); const q = $("f-q").value.trim();
+  if (q.length < 2) { SR = {q: "", results: []}; return renderList(); }
+  searchT = setTimeout(async () => { try { SR = await api("/api/search?q=" + encodeURIComponent(q)); } catch (e) { SR = {q, results: [], error: e.message}; } renderList(); }, 220); };
+$("f-q").onkeydown = e => { if (e.key === "Escape") { $("f-q").value = ""; $("f-q").oninput(); } if (e.key === "Enter") { const first = document.querySelector("#list .sres"); if (first) first.click(); } };
+const KIND = {case: "🏢 Case", core: "💡 Concept", hub: "🔗 Hub", reference: "📖 Source", theme: "💬 Reflection", journal: "💬 Reflection"};
+function renderSearch() {
+  const L = $("list"), q = $("f-q").value.trim();
+  if (SR.q !== q) { L.innerHTML = `<div class="listmeta">Searching “${esc(q)}”…</div>`; return; }
+  const words = q.toLowerCase().match(/[\w'-]{2,}/g) || [];
+  const mark = t => { let h = esc(t); for (const w of words) h = h.replace(new RegExp("(" + w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + ")", "gi"), "<mark>$1</mark>"); return h; };
+  L.innerHTML = `<div class="listmeta">${SR.count || 0} note${SR.count === 1 ? "" : "s"} contain “${esc(q)}”${SR.count >= 60 ? " (top 60)" : ""}<span><button class="linkbtn" id="sr-clear">clear</button></span></div>`
+    + (SR.results || []).map(r => `<button class="sres${cur && cur.rel === r.rel ? " on" : ""}" data-open="${esc(r.rel)}" data-kind="${r.type === "theme" ? "journals" : "notes"}">
+        <span class="sr-top"><b>${mark(r.title)}</b>${r.status === "reviewed" ? '<span class="sdot ok" title="Approved"></span>' : ""}</span>
+        <small class="sr-meta">${esc(KIND[r.type] || "📄 Note")} · ${esc(r.course)}${r.day ? " · " + esc(r.day) : ""}</small>
+        <span class="sr-snip">${mark(r.snippet)}</span></button>`).join("")
+    + (SR.count ? "" : `<div class="sr-none">No notes contain “${esc(q)}”. Try fewer or different words.</div>`);
+  const cl = $("sr-clear"); if (cl) cl.onclick = () => { $("f-q").value = ""; $("f-q").oninput(); };
+}
+function highlightSearch() {                       // mark the searched words inside the open note
+  const q = $("f-q") && $("f-q").value.trim(); if (!q || q.length < 2) return;
+  const words = (q.toLowerCase().match(/[\w'-]{2,}/g) || []); if (!words.length) return;
+  const re = new RegExp("(" + words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|") + ")", "gi");
+  const root = document.querySelector("#view .doc"); if (!root) return;
+  const walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {acceptNode: n => n.parentElement.closest("textarea,script,.meta,mark") ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT});
+  const nodes = []; while (walk.nextNode()) if (re.test(walk.currentNode.nodeValue)) nodes.push(walk.currentNode); re.lastIndex = 0;
+  let first = null;
+  for (const n of nodes) { const span = document.createElement("span"); span.innerHTML = esc(n.nodeValue).replace(re, '<mark class="hit">$1</mark>'); n.replaceWith(span); first = first || span.querySelector("mark"); }
+  if (first) setTimeout(() => first.scrollIntoView({block: "center", behavior: "smooth"}), 120);
+}
 $("t-notes").onclick = () => setMode("notes"); $("t-journals").onclick = () => setMode("journals"); $("t-activity").onclick = () => setMode("activity");
 document.addEventListener("keydown", e => {
   if (/TEXTAREA|INPUT|SELECT/.test(e.target.tagName) || !cur || mode !== "notes") return;

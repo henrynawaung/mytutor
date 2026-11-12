@@ -116,6 +116,15 @@ class AppTests(unittest.TestCase):
     def api_csrf(self):
         return re.search(r'<meta name="csrf" content="([^"]+)"', self.c.get("/").get_data(as_text=True)).group(1)
 
+    def test_full_text_search(self):
+        self.login()
+        r = self.c.get("/api/search?q=disruption").get_json()
+        self.assertTrue(r["count"] >= 1)
+        self.assertEqual(r["results"][0]["title"], "Disruption")          # title hit ranks first
+        self.assertIn("snippet", r["results"][0])
+        self.assertEqual(self.c.get("/api/search?q=zzqqxx").get_json()["count"], 0)
+        self.assertEqual(self.c.get("/api/search?q=a").get_json()["count"], 0)   # single letters are ignored
+
     def test_stretch_endpoint(self):
         self.login(); tok = self.api_csrf()
         self.assertEqual(self.c.get("/api/summary").get_json()["weekly_extra"], 0)

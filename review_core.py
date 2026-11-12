@@ -220,6 +220,37 @@ class Vault:
             if not any(x.startswith(".") for x in rel.parts):
                 yield p, rel
 
+    def search(self, q: str, limit: int = 60) -> list:
+        """Full-text search over every note (titles, bodies, your takes and answers).
+        All words must appear (any order, any case); title hits rank first. Returns snippets around the first hit."""
+        words = [w for w in re.findall(r"[\w'-]+", q.lower()) if len(w) > 1][:8]
+        if not words:
+            return []
+        cache = self.__dict__.setdefault("_text_cache", {})
+        hits = []
+        for p, rel in self.notes():
+            try:
+                mt = p.stat().st_mtime_ns
+                if cache.get(p, (None,))[0] != mt:
+                    cache[p] = (mt, read(p))
+                text = cache[p][1]
+            except OSError:
+                continue
+            low, title = text.lower(), p.stem.lower()
+            if not all(w in low or w in title for w in words):
+                continue
+            pr = props(text)
+            score = sum(10 * title.count(w) + min(low.count(w), 20) for w in words)
+            b = body(text)
+            pos = min([i for i in (b.lower().find(w) for w in words) if i >= 0] or [0])
+            start = max(0, pos - 70)
+            snip = re.sub(r"\s+", " ", re.sub(r"[#>*_`\[\]|]", "", b[start:start + 220])).strip()
+            hits.append({"rel": rel.as_posix(), "title": p.stem, "type": pr.get("type", ""), "course": pr.get("course", ""),
+                         "status": pr.get("status", ""), "day": rel.parts[1] if len(rel.parts) > 2 else "",
+                         "snippet": ("…" if start else "") + snip + "…", "score": score})
+        hits.sort(key=lambda h: (-h["score"], h["title"]))
+        return hits[:limit]
+
     def path(self, rel: str) -> Path:
         p = (self.root / rel).resolve()
         if self.root.resolve() not in p.parents or p.suffix != ".md":

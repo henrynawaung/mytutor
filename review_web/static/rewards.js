@@ -469,7 +469,7 @@ function askStretch() {
   const tgt = weeklyTarget(), done = (RW && RW.approved_week) || 0; let nxt = tgt + 5; while (nxt <= done) nxt += 5;
   const m = document.createElement("div"); m.className = "reward-modal stretch-ask";
   m.innerHTML = `<div class="rw-card"><div class="rw-art m-wave">${ellie("champion", 120)}</div><div class="rw-kicker">🎯 Target reached</div>
-    <h2>Stretch this week?</h2><p>You're at ${done}, past your target of ${tgt}. Want a new target of <b>${nxt}</b>? It's optional, and next week starts again at your normal goal.</p>
+    <h2>Stretch this week?</h2><p>${done > tgt ? `You're at ${done}, past your target of ${tgt}.` : `You reached your target of ${tgt}.`} Want a new target of <b>${nxt}</b>? It's optional, and next week starts again at your normal goal.</p>
     <div class="mb-btns"><button class="b ok" data-s="yes">Yes, stretch to ${nxt}</button><button class="b" data-s="no">No, I'm happy this week</button></div></div>`;
   document.body.appendChild(m);
   m.onclick = async e => { const b = e.target.closest("[data-s]"); if (!b) return; m.remove();
