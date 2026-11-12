@@ -261,3 +261,9 @@ aside{background:var(--panel)}
 .tgrphead:hover{background:var(--chip);color:var(--ink)}.tgrphead .cnt{margin-left:auto;font-size:.7rem;background:var(--chip);border-radius:999px;padding:0 7px}
 .tgrphead .chev{font-size:.65rem;transition:transform .15s}.tgrp.open>.tgrphead .chev{transform:rotate(90deg)}
 .tgrp .item{margin-left:12px}
+/* ---- sidebar as a compact card: top to about the middle of the screen ---- */
+main{align-items:start}
+aside{align-self:start;margin:12px 0 0 12px;max-height:min(64vh,calc(100vh - 110px));border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow)}
+main{grid-template-columns:calc(var(--side) + 12px) 1fr}
+main.collapsed{grid-template-columns:0 1fr}main.collapsed aside{margin:0}
+section{align-self:stretch;height:100%}
