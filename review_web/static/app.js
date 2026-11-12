@@ -1,6 +1,6 @@
 "use strict";
 // ---- display settings (kept in this browser) ----
-const SET_DEF = {wgoal: "20", remind: "off", size: "m", theme: "auto", font: "sans", width: "normal", photo: "soft", goal: "5", accent: "amber", density: "comfy", name: "", today: "clock,wx,week,crew,mem", rewards: "on", chime: "bell", city: "Christchurch"};
+const SET_DEF = {remind: "off", size: "m", theme: "auto", font: "sans", width: "normal", photo: "soft", goal: "5", accent: "amber", density: "comfy", name: "", today: "clock,wx,week,crew,mem", rewards: "on", chime: "fanfare", city: "Christchurch"};
 function getSet() { try { return Object.assign({}, SET_DEF, JSON.parse(localStorage.getItem("mytutor-settings") || "{}")); } catch (e) { return {...SET_DEF}; } }
 function applySet(s) {
   const r = document.documentElement;
@@ -48,7 +48,7 @@ function renderProg() {
     row.querySelector("i").style.width = (v.total ? 100 * v.reviewed / v.total : 0) + "%";
     P.appendChild(row);
   }
-  const st = S.stats || {}, goal = +getSet().wgoal || 20, done = st.approved_week ?? 0;
+  const st = S.stats || {}, goal = weeklyGoal(), done = st.approved_week ?? 0;
   $("goal-txt").textContent = `${Math.min(done, 999)}/${goal}`;
   $("streak-txt").textContent = `this week · 🔥${st.week_streak || 0} wk`;
   const ring = $("goal-ring"), C = 2 * Math.PI * 15;
@@ -515,7 +515,7 @@ function tick() {
   $("td-date").textContent = d.toLocaleDateString([], {weekday: "short", day: "numeric", month: "short"});
 }
 function renderWeek() {
-  const st = (S && S.stats) || {}, goal = +getSet().wgoal || 20, done = st.approved_week ?? 0;
+  const st = (S && S.stats) || {}, goal = weeklyGoal(), done = st.approved_week ?? 0;
   $("td-bar").style.width = Math.min(100, Math.round(done / goal * 100)) + "%";
   $("td-weektxt").innerHTML = `<span>${done >= goal ? "🎉 Goal reached: " + done : done + " / " + goal} approved this week</span><span>🔥 ${st.week_streak || 0} wk</span>`;
 }
@@ -569,4 +569,16 @@ if ($("today")) {
 function stickyHead() {
   const V = $("view"), m = V.querySelector(".doc > .meta"); if (!m) return;
   V.onscroll = () => m.classList.toggle("stuck", V.scrollTop > 70); V.onscroll();
+}
+
+/* weekly goal: stored on the laptop (jobs/prefs.json) so the Control Centre shows the same number */
+function weeklyGoal() { return +(S && S.weekly_goal) || 25; }
+if ($("s-wgoal")) {
+  const g = $("s-wgoal"); g.value = weeklyGoal();
+  $("b-set").addEventListener("click", () => { g.value = weeklyGoal(); });
+  g.onchange = async () => {
+    const n = Math.round(+g.value);
+    try { const r = await api("/api/prefs", {weekly_goal: n}); S.weekly_goal = r.weekly_goal; g.value = r.weekly_goal; renderProg(); toast(`✓ Weekly goal set to ${r.weekly_goal}`); }
+    catch (e) { toast(e.message); g.value = weeklyGoal(); }
+  };
 }

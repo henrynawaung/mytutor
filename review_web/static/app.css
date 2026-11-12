@@ -385,3 +385,21 @@ body.hasphoto .doc > .meta{background:color-mix(in srgb,var(--bg) 90%,transparen
 #rw-nudge b{display:block;color:var(--ok)}#rw-nudge small{color:var(--muted)}
 @media (prefers-reduced-motion:reduce){.rw-art,.crew-card .ch,.cf{animation:none}}
 .rw-card>*:not(.rw-confetti){position:relative;z-index:1}
+
+/* achievement card (every save) */
+#rw-nudge{gap:14px;padding:12px 18px 12px 12px;min-width:300px;max-width:380px;pointer-events:auto;cursor:pointer;border-left-width:5px;background-image:radial-gradient(120% 120% at 0% 0%,color-mix(in srgb,var(--brand) 14%,transparent),transparent 60%)}
+#rw-nudge .rn-art{flex:0 0 auto}
+#rw-nudge.show .rn-art{animation:cheer 1.1s ease-in-out 3}
+@keyframes cheer{0%,100%{transform:none}25%{transform:translateY(-10px) rotate(-6deg)}50%{transform:translateY(0) rotate(0)}75%{transform:translateY(-6px) rotate(5deg)}}
+#rw-nudge .rn-txt{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+#rw-nudge .rn-kick{font-size:.7em;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--brand)}
+#rw-nudge b{font-size:1.05em}
+#rw-nudge .cbar{width:100%;margin:5px 0 3px}#rw-nudge .cbar i{transition:width 1.2s cubic-bezier(.2,1,.3,1)}
+#fx{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:120}
+.goalset{display:flex;align-items:center;gap:10px}.sinput.num{width:90px}
+/* short screens: the Library keeps priority; the Today card drops its lower items */
+.leftcol aside{min-height:min(380px,48vh)}
+.today{flex:0 1 auto;min-height:0;overflow:auto}
+@media (max-height:920px){.td-mem{display:none!important}}
+@media (max-height:760px){.td-crew{display:none!important}}
+@media (max-height:640px){.today{display:none}}

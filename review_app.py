@@ -149,7 +149,8 @@ def create_app(vault_root: Path, jobs: Path, obsidian_vault: str = "", testing: 
                 continue
             if n:
                 journals.append({**r, "open": n})
-        return jsonify(items=rows, journals=journals, courses=courses, stats=store.stats())
+        return jsonify(items=rows, journals=journals, courses=courses, stats=store.stats(),
+                       weekly_goal=core.weekly_goal(jobs))
 
     @app.get("/api/note")
     @login_required
@@ -264,6 +265,18 @@ def create_app(vault_root: Path, jobs: Path, obsidian_vault: str = "", testing: 
 
     for kind in PHOTOS:
         photo_routes(kind)
+
+    @app.post("/api/prefs")
+    @login_required
+    def prefs():
+        try:
+            g = int((request.get_json(silent=True) or {}).get("weekly_goal"))
+        except (TypeError, ValueError):
+            return jsonify(error="Weekly goal must be a number."), 400
+        if not 1 <= g <= 500:
+            return jsonify(error="Weekly goal must be between 1 and 500."), 400
+        core.save_prefs(jobs, {"weekly_goal": g})
+        return jsonify(weekly_goal=g)
 
     @app.get("/api/rewards")
     @login_required

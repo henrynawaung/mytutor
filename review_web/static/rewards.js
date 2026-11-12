@@ -61,7 +61,7 @@ function charSVG(id, L, size = 64) {
 }
 
 /* ---------- maths ---------- */
-let RW = null;
+let RW = null, RW_PREV = null;
 function statOf(r, k) { return k === "courses" ? (r.courses_done || []).length : (r[k] || 0); }
 function levelOf(c, r) { const v = statOf(r, c.stat); return c.lv.filter(t => v >= t).length; }
 function unlockedKeys(r) {
@@ -113,7 +113,7 @@ function nextCelebration() {
   const m = document.createElement("div"); m.className = "reward-modal";
   m.innerHTML = `<div class="rw-card"><div class="rw-confetti"></div><div class="rw-art">${it.art}</div><div class="rw-kicker">${it.kicker}</div>
     <h2>${it.title}</h2><p>${it.text}</p><button class="b ok" type="button">Nice! Keep going</button></div>`;
-  document.body.appendChild(m); confetti(m.querySelector(".rw-confetti")); playChime(null, true);
+  document.body.appendChild(m); confetti(m.querySelector(".rw-confetti")); playChime(null, true); fireworks(); popSound(5, .5);
   const close = () => { m.classList.add("out"); setTimeout(() => { m.remove(); nextCelebration(); }, 220); };
   m.querySelector("button").onclick = close; m.onclick = e => { if (e.target === m) close(); };
   setTimeout(() => { if (m.isConnected) close(); }, 6500);
@@ -128,15 +128,81 @@ function describe(key, r) {
     return {art: badgeHTML(bd, t, i, true, true), kicker: "Badge earned!", title: `${t} ${bd.unit}`, text: i + 1 < bd.at.length ? `Next badge at ${bd.at[i + 1]}.` : "That is the top badge. Legendary."}; }
   return {art: charSVG("dragon", 1, 150), kicker: "Course complete!", title: `${a} fully approved`, text: "Every note in this course is reviewed. Boardroom ready."};
 }
-function nudge(kinds, r) {               // the small "+1" after every save
+const CHEERS = {approve: ["Note approved!", "Another one done!", "Sharp work!", "On a roll!", "Board-ready thinking!"],
+  take: ["Take saved!", "Your voice, on record!", "Strategist move!", "Insight captured!"],
+  answer: ["Reflection saved!", "Deep thinking!", "Connected the dots!"],
+  fix: ["Flagged for fixing!", "Good catch!"], edit: ["Take polished!", "Sharper now!"]};
+function nudge(kinds, r) {               // achievement card with the character, as long as the chime plays
   const s = getSet(); if (s.rewards === "off") return;
-  const map = {approve: "approved", take: "takes", answer: "reflections"}, k = kinds.find(x => map[x]); if (!k) return;
-  const c = CREW.find(x => x.stat === map[k]), v = statOf(r, c.stat), nextT = c.lv.find(t => v < t);
+  const map = {approve: "approved", take: "takes", answer: "reflections", fix: "approved", edit: "takes"};
+  const k = ["approve", "take", "answer", "fix", "edit"].find(x => kinds.includes(x)); if (!k) return;
+  const c = CREW.find(x => x.stat === map[k]), v = statOf(r, c.stat), L = levelOf(c, r), nextT = c.lv[L], prevT = c.lv[L - 1] || 0;
   const bd = BADGES.find(x => x.stat === c.stat), nb = bd && bd.at.find(t => v < t);
-  let el = document.getElementById("rw-nudge"); if (!el) { el = document.createElement("div"); el.id = "rw-nudge"; document.body.appendChild(el); }
-  el.innerHTML = `${charSVG(c.id, Math.max(1, levelOf(c, r)), 38)}<div><b>+1 ${({approve: "approved", take: "take", answer: "reflection"})[k]}</b><small>${nextT ? `${nextT - v} more to ${c.name} level ${c.lv.indexOf(nextT) + 1}` : nb ? `${nb - v} more to the ${nb} badge` : `${v} ${c.unit} 🎉`}</small></div>`;
+  const pct = nextT ? Math.round((v - prevT) / (nextT - prevT) * 100) : 100;
+  const both = kinds.includes("approve") && kinds.includes("take") ? " + take saved" : "";
+  const cheer = CHEERS[k][Math.floor(Math.random() * CHEERS[k].length)];
+  let el = document.getElementById("rw-nudge"); if (!el) { el = document.createElement("div"); el.id = "rw-nudge"; document.body.appendChild(el); el.onclick = () => el.classList.remove("show"); }
+  el.innerHTML = `<div class="rn-art">${charSVG(c.id, Math.max(1, L), 78)}</div><div class="rn-txt"><span class="rn-kick">🏅 Achievement</span><b>${cheer}${both}</b>
+    <small>${c.name} · ${L ? "level " + L : "on the way"} · ${v} ${c.unit}</small><div class="cbar"><i></i></div>
+    <small>${nextT ? `${nextT - v} more to ${c.name} level ${L + 1}` : nb ? `${nb - v} more to the ${nb} badge` : "Fully grown 👑"}${nb && nextT ? ` · ${nb - v} to the ${nb} badge` : ""}</small></div>`;
   el.classList.remove("show"); void el.offsetWidth; el.classList.add("show");
-  clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove("show"), 2600);
+  const bar = el.querySelector(".cbar i"); bar.style.width = "0%"; setTimeout(() => bar.style.width = Math.max(4, pct) + "%", 250);
+  clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove("show"), getSet().chime === "off" ? 4000 : 6500);
+}
+
+/* ---------- party poppers & fireworks (one full-screen canvas, clicks pass through) ---------- */
+const FX_COL = ["#ffd34d", "#ff6b9a", "#5cc97a", "#4dabf7", "#b197fc", "#ff922b", "#ffffff"];
+let fxParts = [], fxRun = false, fxCv = null;
+function fxCanvas() {
+  if (!fxCv) { fxCv = document.createElement("canvas"); fxCv.id = "fx"; document.body.appendChild(fxCv); }
+  fxCv.width = innerWidth * devicePixelRatio; fxCv.height = innerHeight * devicePixelRatio; return fxCv;
+}
+function fxLoop() {
+  const cv = fxCv, g = cv.getContext("2d"), d = devicePixelRatio; g.setTransform(d, 0, 0, d, 0, 0); g.clearRect(0, 0, innerWidth, innerHeight);
+  const add = [];
+  fxParts = fxParts.filter(p => {
+    p.t++; p.vx *= p.drag; p.vy = p.vy * p.drag + p.g; p.x += p.vx; p.y += p.vy;
+    if (p.kind === "rocket") { g.fillStyle = "#fff6d0"; g.fillRect(p.x - 1.5, p.y, 3, 7);
+      if (p.vy > -1.5 || p.t > p.life) { for (let i = 0; i < 70; i++) { const a = Math.PI * 2 * i / 70, s = 2 + Math.random() * 3.2;
+          add.push({kind: "spark", x: p.x, y: p.y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, g: .045, drag: .985, t: 0, life: 70 + Math.random() * 30, c: p.c}); } return false; }
+      return true; }
+    const a = Math.max(0, 1 - p.t / p.life); g.globalAlpha = a; g.fillStyle = p.c;
+    if (p.kind === "spark") { g.beginPath(); g.arc(p.x, p.y, 2.2, 0, 7); g.fill(); }
+    else { g.save(); g.translate(p.x, p.y); g.rotate(p.r += p.vr); g.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); g.restore(); }
+    g.globalAlpha = 1; return p.t < p.life && p.y < innerHeight + 40;
+  });
+  fxParts.push(...add);
+  if (fxParts.length) requestAnimationFrame(fxLoop); else { fxRun = false; g.clearRect(0, 0, innerWidth, innerHeight); }
+}
+function fxStart() { if (!fxRun) { fxRun = true; requestAnimationFrame(fxLoop); } }
+function partyPopper() {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  fxCanvas();
+  for (const side of [0, 1]) for (let i = 0; i < 90; i++) {
+    const ang = (side ? -1 : 1) * (0.35 + Math.random() * 0.5), sp = 11 + Math.random() * 9;
+    fxParts.push({kind: "paper", x: side ? innerWidth - 20 : 20, y: innerHeight - 20, vx: Math.sin(ang) * sp, vy: -Math.cos(ang) * sp,
+      g: .28, drag: .975, t: 0, life: 150 + Math.random() * 60, c: FX_COL[i % FX_COL.length], w: 6 + Math.random() * 6, h: 4 + Math.random() * 8, r: Math.random() * 6, vr: (Math.random() - .5) * .4});
+  }
+  fxStart();
+}
+function fireworks() {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  fxCanvas();
+  for (let k = 0; k < 7; k++) setTimeout(() => {
+    fxParts.push({kind: "rocket", x: innerWidth * (.15 + Math.random() * .7), y: innerHeight, vx: (Math.random() - .5) * 2, vy: -(10 + Math.random() * 4),
+      g: .16, drag: .995, t: 0, life: 90, c: FX_COL[k % FX_COL.length]}); fxStart(); }, k * 520);
+  setTimeout(partyPopper, 300);
+}
+function popSound(n, delay) {                 // little "pop" bursts made from noise
+  if (getSet().chime === "off") return;
+  try {
+    AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+    const len = AC.sampleRate * .12, buf = AC.createBuffer(1, len, AC.sampleRate), ch = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) ch[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 4);
+    for (let k = 0; k < n; k++) { const s = AC.createBufferSource(), g = AC.createGain(), f = AC.createBiquadFilter();
+      f.type = "bandpass"; f.frequency.value = 900 + Math.random() * 1500; s.buffer = buf; g.gain.value = .35;
+      s.connect(f); f.connect(g); g.connect(AC.destination); s.start(AC.currentTime + delay + k * (n > 2 ? .52 : .07) + Math.random() * .05); }
+  } catch (e) {}
 }
 
 /* ---------- rendering ---------- */
@@ -179,7 +245,7 @@ async function openCrew() {
 /* ---------- the loop ---------- */
 async function refreshRewards(kinds) {
   let r; try { r = await api("/api/rewards"); } catch (e) { return; }
-  RW = r; fillCrewRow(); fillCrew();
+  RW_PREV = RW; RW = r; fillCrewRow(); fillCrew();
   const keys = unlockedKeys(r), seen = seenGet();
   if (seen === null) {                              // first time: welcome, don't replay every past unlock
     seenSet(keys);
@@ -190,7 +256,11 @@ async function refreshRewards(kinds) {
   const fresh = keys.filter(k => !seen.includes(k)); seenSet([...new Set([...seen, ...keys])]);
   if (getSet().rewards === "off") return;
   if (fresh.length) fresh.slice(0, 4).forEach(k => celebrate(describe(k, r)));
-  else if (kinds && kinds.length) nudge(kinds, r);
+  else if (kinds && kinds.length) {
+    nudge(kinds, r);
+    const prev = RW_PREV || {}, hit = ["approved", "takes", "reflections"].find(k => statOf(r, k) > (prev[k] || 0) && statOf(r, k) % 5 === 0);
+    if (hit) { partyPopper(); popSound(2, .0); }              // every 5th: party poppers
+  }
 }
 let pend = [], pendT = null;
 function rewardsTick(path) {                         // called after every successful save
@@ -202,5 +272,6 @@ function rewardsTick(path) {                         // called after every succe
 }
 window.rewardsTick = rewardsTick; window.fillCrew = fillCrew; window.fillCrewRow = fillCrewRow;
 document.querySelectorAll('[data-set="chime"] button').forEach(b => b.addEventListener("click", () => playChime(b.dataset.v)));
+window.partyPopper = partyPopper; window.fireworks = fireworks;
 const tr = document.getElementById("s-rwtest"); if (tr) tr.onclick = () => celebrate({art: charSVG("fox", 2, 150), kicker: "Preview", title: "This is a level-up", text: "Pop-ups like this appear when a crew member joins or grows, or you earn a badge."});
 refreshRewards();

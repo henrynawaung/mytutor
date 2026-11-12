@@ -314,3 +314,11 @@ def test_best_week_streak():
     assert core.best_week_streak([]) == 0
     assert core.best_week_streak(["2026-10-20", "2026-11-02", "2026-11-10"]) == 2   # weeks 45+46 in a row
     assert core.best_week_streak(["2026-11-02", "2026-11-03"]) == 1
+
+
+def test_weekly_goal_prefs(tmp_path):
+    assert core.weekly_goal(tmp_path) == 25
+    core.save_prefs(tmp_path, {"weekly_goal": 30})
+    assert core.weekly_goal(tmp_path) == 30
+    import launcher
+    assert launcher.weekly_goal_of(tmp_path) == 30

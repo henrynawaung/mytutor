@@ -4,6 +4,7 @@ The Markdown notes stay the master copy (Obsidian keeps working). The database h
 the notes plus everything you do in the app: reviews, your takes, answers to reflection prompts.
 """
 
+import json
 import re
 import sqlite3
 import threading
@@ -547,6 +548,30 @@ def memory_lines(vault) -> list:
             for line in memory_lines_in(t["body"]):
                 out.append({"line": line[:300], "title": p.stem, "rel": rel.as_posix(), "date": t["date"]})
     return out
+
+
+DEFAULT_WEEKLY_GOAL = 25
+
+
+def load_prefs(jobs: Path) -> dict:
+    try:
+        return json.loads((jobs / "prefs.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+def save_prefs(jobs: Path, values: dict):
+    p = load_prefs(jobs); p.update(values)
+    jobs.mkdir(parents=True, exist_ok=True)
+    (jobs / "prefs.json").write_text(json.dumps(p, indent=2), encoding="utf-8")
+
+
+def weekly_goal(jobs: Path) -> int:
+    """Notes-approved goal per week, shared by the Review app and the Control Centre (jobs/prefs.json)."""
+    try:
+        return max(1, int(load_prefs(jobs).get("weekly_goal", DEFAULT_WEEKLY_GOAL)))
+    except (TypeError, ValueError):
+        return DEFAULT_WEEKLY_GOAL
 
 
 def best_week_streak(active_days) -> int:

@@ -102,6 +102,14 @@ ACT_NAMES = {"approve": "approved", "my-take": "take", "answer": "reflection", "
              "undo": "undo", "edit-take": "edited take", "delete-take": "deleted take"}
 
 
+def weekly_goal_of(jobs, cfg=None) -> int:
+    """Same weekly goal the Review app saves in jobs/prefs.json (default 25)."""
+    try:
+        return max(1, int(json.loads((Path(jobs) / "prefs.json").read_text(encoding="utf-8"))["weekly_goal"]))
+    except (OSError, ValueError, KeyError, TypeError):
+        return int((cfg or {}).get("weekly_goal", 25) or 25)
+
+
 def dashboard_data(jobs: Path, today: date | None = None) -> dict:
     """Numbers for the dashboard. Reads the Review app's database read-only and the run log; never writes."""
     today = today or date.today()
@@ -388,7 +396,7 @@ class Centre:
             ("n8n", "n8n automation", N8N_PORT, "runs myTutor every 15 min"),
             ("review", "Review app", REVIEW_PORT, "notes, takes, My days"))]
         return {"n8n": services[0]["up"], "review": services[1]["up"], "services": services, "jobs": jobs,
-                "autostart": STARTUP.exists(), "goal": int(self.cfg.get("weekly_goal", 20) or 20),
+                "autostart": STARTUP.exists(), "goal": weekly_goal_of(jobs_folder(self.cfg), self.cfg),
                 "dashboard": dashboard_data(jobs_folder(self.cfg))}
 
 
