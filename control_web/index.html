@@ -141,6 +141,22 @@ th:first-child,td:first-child{text-align:left}tr.total td{font-weight:700;color:
 #trend .hit{fill:transparent;cursor:default}#trend .hit:hover{fill:color-mix(in srgb,var(--ink) 5%,transparent)}
 .ttip{position:absolute;pointer-events:none;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:12px;box-shadow:0 8px 24px rgba(0,0,0,.25);white-space:nowrap;z-index:5}
 .ttip b{display:block;margin-bottom:3px;color:var(--ink)}.ttip div{display:flex;align-items:center;gap:6px;color:var(--muted)}.ttip div span:last-child{margin-left:auto;padding-left:12px;color:var(--ink);font-weight:700}
+/* completion forecast */
+.fc-top{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:6px}
+.fc-big{font-size:14px;color:var(--muted);max-width:520px}.fc-big b{color:var(--ink)}.fc-big .when{display:block;font-size:26px;font-weight:800;color:var(--ink);letter-spacing:-.02em;line-height:1.15;margin-bottom:2px}
+.fc-ctrl{display:flex;flex-direction:column;gap:6px;min-width:260px}.fc-ctrl label{font-size:12.5px;color:var(--muted)}.fc-ctrl label b{color:var(--ink);font-size:15px}
+#fc-pace{width:100%;accent-color:var(--s-appr)}
+.fc-chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip-b{border:1px solid var(--line);background:var(--panel2);color:var(--ink);border-radius:999px;padding:3px 10px;font-size:12px;cursor:pointer}.chip-b:hover,.chip-b.on{border-color:var(--s-appr);color:var(--s-appr)}
+#fc{width:100%;height:200px;display:block;overflow:visible}
+#fc .ax{fill:var(--muted);font-size:11px}#fc .grid{stroke:var(--line);stroke-width:1}
+#fc .act{fill:none;stroke:var(--s-appr);stroke-width:2.5;stroke-linejoin:round}#fc .actfill{fill:color-mix(in srgb,var(--s-appr) 14%,transparent)}
+#fc .proj{fill:none;stroke:var(--s-appr);stroke-width:2;stroke-dasharray:6 5;opacity:.85}
+#fc .tot{stroke:var(--muted);stroke-width:1.5;stroke-dasharray:5 4}
+#fc .now{stroke:var(--line);stroke-width:1}#fc .dot{fill:var(--s-appr);stroke:var(--panel);stroke-width:2}
+#fc .cross{stroke:var(--muted);stroke-width:1;opacity:.6}
+.sw-p{width:14px;height:0;border-top:2px dashed var(--s-appr);border-radius:0;background:none}
+.fc-leg{margin-top:6px}.small{font-size:12px}
 </style>
 <script>try{if(localStorage.getItem("mytutor-cc-theme")==="light")document.documentElement.dataset.theme="light"}catch(e){}</script></head>
 <body>
@@ -222,6 +238,14 @@ th:first-child,td:first-child{text-align:left}tr.total td{font-weight:700;color:
       <div class="trendplot"><svg id="trend" role="img" aria-label="Approved notes and takes per week"></svg><div class="ttip" id="ttip" hidden></div></div></div>
     <table><thead><tr><th>Week / day</th><th>Notes worked on</th><th>Approved</th><th>Takes</th><th>Reflections</th></tr></thead><tbody id="hist"></tbody></table></div>
 
+  <div class="card fc"><h2>Completion forecast</h2>
+    <div class="fc-top"><div class="fc-big" id="fc-big"></div>
+      <div class="fc-ctrl"><label for="fc-pace">Pace <b id="fc-pv">25</b> notes / week</label>
+        <input type="range" id="fc-pace" min="5" max="100" step="5" value="25">
+        <div class="fc-chips"><button class="chip-b" data-p="goal">My goal</button><button class="chip-b" data-p="recent">My recent pace</button><button class="chip-b" data-p="50">50 / wk</button></div></div></div>
+    <div class="trendplot"><svg id="fc" role="img" aria-label="Notes reviewed so far and projected finish"></svg><div class="ttip" id="fc-tip" hidden></div></div>
+    <div class="legend fc-leg"><span><i class="sw sw-a"></i>Reviewed so far</span><span><i class="sw sw-p"></i>Projection at your pace</span><span><i class="sw sw-g"></i>All notes today</span></div>
+    <p class="muted small" id="fc-note"></p></div>
   <div class="card console">
     <div class="chead"><h2>Console</h2>
       <select id="cfilter"><option value="">All jobs</option><option>run</option><option>dry-run</option><option>vault-check</option><option>n8n</option><option>review</option><option>practice</option><option>control</option></select>
@@ -277,6 +301,7 @@ function paint(s) {
   $("lastrun").innerHTML = r ? `<span>Finished</span><b>${esc(r.finished)}</b><span>Sources</span><b>${esc(r.sources)}</b><span>Notes made</span><b>${esc(r.notes)}</b>
      <span>Cost</span><b>US$${(+r.cost || 0).toFixed(2)}</b><span>Failed</span><b style="color:${+r.failed ? "var(--bad)" : "var(--ok)"}">${esc(r.failed || 0)}</b>` : '<span>No runs logged yet.</span><b></b>';
   renderTrend(d.history || [], s.goal || 25);
+  FC.data = d; FC.goal = s.goal || 25; renderForecast();
   $("hist").innerHTML = byWeek(d.history || []).slice(0, 6).map(w =>
       `<tr class="wk"><td>${esc(w.label)}</td><td>${w.notes}</td><td>${w.approved}</td><td>${w.takes}</td><td>${w.reflections}</td></tr>`
       + w.days.map(h => `<tr class="wkday"><td>${esc(new Date(h.day + "T12:00:00").toLocaleDateString(undefined, {weekday: "short", day: "numeric", month: "short"}))}</td><td>${h.notes}</td><td>${h.approved}</td><td>${h.takes}</td><td>${h.reflections}</td></tr>`).join("")).join("")
@@ -284,6 +309,58 @@ function paint(s) {
   $("recent").innerHTML = (d.recent || []).map(([t, a, n]) => `<li><time>${esc(t)}</time><span class="tagx">${esc(a)}</span><span>${esc(n)}</span></li>`).join("") || '<li class="muted">Nothing yet today.</li>';
   document.querySelectorAll("[data-a=run],[data-a=dry-run]").forEach(b => b.disabled = (s.jobs || []).some(j => (j.name === "run" || j.name === "dry-run") && j.running));
 }
+/* ---- completion forecast: at N notes a week, when is everything reviewed? (pace slider is interactive) ---- */
+const FC = {data: null, goal: 25, pace: null};
+try { FC.pace = +localStorage.getItem("mytutor-cc-pace") || null; } catch (e) {}
+function recentPace(rows) {           // average approvals per week over the last 4 full weeks with any activity
+  const m0 = mondayOf(new Date().toISOString().slice(0, 10)), wk = {};
+  for (const r of rows) { const k = Math.round((m0 - mondayOf(r.day)) / 6048e5); if (k >= 1 && k <= 4) wk[k] = (wk[k] || 0) + (r.approved || 0); }
+  const v = Object.values(wk); return v.length ? Math.max(5, Math.round(v.reduce((a, b) => a + b, 0) / v.length / 5) * 5) : FC.goal;
+}
+function renderForecast() {
+  const d = FC.data, svg = $("fc"); if (!d || !svg) return;
+  const total = (d.courses || []).reduce((a, c) => a + c[2], 0), done = (d.courses || []).reduce((a, c) => a + c[1], 0), left = Math.max(0, total - done);
+  const pace = FC.pace || FC.goal; $("fc-pace").value = pace; $("fc-pv").textContent = pace;
+  document.querySelectorAll(".chip-b").forEach(c => c.classList.toggle("on", (c.dataset.p === "goal" && pace === FC.goal) || (c.dataset.p === "recent" && pace === recentPace(d.history || [])) || +c.dataset.p === pace));
+  const weeksLeft = Math.ceil(left / pace), finish = new Date(); finish.setDate(finish.getDate() + weeksLeft * 7);
+  const fd = finish.toLocaleDateString(undefined, {day: "numeric", month: "short", year: "numeric"});
+  $("fc-big").innerHTML = left ? `<span class="when">${weeksLeft} week${weeksLeft === 1 ? "" : "s"} · around ${fd}</span><b>${left}</b> of ${total} notes still to review, at <b>${pace}</b> a week (about ${Math.max(1, Math.round(pace / 7 * 10) / 10)} a day).`
+                               : `<span class="when">All done 🎉</span>Every one of ${total} notes is reviewed.`;
+  $("fc-note").textContent = `Recent pace: ${recentPace(d.history || [])} a week (last 4 weeks). New notes from upcoming lectures will add to the total, so the date moves as the course goes on.`;
+  // actual cumulative by week, rebuilt backwards from today's count
+  const rows = d.history || [], m0 = mondayOf(new Date().toISOString().slice(0, 10));
+  const first = rows.length ? mondayOf(rows.map(r => r.day).sort()[0]) : m0, past = Math.min(12, Math.round((m0 - first) / 6048e5));
+  const perWk = {}; for (const r of rows) { const k = Math.round((m0 - mondayOf(r.day)) / 6048e5); perWk[k] = (perWk[k] || 0) + (r.approved || 0); }
+  const act = []; let c = done;
+  for (let k = 0; k <= past + 1; k++) { act.unshift({k: -k, v: Math.max(0, c)}); c -= perWk[k] || 0; }   // value at the end of each week, oldest first
+  const projN = Math.min(weeksLeft, 104), proj = []; for (let i = 0; i <= projN; i++) proj.push({k: i, v: Math.min(total, done + pace * i)});
+  const W = Math.max(320, svg.clientWidth || 640), H = 200, padL = 40, padR = 12, padT = 12, padB = 24;
+  const kMin = act[0].k, kMax = Math.max(projN, 1), x = k => padL + (W - padL - padR) * (k - kMin) / (kMax - kMin), y = v => padT + (H - padT - padB) * (1 - v / Math.max(total, 1));
+  let g = ""; const step = total > 800 ? 200 : total > 300 ? 100 : 50;
+  for (let v = 0; v <= total; v += step) g += `<line class="grid" x1="${padL}" x2="${W - padR}" y1="${y(v)}" y2="${y(v)}"/><text class="ax" x="${padL - 6}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
+  g += `<line class="tot" x1="${padL}" x2="${W - padR}" y1="${y(total)}" y2="${y(total)}"/><text class="ax" x="${padL + 4}" y="${y(total) - 5}">${total} notes</text>`;
+  const dateAt = k => { const t = new Date(m0); t.setDate(m0.getDate() + 7 * k); return t; };
+  const ticks = 6; for (let i = 0; i <= ticks; i++) { const k = Math.round(kMin + (kMax - kMin) * i / ticks); g += `<text class="ax" x="${x(k)}" y="${H - 6}" text-anchor="middle">${k === 0 ? "Now" : dateAt(k).toLocaleDateString(undefined, {month: "short", year: kMax - kMin > 40 ? "2-digit" : undefined, day: kMax - kMin > 40 ? undefined : "numeric"})}</text>`; }
+  g += `<line class="now" x1="${x(0)}" x2="${x(0)}" y1="${padT}" y2="${H - padB}"/>`;
+  const line = pts => pts.map((p, i) => (i ? "L" : "M") + x(p.k).toFixed(1) + " " + y(p.v).toFixed(1)).join("");
+  g += `<path class="actfill" d="${line(act)}L${x(0)} ${y(0)}L${x(kMin)} ${y(0)}Z"/><path class="act" d="${line(act)}"/><path class="proj" d="${line(proj)}"/>`;
+  g += `<circle class="dot" cx="${x(0)}" cy="${y(done)}" r="5"/>`;
+  if (weeksLeft <= 104 && left) g += `<circle class="dot" cx="${x(projN)}" cy="${y(total)}" r="5"/><text class="ax" x="${x(projN) - 6}" y="${y(total) + 16}" text-anchor="end">finish</text>`;
+  g += `<line class="cross" id="fc-x" x1="0" x2="0" y1="${padT}" y2="${H - padB}" visibility="hidden"/><rect x="${padL}" y="${padT}" width="${W - padL - padR}" height="${H - padT - padB}" fill="transparent" id="fc-hit"/>`;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.innerHTML = g;
+  const tip = $("fc-tip"), cross = $("fc-x");
+  $("fc-hit").onmousemove = e => { const b = svg.getBoundingClientRect(), px = (e.clientX - b.left) * W / b.width, k = Math.round(kMin + (px - padL) / (W - padL - padR) * (kMax - kMin));
+    const a = act.find(p => p.k === k), p = proj.find(q => q.k === k), v = k <= 0 ? (a ? a.v : null) : (p ? p.v : null); if (v == null) return;
+    cross.setAttribute("x1", x(k)); cross.setAttribute("x2", x(k)); cross.setAttribute("visibility", "visible");
+    const t = dateAt(k), sun = new Date(t); sun.setDate(t.getDate() + 6);
+    tip.innerHTML = `<b>${k === 0 ? "This week" : sun.toLocaleDateString(undefined, {day: "numeric", month: "short", year: "numeric"})}</b><div><span>${k <= 0 ? "Reviewed" : "Projected"}</span><span>${v} / ${total}</span></div><div><span>Done</span><span>${Math.round(v / Math.max(total, 1) * 100)}%</span></div>`;
+    tip.hidden = false; let lx = e.clientX - b.left + 12; if (lx > b.width - 170) lx -= 190; tip.style.left = lx + "px"; tip.style.top = (e.clientY - b.top - 10) + "px"; };
+  $("fc-hit").onmouseleave = () => { tip.hidden = true; cross.setAttribute("visibility", "hidden"); };
+}
+function setPace(p) { FC.pace = p; try { localStorage.setItem("mytutor-cc-pace", p); } catch (e) {} renderForecast(); }
+document.addEventListener("input", e => { if (e.target.id === "fc-pace") setPace(+e.target.value); });
+document.addEventListener("click", e => { const c = e.target.closest(".chip-b"); if (!c) return; setPace(c.dataset.p === "goal" ? FC.goal : c.dataset.p === "recent" ? recentPace((FC.data || {}).history || []) : +c.dataset.p); });
+window.addEventListener("resize", () => renderForecast());
 function renderTrend(rows, goal) {
   const svg = $("trend"); if (!svg) return;
   const W = Math.max(320, svg.clientWidth || 640), H = 190, padL = 30, padR = 8, padT = 14, padB = 24;
