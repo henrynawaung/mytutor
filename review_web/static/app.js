@@ -1,6 +1,6 @@
 "use strict";
 // ---- display settings (kept in this browser) ----
-const SET_DEF = {remind: "off", size: "m", theme: "auto", font: "sans", width: "normal", photo: "soft", goal: "5", accent: "amber", density: "comfy", name: "", today: "clock,wx,rank,quote,crew,mem", ellie: "auto", movebreak: "30", rewards: "on", chime: "kalimba", city: "Christchurch"};
+const SET_DEF = {remind: "off", size: "m", theme: "auto", font: "sans", width: "normal", photo: "soft", goal: "5", accent: "amber", density: "comfy", name: "", today: "clock,wx,quote", ellie: "auto", movebreak: "30", rewards: "on", chime: "kalimba", city: "Christchurch"};
 function getSet() { try { return Object.assign({}, SET_DEF, JSON.parse(localStorage.getItem("mytutor-settings") || "{}")); } catch (e) { return {...SET_DEF}; } }
 function applySet(s) {
   const r = document.documentElement;
@@ -559,16 +559,15 @@ const WX = {0: ["☀️", "Clear"], 1: ["🌤️", "Mostly clear"], 2: ["⛅", "
   51: ["🌦️", "Light drizzle"], 53: ["🌦️", "Drizzle"], 55: ["🌧️", "Heavy drizzle"], 61: ["🌦️", "Light rain"], 63: ["🌧️", "Rain"], 65: ["🌧️", "Heavy rain"],
   71: ["🌨️", "Light snow"], 73: ["🌨️", "Snow"], 75: ["❄️", "Heavy snow"], 80: ["🌦️", "Showers"], 81: ["🌧️", "Showers"], 82: ["⛈️", "Heavy showers"],
   95: ["⛈️", "Thunderstorm"], 96: ["⛈️", "Thunderstorm"], 99: ["⛈️", "Thunderstorm"]};
+try { if (!localStorage.getItem("mytutor-today-v4")) { const t2 = new Set((getSet().today || "").split(",").filter(Boolean)); ["rank", "crew", "mem"].forEach(k => t2.delete(k)); localStorage.setItem("mytutor-today-v2", "1"); localStorage.setItem("mytutor-today-v3", "1"); saveSet("today", [...t2].join(",")); localStorage.setItem("mytutor-today-v4", "1"); } } catch (e) {}   // rank moved to the header, crew to the profile menu, memory line off by default
 try { if (!localStorage.getItem("mytutor-today-v3")) { const t1 = new Set((getSet().today || "").split(",").filter(Boolean)); t1.delete("week"); saveSet("today", [...t1].join(",")); localStorage.setItem("mytutor-today-v3", "1"); } } catch (e) {}   // the weekly bar lives in the header ring
 try { if (!localStorage.getItem("mytutor-today-v2")) { const t0 = new Set((getSet().today || "").split(",").filter(Boolean)); t0.add("rank"); t0.add("quote"); saveSet("today", [...t0].join(",")); localStorage.setItem("mytutor-today-v2", "1"); } } catch (e) {}
 function todayOn() { return new Set((getSet().today || "").split(",").filter(Boolean)); }
 function renderToday() {
   const on = todayOn(), card = $("today"); if (!card) return;
   card.hidden = on.size === 0;
-  for (const k of ["clock", "wx", "rank", "week", "quote", "crew", "mem"]) $("td-" + k).hidden = !on.has(k);
-  if (on.has("rank") && window.fillRank) fillRank();
+  for (const k of ["clock", "wx", "week", "quote", "mem"]) $("td-" + k).hidden = !on.has(k);
   if (on.has("quote") && window.showQuote && !$("td-qtext").textContent) showQuote(0);
-  if (on.has("crew") && window.fillCrewRow) fillCrewRow();
   document.querySelectorAll("#s-today button").forEach(b => b.classList.toggle("on", on.has(b.dataset.k)));
   if (on.has("clock")) tick();
   if (on.has("week")) renderWeek();

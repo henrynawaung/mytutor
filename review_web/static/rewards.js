@@ -275,11 +275,11 @@ function fillCrew() {
   box.querySelectorAll("[data-w]").forEach(i => i.style.width = i.dataset.w + "%");   // CSP: no inline style attributes
 }
 function fillCrewRow() {
-  const row = document.getElementById("td-crew"); if (!row || !RW) return;
+  const row = document.getElementById("um-crew"); if (!row || !RW) return;     // lives in the profile menu
   row.innerHTML = `<small class="td-lbl">🌟 My crew <a href="#" id="td-crewall">see all</a></small><div class="crew-row">${CREW.map(c => { const L = levelOf(c, RW);
-    return `<span class="crew-mini" title="${c.secret && !L ? "Secret" : c.name}${L ? " · level " + L : " · locked"}">${charSVG(c.id, L, 38)}${L ? `<i>${L}</i>` : ""}</span>`; }).join("")}</div>`;
-  document.getElementById("td-crewall").onclick = e => { e.preventDefault(); openCrew(); };
-  row.querySelector(".crew-row").onclick = () => openCrew();
+    return `<span class="crew-mini" title="${c.secret && !L ? "Secret" : c.name}${L ? " · level " + L : " · locked"}">${charSVG(c.id, L, 30)}${L ? `<i>${L}</i>` : ""}</span>`; }).join("")}</div>`;
+  document.getElementById("td-crewall").onclick = e => { e.preventDefault(); document.getElementById("umenu").hidden = true; openCrew(); };
+  row.querySelector(".crew-row").onclick = () => { document.getElementById("umenu").hidden = true; openCrew(); };
 }
 async function openCrew() {
   if (mode !== "activity") setMode("activity"); else await showActivity();
@@ -306,11 +306,14 @@ let combo = 0, lastSave = 0;
 function bumpCombo() { const now = Date.now(); combo = now - lastSave < 180e3 ? combo + 1 : 1; lastSave = now; return combo; }
 
 function fillRank() {
-  const row = document.getElementById("td-rank"); if (!row || !RW) return;
+  const row = document.getElementById("rankpill"); if (!row || !RW) return;    // compact rank & XP in the header
   const xp = xpOf(RW), i = rankOf(xp), R = RANKS[i], N = RANKS[i + 1];
   const pct = N ? Math.round((xp - R.xp) / (N.xp - R.xp) * 100) : 100;
-  row.innerHTML = `<div class="rk-top"><span class="rk-badge">${R.icon}</span><div><b>${R.name}</b><small>${xp.toLocaleString()} XP${N ? ` · ${(N.xp - xp).toLocaleString()} to ${N.name}` : " · top of the ladder"}</small></div></div><div class="td-bar rk-bar"><i></i></div>`;
+  row.hidden = false;
+  row.title = `${R.name} · ${xp.toLocaleString()} XP` + (N ? ` · ${(N.xp - xp).toLocaleString()} XP to ${N.name}` : " · top of the ladder") + ". Click for your crew and ladder.";
+  row.innerHTML = `<span class="rk-badge">${R.icon}</span><span class="rk-txt"><b>${R.name}</b><small>${xp.toLocaleString()} XP</small><span class="rk-bar"><i></i></span></span>`;
   row.querySelector(".rk-bar i").style.width = Math.max(3, pct) + "%";
+  row.onclick = () => openCrew();
 }
 
 const QUOTES = [
