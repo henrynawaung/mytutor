@@ -24,11 +24,17 @@
 </div>
 <span id="stats" hidden></span>
 </header>
-<main id="main"><button class="rail" id="b-expand" title="Show the list ( [ )" hidden>» Library</button><aside id="side"><div class="sidetop"><div class="sidehead"><span>Library</span><button class="collapse" id="b-collapse" title="Hide the list to focus on reading and writing ( [ )">« Hide</button></div><div class="prog" id="prog"></div><div class="filters">
+<main id="main"><button class="rail" id="b-expand" title="Show the list ( [ )" hidden>» Library</button><div class="leftcol" id="leftcol"><aside id="side"><div class="sidetop"><div class="sidehead"><span>Library</span><button class="collapse" id="b-collapse" title="Hide the list to focus on reading and writing ( [ )">« Hide</button></div><div class="prog" id="prog"></div><div class="filters">
 <select id="f-course"><option value="">All courses</option></select>
 <select id="f-status"><option value="unreviewed">To review</option><option value="needs-fix">Needs fix</option><option value="reviewed">Approved</option><option value="">All</option></select>
 <select id="f-type"><option value="">All types</option><option>core</option><option>case</option><option>hub</option><option>reference</option></select>
 </div><input id="f-q" class="search" placeholder="Search titles…"></div><div id="list"></div></aside>
+<div class="today" id="today" hidden>
+  <div class="td-row" id="td-clock"><div class="td-time" id="td-time">--:--</div><div class="td-date" id="td-date"></div></div>
+  <div class="td-row td-wx" id="td-wx"><span class="td-ico" id="td-wxico">⛅</span><div><b id="td-temp">…</b><small id="td-wxtxt">Weather</small></div></div>
+  <div class="td-row td-week" id="td-week"><div class="td-bar"><i id="td-bar"></i></div><small id="td-weektxt"></small></div>
+  <div class="td-row td-mem" id="td-mem"><small class="td-lbl">🧠 Your memory line <button class="td-more" id="td-memnext" title="Show another">↻</button></small><blockquote id="td-memline"></blockquote><a href="#" id="td-memsrc"></a></div>
+</div></div>
 <section id="view"><div class="empty">Pick a note on the left.</div></section></main>
 <div class="actions" id="actions" hidden>
 <div class="banner" id="banner" hidden><span id="banner-msg"></span><button class="b small" id="b-undo">Undo</button><button class="b small ok" id="b-next">Next note →</button></div>
@@ -44,10 +50,12 @@
 <div class="grp"><span>Weekly goal (notes approved)</span><div class="seg" data-set="wgoal"><button data-v="10">10</button><button data-v="20">20</button><button data-v="30">30</button><button data-v="50">50</button></div></div>
 <div class="grp"><span>Accent colour</span><div class="seg swatches" data-set="accent"><button data-v="amber" title="Amber"></button><button data-v="teal" title="Teal"></button><button data-v="indigo" title="Indigo"></button><button data-v="rose" title="Rose"></button><button data-v="green" title="Green"></button></div></div>
 <div class="grp"><span>Remind me about notes approved without a take</span><div class="seg" data-set="remind"><button data-v="off">Off</button><button data-v="on">On</button></div></div>
+<div class="grp"><span>Today card (bottom left)</span><div class="seg multi" id="s-today"><button data-k="clock">Time</button><button data-k="wx">Weather</button><button data-k="week">This week</button><button data-k="mem">Memory line</button></div></div>
+<div class="grp"><span>Weather city</span><input class="sinput" id="s-city" maxlength="60" placeholder="e.g. Christchurch"></div>
 <div class="grp"><span>Layout density</span><div class="seg" data-set="density"><button data-v="comfy">Comfortable</button><button data-v="compact">Compact</button></div></div>
 <div class="grp"><span>Text size</span><div class="seg" data-set="size"><button data-v="s">S</button><button data-v="m">M</button><button data-v="l">L</button><button data-v="xl">XL</button></div></div>
 <div class="grp"><span>Theme</span><div class="seg" data-set="theme"><button data-v="auto">Auto</button><button data-v="light">Light</button><button data-v="dark">Dark</button></div></div>
-<div class="grp"><span>Reading font</span><div class="seg" data-set="font"><button data-v="sans">Sans</button><button data-v="serif">Serif</button></div></div>
+<div class="grp"><span>Font (whole app)</span><div class="seg" data-set="font"><button data-v="sans">Sans</button><button data-v="serif">Serif</button></div></div>
 <div class="grp"><span>Background photo</span>
   <div class="photorow"><label class="b small">Choose photo…<input type="file" id="bg-file" accept="image/jpeg,image/png,image/webp" hidden></label><button class="b small" id="bg-remove">Remove</button></div>
   <span class="tiny">Stays on this laptop only.</span></div>

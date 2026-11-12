@@ -15,6 +15,7 @@ import argparse
 import getpass
 import json
 import os
+import random
 import re
 import secrets
 import sys
@@ -67,7 +68,7 @@ def create_app(vault_root: Path, jobs: Path, obsidian_vault: str = "", testing: 
         r.headers["Cache-Control"] = "no-store"
         r.headers["Content-Security-Policy"] = (
             "default-src 'self'; script-src 'self'; style-src 'self'; "
-            "img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'")
+            "img-src 'self' data:; connect-src 'self' https://api.open-meteo.com https://geocoding-api.open-meteo.com; frame-ancestors 'none'; form-action 'self'; base-uri 'none'")
         return r
 
     def csrf_ok() -> bool:
@@ -263,6 +264,12 @@ def create_app(vault_root: Path, jobs: Path, obsidian_vault: str = "", testing: 
 
     for kind in PHOTOS:
         photo_routes(kind)
+
+    @app.get("/api/memory-line")
+    @login_required
+    def memory_line():
+        lines = core.memory_lines(vault)
+        return jsonify(dict(random.choice(lines), count=len(lines)) if lines else {"count": 0})
 
     @app.get("/api/recent")
     @login_required

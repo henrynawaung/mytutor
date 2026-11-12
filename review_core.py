@@ -495,6 +495,44 @@ class Store:
                       "ORDER BY id DESC LIMIT ?", (n,))
 
 
+MEM_HEAD = re.compile(r"^\s*(?:#{1,6}\s*|\*\*|__)?\s*(?:🧠\s*)?memory line\b[^\n]*", re.I | re.M)
+
+
+def memory_lines_in(take: str) -> list:
+    """Lines written under a 'Memory line' heading (or after a bold 'Memory line:' label) in one take."""
+    out, lines = [], take.splitlines()
+    for k, ln in enumerate(lines):
+        if not MEM_HEAD.match(ln):
+            continue
+        inline = re.sub(r"^.*?memory line[^:]*:\s*(\*\*|__)?\s*", "", ln, flags=re.I).strip(" *_")
+        if not ln.lstrip().startswith("#") and inline and "one line to remember" not in inline.lower():
+            out.append(inline); continue
+        for nxt in lines[k + 1:]:
+            s = nxt.strip()
+            if not s:
+                continue
+            if s.startswith("#"):
+                break
+            s = re.sub(r"^([-*>]\s+|\d+\.\s+)", "", s).strip(" *_\"“”")
+            if s:
+                out.append(s)
+            break
+    return out
+
+
+def memory_lines(vault) -> list:
+    """Every memory line in the user's takes across the vault: [{line, title, rel}]."""
+    out = []
+    for p, rel in vault.notes():
+        text = read(p)
+        if "emory line" not in text:
+            continue
+        for t in list_takes(text):
+            for line in memory_lines_in(t["body"]):
+                out.append({"line": line[:300], "title": p.stem, "rel": rel.as_posix(), "date": t["date"]})
+    return out
+
+
 def week_streak(active_days, today) -> int:
     """Weeks in a row (Monday to Sunday) with at least one review, take or reflection.
     This week counts as soon as there is activity; an empty current week doesn't break the streak yet."""

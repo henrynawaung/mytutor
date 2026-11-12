@@ -1,6 +1,6 @@
 "use strict";
 // ---- display settings (kept in this browser) ----
-const SET_DEF = {wgoal: "20", remind: "off", size: "m", theme: "auto", font: "sans", width: "normal", photo: "soft", goal: "5", accent: "amber", density: "comfy", name: ""};
+const SET_DEF = {wgoal: "20", remind: "off", size: "m", theme: "auto", font: "sans", width: "normal", photo: "soft", goal: "5", accent: "amber", density: "comfy", name: "", today: "clock,wx,week,mem", city: "Christchurch"};
 function getSet() { try { return Object.assign({}, SET_DEF, JSON.parse(localStorage.getItem("mytutor-settings") || "{}")); } catch (e) { return {...SET_DEF}; } }
 function applySet(s) {
   const r = document.documentElement;
@@ -40,6 +40,7 @@ function filtered() {
   return S.items.filter(i => (!c || i.course === c) && (!s || i.status === s) && (!ty || i.type === ty) && (!q || i.title.toLowerCase().includes(q)));
 }
 function renderProg() {
+  if ($("today") && todayOn().has("week")) renderWeek();
   const P = $("prog"); if (!P) return; P.innerHTML = "";
   for (const [c, v] of Object.entries(S.courses || {}).sort()) {
     const row = document.createElement("div"); row.className = "prow";
@@ -94,7 +95,7 @@ async function openNote(rel, push = true) {
 }
 function show() {
   const n = cur, p = n.props, V = $("view");
-  const ST = {"reviewed": ["✓ Approved", "ok"], "needs-fix": ["⚑ Needs fix", "warn"], "unreviewed": ["○ Not reviewed yet", "todo"]};
+  const ST = {"reviewed": ["🏆 Approved", "ok"], "needs-fix": ["⚑ Needs fix", "warn"], "unreviewed": ["🚀 Ready for your review", "todo"]};
   const st = ST[p.status] || (p.status ? [p.status, "todo"] : null);
   const pill = st && mode !== "journals" ? `<div class="statuspill ${st[1]}">${st[0]}${p.status === "reviewed" && p.reviewed_on ? `<small>on ${esc(p.reviewed_on)}</small>` : ""}</div>` : "";
   const chips = pill + [p.course, p.type, n.rel.split("/")[1]].filter(Boolean).map(x => `<span class="chip">${esc(x)}</span>`).join("")
@@ -121,7 +122,7 @@ function show() {
     $("actions").hidden = true; return;
   }
   const takes = n.takes || [];
-  V.innerHTML = `<div class="doc"><div class="meta">${chips}${p.status === "reviewed" || p.status === "needs-fix" ? '<button class="b small" id="b-unrev" title="Set this note back to not reviewed">Mark not reviewed</button>' : ""}</div>${md(n.body)}</div>
+  V.innerHTML = `<div class="doc"><div class="meta">${chips}${p.status === "reviewed" || p.status === "needs-fix" ? '<button class="b small" id="b-unrev" title="Set this note back to not reviewed">Mark not reviewed</button>' : ""}<b class="stitle">${esc(n.title)}</b></div>${md(n.body)}</div>
     ${takes.length ? `<div class="takes"><h3>✎ My takes on this note (${takes.length})</h3>` + takes.map(t => `
       <div class="tk" data-tk="${t.i}"><div class="tkhead"><b>${t.date ? esc(niceDay(t.date)) : "Earlier (undated)"}</b>
         <span><button class="b small" data-tkedit="${t.i}">Edit</button><button class="b small warn" data-tkdel="${t.i}">Delete</button></span></div>
@@ -133,7 +134,7 @@ function show() {
   if ($("b-unrev")) $("b-unrev").onclick = async () => { if (await act("/api/undo", {status: "unreviewed"}, "")) { show(); banner("↩ Back to not reviewed: " + cur.title, "info", false); } };
   $("actions").hidden = false;
   const o = $("b-obs"); if (n.obsidian) { o.href = n.obsidian; o.hidden = false; } else o.hidden = true;
-  V.scrollTop = 0; $("b-take").onclick = saveTake; enhance($("take"), {template: true});
+  V.scrollTop = 0; stickyHead(); $("b-take").onclick = saveTake; enhance($("take"), {template: true});
   keepDraft($("take"), dkey("take", n.rel)); $("take").addEventListener("input", labels); labels();
 }
 const ACT = {"approve": "✓ approved", "needs-fix": "⚑ needs fix", "my-take": "✎ take", "answer": "💬 reflection", "undo": "↩ undo"};
@@ -242,7 +243,7 @@ async function saveTake() { const t = $("take").value.trim(); if (!t) return; if
 function setMode(m) {
   mode = m; cur = null;
   for (const t of ["notes", "journals", "activity"]) $("t-" + t).classList.toggle("on", t === m);
-  $("side").hidden = m === "activity"; document.querySelector("main").classList.toggle("noside", m === "activity"); $("actions").hidden = true;
+  $("leftcol").hidden = m === "activity"; document.querySelector("main").classList.toggle("noside", m === "activity"); $("actions").hidden = true;
   document.querySelector(".filters").hidden = $("f-q").hidden = m !== "notes";
   if (m === "activity") return showActivity();
   $("view").innerHTML = `<div class="empty"><div class="hello">${esc(greeting())} 👋</div>${m === "journals" ? "Pick a journal on the left to reflect on." : "Pick a note on the left to start reviewing."}</div>`;
@@ -489,4 +490,82 @@ function typeGroups(g, row, q) {
     return `<div class="tgrp${open ? " open" : ""}"><button class="tgrphead" data-t="${esc(key)}"><span class="chev">▸</span>${ico} ${label}<span class="cnt">${done ? done + "/" : ""}${items.length}</span></button>
       ${open ? items.map(row).join("") : ""}</div>`;
   }).join("");
+}
+
+/* ---- Today card: time, weather, this week, a memory line (each optional in Personalise) ---- */
+const WX = {0: ["☀️", "Clear"], 1: ["🌤️", "Mostly clear"], 2: ["⛅", "Partly cloudy"], 3: ["☁️", "Cloudy"], 45: ["🌫️", "Fog"], 48: ["🌫️", "Fog"],
+  51: ["🌦️", "Light drizzle"], 53: ["🌦️", "Drizzle"], 55: ["🌧️", "Heavy drizzle"], 61: ["🌦️", "Light rain"], 63: ["🌧️", "Rain"], 65: ["🌧️", "Heavy rain"],
+  71: ["🌨️", "Light snow"], 73: ["🌨️", "Snow"], 75: ["❄️", "Heavy snow"], 80: ["🌦️", "Showers"], 81: ["🌧️", "Showers"], 82: ["⛈️", "Heavy showers"],
+  95: ["⛈️", "Thunderstorm"], 96: ["⛈️", "Thunderstorm"], 99: ["⛈️", "Thunderstorm"]};
+function todayOn() { return new Set((getSet().today || "").split(",").filter(Boolean)); }
+function renderToday() {
+  const on = todayOn(), card = $("today"); if (!card) return;
+  card.hidden = on.size === 0;
+  for (const k of ["clock", "wx", "week", "mem"]) $("td-" + k).hidden = !on.has(k);
+  document.querySelectorAll("#s-today button").forEach(b => b.classList.toggle("on", on.has(b.dataset.k)));
+  if (on.has("clock")) tick();
+  if (on.has("week")) renderWeek();
+  if (on.has("wx")) loadWeather();
+  if (on.has("mem") && !$("td-memline").dataset.done) loadMemLine();
+}
+function tick() {
+  const d = new Date();
+  $("td-time").textContent = d.toLocaleTimeString([], {hour: "numeric", minute: "2-digit"});
+  $("td-date").textContent = d.toLocaleDateString([], {weekday: "short", day: "numeric", month: "short"});
+}
+function renderWeek() {
+  const st = (S && S.stats) || {}, goal = +getSet().wgoal || 20, done = st.approved_week ?? 0;
+  $("td-bar").style.width = Math.min(100, Math.round(done / goal * 100)) + "%";
+  $("td-weektxt").innerHTML = `<span>${done >= goal ? "🎉 Goal reached: " + done : done + " / " + goal} approved this week</span><span>🔥 ${st.week_streak || 0} wk</span>`;
+}
+function cacheGet(k) { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch (e) { return null; } }
+function cacheSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+let wxBusy = false;
+async function loadWeather() {
+  const city = (getSet().city || "Christchurch").trim(), c = cacheGet("mytutor-wx");
+  if (c && c.city === city && Date.now() - c.at < 30 * 60e3) return showWeather(c);
+  if (wxBusy) return; wxBusy = true;
+  try {
+    let g = cacheGet("mytutor-geo");
+    if (!g || g.city !== city) {
+      const r = await (await fetch("https://geocoding-api.open-meteo.com/v1/search?count=1&name=" + encodeURIComponent(city))).json();
+      const p = (r.results || [])[0]; if (!p) throw new Error("City not found");
+      g = {city, lat: p.latitude, lon: p.longitude, name: p.name}; cacheSet("mytutor-geo", g);
+    }
+    const w = await (await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${g.lat}&longitude=${g.lon}&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=1`)).json();
+    const v = {city, name: g.name, at: Date.now(), t: Math.round(w.current.temperature_2m), code: w.current.weather_code,
+               hi: Math.round(w.daily.temperature_2m_max[0]), lo: Math.round(w.daily.temperature_2m_min[0])};
+    cacheSet("mytutor-wx", v); showWeather(v);
+  } catch (e) { $("td-wxico").textContent = "🌐"; $("td-temp").textContent = "Weather unavailable"; $("td-wxtxt").textContent = e.message === "City not found" ? `Could not find "${city}"` : "Offline? Will try again later"; }
+  finally { wxBusy = false; }
+}
+function showWeather(v) {
+  const [ico, txt] = WX[v.code] || ["🌡️", ""];
+  $("td-wxico").textContent = ico; $("td-temp").textContent = `${v.t}°C ${txt}`; $("td-wxtxt").textContent = `${v.name} · H ${v.hi}° L ${v.lo}°`;
+}
+async function loadMemLine() {
+  const el = $("td-memline"), src = $("td-memsrc");
+  try {
+    const r = await api("/api/memory-line"); el.dataset.done = "1";
+    if (!r.line) { el.textContent = "No memory lines yet. Use the Template button in your take and fill in 🧠 Memory line."; el.classList.add("empty"); src.hidden = true; $("td-memnext").hidden = true; return; }
+    el.classList.remove("empty"); el.textContent = r.line; src.hidden = false; src.textContent = "from " + r.title; src.dataset.rel = r.rel;
+    $("td-memnext").hidden = r.count < 2;
+  } catch (e) {}
+}
+if ($("today")) {
+  $("td-memnext").onclick = () => loadMemLine();
+  $("td-memsrc").onclick = e => { e.preventDefault(); if (e.target.dataset.rel) { if (mode !== "notes") setMode("notes"); openNote(e.target.dataset.rel); } };
+  document.querySelectorAll("#s-today button").forEach(b => b.onclick = () => {
+    const on = todayOn(); on.has(b.dataset.k) ? on.delete(b.dataset.k) : on.add(b.dataset.k); saveSet("today", [...on].join(",")); renderToday(); });
+  $("s-city").value = getSet().city;
+  $("s-city").onchange = e => { saveSet("city", e.target.value.trim() || "Christchurch"); loadWeather(); };
+  setInterval(() => { if (todayOn().has("clock")) tick(); }, 15e3);
+  setInterval(() => { if (todayOn().has("wx")) loadWeather(); }, 30 * 60e3);
+  renderToday();
+}
+
+/* keep status + title visible while scrolling a note */
+function stickyHead() {
+  const V = $("view"), m = V.querySelector(".doc > .meta"); if (!m) return;
+  V.onscroll = () => m.classList.toggle("stuck", V.scrollTop > 70); V.onscroll();
 }
