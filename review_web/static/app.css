@@ -267,3 +267,22 @@ aside{align-self:start;margin:12px 0 0 12px;max-height:min(64vh,calc(100vh - 110
 main{grid-template-columns:calc(var(--side) + 12px) 1fr}
 main.collapsed{grid-template-columns:0 1fr}main.collapsed aside{margin:0}
 section{align-self:stretch;height:100%}
+.avatar{background-size:cover;background-position:center}.avatar.hasimg #avatar-letter{visibility:hidden}.avatar.hasimg{box-shadow:0 0 0 2px var(--brand)}
+.umenu .photorow{margin:4px 0}
+
+/* v4: button feedback, so every click visibly lands */
+.b{transition:background .15s,transform .08s,box-shadow .2s}
+.b:active:not(:disabled){transform:scale(.96)}
+.b:disabled{opacity:.5;cursor:default}
+.b.busy{opacity:.8;cursor:progress}
+.b.busy::before{content:"";display:inline-block;width:.8em;height:.8em;margin-right:.45em;vertical-align:-.1em;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.b.done{background:#1f9d55!important;border-color:#1f9d55!important;color:#fff!important;box-shadow:0 0 0 4px rgba(31,157,85,.25)}
+.b.err{background:#c0392b!important;border-color:#c0392b!important;color:#fff!important;animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.b.isdone:disabled{opacity:1;background:rgba(31,157,85,.12);border-color:#1f9d55;color:#1f9d55;font-weight:600}
+.savestate{margin-left:.8em;font-size:.88em}
+.savestate.pending{color:#b7791f}
+.savestate.saved{color:#1f9d55;font-weight:600}
+.banner{animation:bannerin .25s ease-out}
+@keyframes bannerin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}

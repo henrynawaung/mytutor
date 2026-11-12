@@ -13,10 +13,13 @@
 <div class="hright">
   <div class="goal" id="goal" title="This week's goal"><svg viewBox="0 0 36 36" width="34" height="34"><circle cx="18" cy="18" r="15" class="gbg"/><circle cx="18" cy="18" r="15" class="gfg" id="goal-ring"/></svg><div><b id="goal-txt">0/20</b><small id="streak-txt">this week</small></div></div>
   <a class="iconbtn homebtn" href="http://127.0.0.1:5056/" title="Home: Control Centre">⌂</a>
+  <button class="iconbtn" id="b-theme" title="Switch dark / light">🌙</button>
   <button class="iconbtn" id="b-sync" title="Re-read the vault">⟳</button>
   <button class="iconbtn" id="b-set" title="Personalise">⚙</button>
-  <div class="usermenu"><button class="avatar" id="b-user" title="{{ user }}">{{ user[:1]|upper }}</button>
+  <div class="usermenu"><button class="avatar" id="b-user" title="{{ user }}"><span id="avatar-letter">{{ user[:1]|upper }}</span></button>
     <div class="umenu" id="umenu" hidden><div class="uname">{{ user }}</div>
+      <div class="photorow"><label class="b small">Profile photo…<input type="file" id="av-file" accept="image/jpeg,image/png,image/webp" hidden></label><button class="b small" id="av-remove">Remove</button></div>
+      <p class="tiny">Stays on this laptop only.</p>
       <form method="post" action="{{ url_for('logout') }}"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="b small wide">Log out</button></form></div></div>
 </div>
 <span id="stats" hidden></span>

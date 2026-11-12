@@ -274,6 +274,17 @@ class AppTests(unittest.TestCase):
         day = self.c.get("/api/days").get_json()["days"][0]
         self.assertEqual((day["approve"], day["my-take"]), (0, 0))            # deleted take and undone approval no longer count
 
+    def test_profile_photo(self):
+        import io
+        self.login()
+        tok = self.api_csrf()
+        self.assertEqual(self.c.get("/api/avatar").status_code, 404)
+        jpg = b"\xff\xd8\xff\xe0" + b"0" * 50
+        r = self.c.post("/api/avatar", data={"photo": (io.BytesIO(jpg), "me.jpg")}, headers={"X-CSRF": tok}, content_type="multipart/form-data")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(self.c.get("/api/avatar").mimetype, "image/jpeg")
+        self.assertEqual(self.c.get("/api/background").status_code, 404)          # separate from the background photo
+
     def test_paths_outside_vault_are_refused(self):
         self.login()
         self.assertEqual(self.c.get("/api/note?rel=../jobs/mytutor.db").status_code, 404)

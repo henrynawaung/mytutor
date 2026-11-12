@@ -129,7 +129,7 @@ function show() {
         <div class="tkedit" hidden><textarea data-tkta="${t.i}">${esc(t.body)}</textarea>
           <div class="gap"><button class="b ok small" data-tksave="${t.i}">Save changes</button> <button class="b small" data-tkcancel="${t.i}">Cancel</button></div></div></div>`).join("") + "</div>" : ""}
     <div class="take"><label for="take">${takes.length ? "Add another take on" : "Your take on"}: <b class="takefor">${esc(n.title)}</b></label><textarea id="take" placeholder="In my own words / where I have seen this / what I would do with it…"></textarea>
-    <div class="gap"><button class="b" id="b-take">Save my take</button></div></div>`;
+    <div class="gap"><button class="b ok" id="b-take">Save my take</button><span id="savestate" class="savestate"></span></div></div>`;
   if ($("b-unrev")) $("b-unrev").onclick = async () => { if (await act("/api/undo", {status: "unreviewed"}, "")) { show(); banner("↩ Back to not reviewed: " + cur.title, "info", false); } };
   $("actions").hidden = false;
   const o = $("b-obs"); if (n.obsidian) { o.href = n.obsidian; o.hidden = false; } else o.hidden = true;
@@ -178,11 +178,22 @@ function next() {
   const n = i >= 0 ? (f[i + 1] || f[0]) : (f[curIdx] || f[0]);
   if (n && (!cur || n.rel !== cur.rel)) return openNote(n.rel); toast("That was the last one");
 }
+let lastBtn = null, savedAt = {};
+document.addEventListener("click", e => { const b = e.target.closest("button.b"); if (b) lastBtn = b; }, true);
+function btnState(b, state) {                 // busy -> done / err, so every click shows it worked
+  if (!b || !b.isConnected) return;
+  if (state === "busy") { b.dataset.label = b.textContent; b.classList.add("busy"); b.disabled = true; b.textContent = "Saving…"; return; }
+  b.classList.remove("busy"); b.disabled = false;
+  b.classList.add(state); b.textContent = state === "done" ? "✓ Saved" : "✕ Not saved, try again";
+  setTimeout(() => { if (!b.isConnected) return; b.classList.remove(state); if (b.dataset.label) b.textContent = b.dataset.label; if (cur && (b.id === "b-ok" || b.id === "b-okn")) labels(); }, 1500);
+}
 async function act(path, extra, msg) {
-  try { const rel = cur.rel; const r = await api(path, Object.assign({rel, mtime: cur.mtime}, extra || {})); cur = r.note;
+  const btn = lastBtn; lastBtn = null; btnState(btn, "busy");
+  try { const rel = cur.rel; const r = await api(path, Object.assign({rel, mtime: cur.mtime}, extra || {})); cur = r.note; btnState(btn, "done");
+    savedAt[rel] = new Date().toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"});
     if (path === "/api/take") dset(dkey("take", rel), "");
     if (path === "/api/answer") dset(dkey("ans", rel, extra.i), ""); if (msg) toast(msg); await load(); return true; }
-  catch (e) { toast(e.message); return false; }
+  catch (e) { btnState(btn, "err"); toast(e.message); return false; }
 }
 let undoStatus = null;
 function banner(msg, kind, canUndo, showNext = true) {
@@ -210,13 +221,20 @@ async function approveNext() {
 }
 function labels() {
   const has = $("take") && $("take").value.trim(), done = cur && cur.props.status === "reviewed";
+  if ($("b-ok").classList.contains("busy")) return;
   if (done) {                                   // already approved: only saving takes from now on
     $("b-okn").textContent = has ? "Save take & Next →" : "Next →";
-    $("b-ok").textContent = "Save take"; $("b-ok").disabled = !has;
+    $("b-ok").textContent = has ? "Save take" : "✓ Approved"; $("b-ok").disabled = !has;
   } else {
     $("b-okn").textContent = has ? "Save take, Approve & Next →" : "Approve & Next →";
     $("b-ok").textContent = has ? "Save take & Approve" : "Approve"; $("b-ok").disabled = false;
   }
+  $("b-ok").classList.toggle("isdone", !!done && !has);
+  const ss = $("savestate"); if (ss) {
+    ss.className = "savestate " + (has ? "pending" : savedAt[cur.rel] ? "saved" : "");
+    ss.textContent = has ? "● Not saved yet. Click Save my take (your draft is kept meanwhile)" : savedAt[cur.rel] ? `✓ Saved to your note at ${savedAt[cur.rel]}` : "";
+  }
+  if ($("b-take")) $("b-take").disabled = !has;
 }
 async function fix() { const why = prompt("What needs fixing?"); if (why === null) return; await setStatus("/api/needs-fix", {why}, "⚑ Marked for fixing: ", "warn"); }
 async function undoLast() { if (!undoStatus) return; const s = undoStatus; if (await act("/api/undo", {status: s}, "")) { show(); banner("↩ Undone. Back to " + ({"unreviewed": "not reviewed yet", "reviewed": "approved", "needs-fix": "needs fix"}[s] || s) + ": " + cur.title, "info", false); } }
@@ -277,6 +295,10 @@ if ($("b-collapse")) $("b-collapse").onclick = () => setSide(true);
 if ($("b-expand")) $("b-expand").onclick = () => setSide(false);
 try { if (localStorage.getItem("mytutor-side") === "1") setSide(true); } catch (e) {}
 document.addEventListener("keydown", e => { if (e.key === "[" && !/TEXTAREA|INPUT|SELECT/.test(e.target.tagName)) setSide(!$("main").classList.contains("collapsed")); });
+function isDark() { const t = getSet().theme; return t === "dark" || (t === "auto" && matchMedia("(prefers-color-scheme: dark)").matches); }
+function themeIcon() { if ($("b-theme")) { $("b-theme").textContent = isDark() ? "☀" : "🌙"; $("b-theme").title = isDark() ? "Switch to light" : "Switch to dark"; } }
+if ($("b-theme")) $("b-theme").onclick = () => { saveSet("theme", isDark() ? "light" : "dark"); themeIcon(); };
+themeIcon();
 $("b-ok").onclick = approve; $("b-fix").onclick = fix; $("b-skip").onclick = next;
 $("b-set").onclick = e => { e.stopPropagation(); $("settings").hidden = !$("settings").hidden; applySet(getSet()); };
 document.querySelectorAll(".seg[data-set] button").forEach(b => b.onclick = () => saveSet(b.parentElement.dataset.set, b.dataset.v));
@@ -300,6 +322,22 @@ $("bg-file").onchange = async e => {
 };
 $("bg-remove").onclick = async () => { await api("/api/background/remove", {}); loadPhoto(); toast("Photo removed"); };
 loadPhoto();
+async function loadAvatar() {
+  try {
+    const r = await fetch("/api/avatar", {method: "HEAD", credentials: "same-origin", cache: "no-store"});
+    const b = $("b-user"); if (!b) return;
+    if (r.ok) { b.style.backgroundImage = `url("/api/avatar?v=${Date.now()}")`; b.classList.add("hasimg"); }
+    else { b.style.backgroundImage = ""; b.classList.remove("hasimg"); }
+  } catch (e) {}
+}
+if ($("av-file")) $("av-file").onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  const fd = new FormData(); fd.append("photo", f);
+  const r = await fetch("/api/avatar", {method: "POST", credentials: "same-origin", headers: {"X-CSRF": CSRF}, body: fd});
+  const j = await r.json().catch(() => ({})); toast(r.ok ? "Profile photo set" : (j.error || "Could not use that photo")); e.target.value = ""; loadAvatar();
+};
+if ($("av-remove")) $("av-remove").onclick = async () => { await api("/api/avatar/remove", {}); loadAvatar(); toast("Profile photo removed"); };
+loadAvatar();
 $("b-next").onclick = next; $("b-undo").onclick = undoLast; $("b-okn").onclick = approveNext;
 $("b-sync").onclick = async () => { try { const r = await api("/api/sync", {}); await load(); toast(`Refreshed: ${r.changed} change${r.changed === 1 ? "" : "s"}`); } catch (e) { toast(e.message); } };
 ["f-course", "f-status", "f-type"].forEach(id => $(id).onchange = renderList);

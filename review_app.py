@@ -213,51 +213,56 @@ def create_app(vault_root: Path, jobs: Path, obsidian_vault: str = "", testing: 
         out["phrases"] = phrases
         return jsonify(out)
 
-    # ---------------------------------------------------------------- background photo (stays on this laptop)
-    BG_TYPES = {b"\xff\xd8\xff": ("jpg", "image/jpeg"), b"\x89PNG": ("png", "image/png"), b"RIFF": ("webp", "image/webp")}
+    # ---------------------------------------------------------------- photos: background + profile (stay on this laptop)
+    IMG_TYPES = {b"\xff\xd8\xff": ("jpg", "image/jpeg"), b"\x89PNG": ("png", "image/png"), b"RIFF": ("webp", "image/webp")}
+    MIME = {"jpg": "image/jpeg", "png": "image/png", "webp": "image/webp"}
+    PHOTOS = {"background": "background", "avatar": "avatar"}
 
-    def bg_file():
+    def photo_file(name):
         for ext in ("jpg", "png", "webp"):
-            p = jobs / f"background.{ext}"
+            p = jobs / f"{name}.{ext}"
             if p.exists():
                 return p
         return None
 
-    @app.get("/api/background")
-    @login_required
-    def bg_get():
-        p = bg_file()
-        if not p:
-            return jsonify(error="No photo."), 404
-        return send_file(p, mimetype={"jpg": "image/jpeg", "png": "image/png", "webp": "image/webp"}[p.suffix[1:]],
-                         max_age=0)
+    def photo_routes(kind):
+        name = PHOTOS[kind]
 
-    @app.post("/api/background")
-    @login_required
-    def bg_set():
-        f = request.files.get("photo")
-        if not f:
-            return jsonify(ok=False, error="No file."), 400
-        data = f.read(8 * 1024 * 1024 + 1)
-        if len(data) > 8 * 1024 * 1024:
-            return jsonify(ok=False, error="Please use a photo under 8 MB."), 400
-        kind = next((v for k, v in BG_TYPES.items() if data.startswith(k)), None)
-        if not kind or (kind[0] == "webp" and data[8:12] != b"WEBP"):
-            return jsonify(ok=False, error="Please use a JPG, PNG or WebP photo."), 400
-        old = bg_file()
-        if old:
-            old.unlink()
-        (jobs / f"background.{kind[0]}").write_bytes(data)
-        store.log(session["user"], "background", "", kind[0])
-        return jsonify(ok=True)
+        def get():
+            p = photo_file(name)
+            if not p:
+                return jsonify(error="No photo."), 404
+            return send_file(p, mimetype=MIME[p.suffix[1:]], max_age=0)
 
-    @app.post("/api/background/remove")
-    @login_required
-    def bg_remove():
-        p = bg_file()
-        if p:
-            p.unlink()
-        return jsonify(ok=True)
+        def put():
+            f = request.files.get("photo")
+            if not f:
+                return jsonify(ok=False, error="No file."), 400
+            data = f.read(8 * 1024 * 1024 + 1)
+            if len(data) > 8 * 1024 * 1024:
+                return jsonify(ok=False, error="Please use a photo under 8 MB."), 400
+            t = next((v for k, v in IMG_TYPES.items() if data.startswith(k)), None)
+            if not t or (t[0] == "webp" and data[8:12] != b"WEBP"):
+                return jsonify(ok=False, error="Please use a JPG, PNG or WebP photo."), 400
+            old = photo_file(name)
+            if old:
+                old.unlink()
+            (jobs / f"{name}.{t[0]}").write_bytes(data)
+            store.log(session["user"], kind, "", t[0])
+            return jsonify(ok=True)
+
+        def remove():
+            p = photo_file(name)
+            if p:
+                p.unlink()
+            return jsonify(ok=True)
+
+        app.add_url_rule(f"/api/{kind}", f"{kind}_get", login_required(get), methods=["GET"])
+        app.add_url_rule(f"/api/{kind}", f"{kind}_set", login_required(put), methods=["POST"])
+        app.add_url_rule(f"/api/{kind}/remove", f"{kind}_remove", login_required(remove), methods=["POST"])
+
+    for kind in PHOTOS:
+        photo_routes(kind)
 
     @app.get("/api/recent")
     @login_required
