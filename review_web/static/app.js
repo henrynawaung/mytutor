@@ -61,9 +61,23 @@ function renderList() {
       || '<div class="item"><small>No open prompts. Nice.</small></div>';
     return;
   }
-  const f = filtered();
-  L.innerHTML = `<div class="item"><small>${f.length} note${f.length === 1 ? "" : "s"}</small></div>` + f.slice(0, 500).map(i =>
-    `<div class="item${cur && cur.rel === i.rel ? " on" : ""}${hasDraft(i.rel) ? " draft" : ""}" data-r="${esc(i.rel)}"><span class="ico t-${esc(i.type)}">${({case: "🏢", core: "💡", hub: "🔗", reference: "📖"})[i.type] || "📄"}</span><div class="itxt"><b>${esc(i.title)}</b><small>${esc(i.course)} · ${esc(i.day)}</small></div>${i.status === "reviewed" ? '<span class="sdot ok" title="Approved"></span>' : i.status === "needs-fix" ? '<span class="sdot warn" title="Needs fix"></span>' : ""}</div>`).join("");
+  const f = filtered(), q = $("f-q").value.trim();
+  // group by course and day; each group folds open/closed, so the list stays short
+  const groups = [];
+  for (const i of f) {
+    const key = i.course + " · " + (i.rel.startsWith("Hubs/") ? "Hubs" : i.day);
+    let g = groups.at(-1);
+    if (!g || g.key !== key) { g = groups.find(x => x.key === key); if (!g) { g = {key, items: []}; groups.push(g); } }
+    g.items.push(i);
+  }
+  if (cur) { const g = groups.find(g => g.items.some(i => i.rel === cur.rel)); if (g) openGroups.add(g.key); }
+  if (!openGroups.size && groups[0]) openGroups.add(groups[0].key);
+  const row = i => `<div class="item${cur && cur.rel === i.rel ? " on" : ""}${hasDraft(i.rel) ? " draft" : ""}" data-r="${esc(i.rel)}" title="${esc(i.title)}"><span class="ico t-${esc(i.type)}">${({case: "🏢", core: "💡", hub: "🔗", reference: "📖"})[i.type] || "📄"}</span><div class="itxt"><b>${esc(i.title)}</b></div>${i.status === "reviewed" ? '<span class="sdot ok" title="Approved"></span>' : i.status === "needs-fix" ? '<span class="sdot warn" title="Needs fix"></span>' : ""}</div>`;
+  L.innerHTML = `<div class="listmeta">${f.length} note${f.length === 1 ? "" : "s"} · ${groups.length} group${groups.length === 1 ? "" : "s"}
+      <span><button class="linkbtn" data-grp="open">expand all</button> · <button class="linkbtn" data-grp="close">collapse all</button></span></div>`
+    + groups.map(g => { const open = q || openGroups.has(g.key);
+      return `<div class="grp${open ? " open" : ""}"><button class="grphead" data-g="${esc(g.key)}"><span class="chev">▸</span><b>${esc(g.key)}</b><span class="cnt">${g.items.length}</span></button>
+        ${open ? `<div class="grpbody">${g.items.map(row).join("")}</div>` : ""}</div>`; }).join("");
 }
 async function load() {
   S = await api("/api/summary");
@@ -156,6 +170,7 @@ async function openDay(card) {
   body.dataset.loaded = "1";
 }
 let curIdx = 0, openQ = null;
+const openGroups = new Set();
 function next() {
   const f = mode === "journals" ? S.journals : filtered();
   const i = f.findIndex(x => cur && x.rel === cur.rel);
@@ -216,6 +231,10 @@ function setMode(m) {
   renderList();
 }
 document.addEventListener("click", async e => {
+  const gh = e.target.closest("[data-g]");
+  if (gh) { const k = gh.dataset.g; openGroups.has(k) ? openGroups.delete(k) : openGroups.add(k); return renderList(); }
+  const ga = e.target.closest("[data-grp]");
+  if (ga) { if (ga.dataset.grp === "open") document.querySelectorAll("[data-g]").forEach(b => openGroups.add(b.dataset.g)); else openGroups.clear(); return renderList(); }
   const op = e.target.closest("[data-open]");
   if (op) { setMode(op.dataset.kind); return openNote(op.dataset.open); }
   const ih = e.target.closest(".dayitemhead");
@@ -247,6 +266,13 @@ document.addEventListener("click", async e => {
   if (a) { const ta = document.querySelector(`textarea[data-i="${a.dataset.ans}"]`); if (!ta.value.trim()) return;
     if (await act("/api/answer", {i: +a.dataset.ans, answer: ta.value}, "Answer saved")) { const nx = cur.prompts.find(q => !q.answer); openQ = nx ? nx.i : +a.dataset.ans; show(); } }
 });
+function setSide(collapsed) {
+  $("main").classList.toggle("collapsed", collapsed); $("b-expand").hidden = !collapsed;
+  try { localStorage.setItem("mytutor-side", collapsed ? "1" : "0"); } catch (e) {}
+}
+$("b-collapse").onclick = () => setSide(true); $("b-expand").onclick = () => setSide(false);
+try { if (localStorage.getItem("mytutor-side") === "1") setSide(true); } catch (e) {}
+document.addEventListener("keydown", e => { if (e.key === "[" && !/TEXTAREA|INPUT|SELECT/.test(e.target.tagName)) setSide(!$("main").classList.contains("collapsed")); });
 $("b-ok").onclick = approve; $("b-fix").onclick = fix; $("b-skip").onclick = next;
 $("b-set").onclick = e => { e.stopPropagation(); $("settings").hidden = !$("settings").hidden; applySet(getSet()); };
 document.querySelectorAll(".seg[data-set] button").forEach(b => b.onclick = () => saveSet(b.parentElement.dataset.set, b.dataset.v));
