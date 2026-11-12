@@ -316,21 +316,21 @@ const Brain = (() => {
     const live = edges.filter(([a, b]) => a < nLit && b < nLit);
     const show = live.slice(0, Math.round(live.length * Math.min(1, 0.35 + links)));
     cx.lineWidth = 0.8 * dpr;
-    cx.strokeStyle = LIGHT() ? "rgba(60,80,110,0.09)" : "rgba(150,170,200,0.075)";       // the whole brain as a faint mesh, so its shape always reads
+    cx.strokeStyle = LIGHT() ? "rgba(40,55,80,0.22)" : "rgba(150,170,200,0.075)";       // the whole brain as a faint mesh, so its shape always reads
     cx.beginPath();
     for (const [a, b] of edges) { const [x1, y1] = pos(nodes[a]), [x2, y2] = pos(nodes[b]); cx.moveTo(x1, y1); cx.lineTo(x2, y2); }
     cx.stroke();
     cx.lineWidth = 1.1 * dpr;
     for (const [a, b] of show) {
       const [x1, y1] = pos(nodes[a]), [x2, y2] = pos(nodes[b]);
-      cx.strokeStyle = LIGHT() ? "rgba(15,150,125,0.28)" : "rgba(110,220,195,0.20)"; cx.beginPath(); cx.moveTo(x1, y1); cx.lineTo(x2, y2); cx.stroke();
+      cx.strokeStyle = LIGHT() ? "rgba(8,110,92,0.55)" : "rgba(110,220,195,0.20)"; cx.beginPath(); cx.moveTo(x1, y1); cx.lineTo(x2, y2); cx.stroke();
     }
     nodes.forEach((n, i) => {
       const [x, y] = pos(n), on = i < nLit, tw = still ? 1 : 0.75 + 0.25 * Math.sin(t / 900 + n.tw);
       cx.beginPath(); cx.arc(x, y, (on ? 2.6 : 1.5) * dpr, 0, 6.29);
-      cx.fillStyle = on ? (LIGHT() ? `rgba(13,148,122,${0.9 * tw})` : `rgba(80,215,185,${0.85 * tw})`) : (LIGHT() ? "rgba(90,105,125,0.28)" : "rgba(170,182,200,0.26)");
-      if (on) { cx.shadowColor = LIGHT() ? "rgba(60,196,168,.45)" : "rgba(60,196,168,.9)"; cx.shadowBlur = 6 * dpr; }
-      if (on && i < nLit * Math.min(0.5, links) && i % 3 === 0) { cx.shadowColor = "rgba(245,158,11,.8)"; cx.shadowBlur = 10 * dpr; cx.fillStyle = `rgba(245,158,11,${0.7 * tw})`; }
+      cx.fillStyle = on ? (LIGHT() ? `rgba(4,110,90,${0.95 * tw})` : `rgba(80,215,185,${0.85 * tw})`) : (LIGHT() ? "rgba(55,68,88,0.50)" : "rgba(170,182,200,0.26)");
+      if (on) { cx.shadowColor = LIGHT() ? "rgba(4,120,98,.35)" : "rgba(60,196,168,.9)"; cx.shadowBlur = 6 * dpr; }
+      if (on && i < nLit * Math.min(0.5, links) && i % 3 === 0) { cx.shadowColor = "rgba(245,158,11,.8)"; cx.shadowBlur = 10 * dpr; cx.fillStyle = LIGHT() ? `rgba(200,100,0,${0.95 * tw})` : `rgba(245,158,11,${0.7 * tw})`; }
       cx.fill(); cx.shadowBlur = 0;
     });
     if (!still && show.length) {                    // signals travelling along connections
