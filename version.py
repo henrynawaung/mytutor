@@ -1,5 +1,5 @@
 """myTutor release version, shown at the bottom left of every myTutor page."""
-VERSION = "4.4.1"
+VERSION = "4.4.2"
 RELEASED = "2026-11-12"
 NOTES = "Stretch goal +5 after weekly goal; Today card without duplicate weekly bar"
 

@@ -154,7 +154,7 @@ function show() {
   const o = $("b-obs"); if (n.obsidian) { o.href = n.obsidian; o.hidden = false; } else o.hidden = true;
   V.scrollTop = 0; stickyHead(); $("b-take").onclick = saveTake; enhance($("take"), {template: true});
   $("take").addEventListener("keydown", e => { if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); if ($("take").value.trim()) $("b-take").click(); } });
-  keepDraft($("take"), dkey("take", n.rel)); $("take").addEventListener("input", labels); labels();
+  keepDraft($("take"), dkey("take", n.rel)); $("take").addEventListener("input", labels); $("take").addEventListener("input", () => { if (!$("banner").hidden) hideBanner(); }, {once: true}); labels();
 }
 const ACT = {"approve": "✓ approved", "needs-fix": "⚑ needs fix", "my-take": "✎ take", "answer": "💬 reflection", "undo": "↩ undo"};
 const TYPES = {"case": "Cases", "core": "Core", "hub": "Hubs", "reference": "Sources", "reflection": "Reflections", "other": "Other"};
@@ -221,8 +221,10 @@ let undoStatus = null;
 function banner(msg, kind, canUndo, showNext = true) {
   const b = $("banner"); $("banner-msg").textContent = msg; b.className = "banner " + kind; b.hidden = false;
   $("b-undo").hidden = !canUndo; $("b-next").hidden = !showNext; if (showNext) $("b-next").focus({preventScroll: true});
+  b.classList.remove("fading"); clearTimeout(banner._t); clearTimeout(banner._f);
+  banner._t = setTimeout(() => { b.classList.add("fading"); banner._f = setTimeout(hideBanner, 400); }, canUndo ? 8000 : 5000);   // fades away by itself
 }
-function hideBanner() { $("banner").hidden = true; undoStatus = null; }
+function hideBanner() { clearTimeout(banner._t); clearTimeout(banner._f); $("banner").classList.remove("fading"); $("banner").hidden = true; undoStatus = null; }
 async function setStatus(path, extra, msg, kind) {
   const before = cur.props.status || "unreviewed", title = cur.title;
   const draft = $("take") && $("take").value.trim();
