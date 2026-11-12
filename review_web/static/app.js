@@ -88,8 +88,9 @@ function renderList() {
     if (!g || g.key !== key) { g = groups.find(x => x.key === key); if (!g) { g = {key, items: []}; groups.push(g); } }
     g.items.push(i);
   }
-  if (cur) { const g = groups.find(g => g.items.some(i => i.rel === cur.rel)); if (g) openGroups.add(g.key); }
-  if (!openGroups.size && groups[0]) openGroups.add(groups[0].key);
+  // open the current note's group once, when that note is opened, so you can still fold it afterwards
+  if (cur && cur.rel !== autoRel) { const g = groups.find(g => g.items.some(i => i.rel === cur.rel)); if (g) { openGroups.add(g.key); autoRel = cur.rel; autoTypeRel = null; } }
+  if (firstList && groups.length) { firstList = false; if (!openGroups.size) openGroups.add(groups[0].key); }
   const row = i => `<div class="item${cur && cur.rel === i.rel ? " on" : ""}${hasDraft(i.rel) ? " draft" : ""}" data-r="${esc(i.rel)}" title="${esc(i.title)}"><span class="ico t-${esc(i.type)}">${({case: "🏢", core: "💡", hub: "🔗", reference: "📖"})[i.type] || "📄"}</span><div class="itxt"><b>${esc(i.title)}</b></div>${i.status === "reviewed" ? '<span class="sdot ok" title="Approved"></span>' : i.status === "needs-fix" ? '<span class="sdot warn" title="Needs fix"></span>' : ""}</div>`;
   L.innerHTML = `<div class="listmeta">${f.length} note${f.length === 1 ? "" : "s"} · ${groups.length} group${groups.length === 1 ? "" : "s"}
       <span><button class="linkbtn" data-grp="open">expand all</button> · <button class="linkbtn" data-grp="close">collapse all</button></span></div>`
@@ -193,7 +194,8 @@ async function openDay(card) {
   body.dataset.loaded = "1";
 }
 let curIdx = 0, openQ = null;
-const openGroups = new Set(), openTypes = new Set();
+const openGroups = new Set(), openTypes = new Set(), closedTypes = new Set();
+let autoRel = null, autoTypeRel = null, firstList = true;
 function next() {
   const f = mode === "journals" ? S.journals : filtered();
   const i = f.findIndex(x => cur && x.rel === cur.rel);
@@ -280,11 +282,12 @@ function setMode(m) {
 }
 document.addEventListener("click", async e => {
   const th = e.target.closest("[data-t]");
-  if (th) { const k = th.dataset.t; openTypes.has(k) ? openTypes.delete(k) : openTypes.add(k); return renderList(); }
+  if (th) { const k = th.dataset.t, isOpen = th.parentElement.classList.contains("open");
+    if (isOpen) { openTypes.delete(k); closedTypes.add(k); } else { openTypes.add(k); closedTypes.delete(k); } return renderList(); }
   const gh = e.target.closest("[data-g]");
   if (gh) { const k = gh.dataset.g; openGroups.has(k) ? openGroups.delete(k) : openGroups.add(k); return renderList(); }
   const ga = e.target.closest("[data-grp]");
-  if (ga) { if (ga.dataset.grp === "open") document.querySelectorAll("[data-g]").forEach(b => openGroups.add(b.dataset.g)); else { openGroups.clear(); openTypes.clear(); } return renderList(); }
+  if (ga) { if (ga.dataset.grp === "open") { document.querySelectorAll("[data-g]").forEach(b => openGroups.add(b.dataset.g)); closedTypes.clear(); } else { openGroups.clear(); openTypes.clear(); } return renderList(); }
   const op = e.target.closest("[data-open]");
   if (op) { setMode(op.dataset.kind); return openNote(op.dataset.open); }
   const ih = e.target.closest(".dayitemhead");
@@ -543,8 +546,8 @@ function typeGroups(g, row, q) {
   return KINDS.map(([k, ico, label]) => {
     const items = g.items.filter(i => i.type === k); if (!items.length) return "";
     const key = g.key + "|" + k, has = cur && items.some(i => i.rel === cur.rel);
-    if (has) openTypes.add(key);
-    const open = q || openTypes.has(key) || items.length <= 3;
+    if (has && autoTypeRel !== cur.rel) { openTypes.add(key); closedTypes.delete(key); autoTypeRel = cur.rel; }
+    const open = q || openTypes.has(key) || (items.length <= 3 && !closedTypes.has(key));
     const done = items.filter(i => i.status === "reviewed").length;
     return `<div class="tgrp${open ? " open" : ""}"><button class="tgrphead" data-t="${esc(key)}"><span class="chev">▸</span>${ico} ${label}<span class="cnt">${done ? done + "/" : ""}${items.length}</span></button>
       ${open ? items.map(row).join("") : ""}</div>`;

@@ -57,6 +57,7 @@ Version 4 began with the assessment release (4.0 and 4.1) and grew into a daily 
 - Opening a result highlights the words in the note and scrolls to the first one.
 - **Enter** opens the top result; **Esc** clears the search.
 - The stretch question reads correctly when you are exactly on target.
+- Bug fix 4.7.1: Library groups **fold again**. The group of the open note, and small groups such as Sources, used to spring back open; now they open once and stay folded when you close them.
 
 ## 4.6 · 12 Nov 2026 · Completion forecast
 - **Completion forecast** in the Control Centre: a pace slider (5 to 100 notes a week) shows how many weeks are left and the finish date. Quick buttons for My goal, My recent pace and 50/week. The chart shows notes reviewed so far plus a dashed projection; hover for any week.
