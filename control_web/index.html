@@ -99,6 +99,7 @@ th:first-child,td:first-child{text-align:left}tr.total td{font-weight:700;color:
 @media (max-width:1100px){.hero{grid-template-columns:1fr}.hero::after{display:none}.kpis{grid-template-columns:repeat(3,1fr)}.grid2{grid-template-columns:1fr}}
 @media (max-width:800px){.wrap{grid-template-columns:1fr;padding:14px 16px}.svc{display:none}.kpis{grid-template-columns:repeat(2,1fr)}}
 .verbadge{position:fixed;left:14px;bottom:8px;z-index:5;font-size:11px;color:#8a94a3;opacity:.8;pointer-events:none}
+.btn.restartall{background:#2563eb;border-color:#2563eb;color:#fff;font-weight:700;justify-content:center;padding:12px}.btn.restartall:hover{background:#1d4ed8}
 </style></head>
 <body>
 <header>
@@ -113,7 +114,7 @@ th:first-child,td:first-child{text-align:left}tr.total td{font-weight:700;color:
     <div id="svcs"><span class="muted">Checking…</span></div>
     <div class="jobsline" id="jobsline"></div>
     <button class="btn primary" data-a="start-all">▶&nbsp; Start everything</button>
-    <button class="btn" data-a="restart-all"><span class="i">↻</span>Restart all services</button>
+    <button class="btn restartall" data-a="restart-all">↻&nbsp; Restart all services</button>
     <button class="btn stopall" data-a="stop-all" data-confirm="1">■&nbsp; Stop all services</button>
     <p class="hint">Stopping ends n8n and the Review app. Automatic runs pause until you start again.</p>
   </div>
