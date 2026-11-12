@@ -1,6 +1,6 @@
 "use strict";
 // ---- display settings (kept in this browser) ----
-const SET_DEF = {remind: "off", size: "m", theme: "auto", font: "sans", width: "normal", photo: "soft", goal: "5", accent: "amber", density: "comfy", name: "", today: "clock,wx,rank,week,quote,crew,mem", ellie: "auto", movebreak: "30", rewards: "on", chime: "kalimba", city: "Christchurch"};
+const SET_DEF = {remind: "off", size: "m", theme: "auto", font: "sans", width: "normal", photo: "soft", goal: "5", accent: "amber", density: "comfy", name: "", today: "clock,wx,rank,quote,crew,mem", ellie: "auto", movebreak: "30", rewards: "on", chime: "kalimba", city: "Christchurch"};
 function getSet() { try { return Object.assign({}, SET_DEF, JSON.parse(localStorage.getItem("mytutor-settings") || "{}")); } catch (e) { return {...SET_DEF}; } }
 function applySet(s) {
   const r = document.documentElement;
@@ -62,12 +62,13 @@ function renderProg() {
     row.querySelector("i").style.width = (v.total ? 100 * v.reviewed / v.total : 0) + "%";
     P.appendChild(row);
   }
-  const st = S.stats || {}, goal = weeklyGoal(), done = st.approved_week ?? 0;
-  $("goal-txt").textContent = `${Math.min(done, 999)}/${goal}`;
-  $("streak-txt").textContent = `this week · 🔥${st.week_streak || 0} wk`;
-  const ring = $("goal-ring"), C = 2 * Math.PI * 15;
-  ring.style.strokeDasharray = C; ring.style.strokeDashoffset = C * (1 - Math.min(1, done / goal));
-  $("goal").classList.toggle("met", done >= goal);
+  const st = S.stats || {}, goal = weeklyGoal(), done = st.approved_week ?? 0, target = weeklyTarget(done), stretch = target > goal;
+  $("goal-txt").textContent = `${Math.min(done, 999)}/${target}`;
+  $("streak-txt").textContent = stretch ? `stretch +${target - goal} · 🔥${st.week_streak || 0} wk` : `this week · 🔥${st.week_streak || 0} wk`;
+  const ring = $("goal-ring"), C = 2 * Math.PI * 15, base = stretch ? target - 5 : 0;
+  ring.style.strokeDasharray = C; ring.style.strokeDashoffset = C * (1 - Math.min(1, (done - base) / (target - base)));
+  $("goal").classList.toggle("met", false); $("goal").classList.toggle("stretch", stretch);
+  $("goal").title = stretch ? `Weekly goal of ${goal} reached ✓. Stretch target: ${target} (+5 each time you hit it)` : `Weekly goal: ${goal} notes approved`;
 }
 function renderList() {
   const L = $("list");
@@ -522,6 +523,7 @@ const WX = {0: ["☀️", "Clear"], 1: ["🌤️", "Mostly clear"], 2: ["⛅", "
   51: ["🌦️", "Light drizzle"], 53: ["🌦️", "Drizzle"], 55: ["🌧️", "Heavy drizzle"], 61: ["🌦️", "Light rain"], 63: ["🌧️", "Rain"], 65: ["🌧️", "Heavy rain"],
   71: ["🌨️", "Light snow"], 73: ["🌨️", "Snow"], 75: ["❄️", "Heavy snow"], 80: ["🌦️", "Showers"], 81: ["🌧️", "Showers"], 82: ["⛈️", "Heavy showers"],
   95: ["⛈️", "Thunderstorm"], 96: ["⛈️", "Thunderstorm"], 99: ["⛈️", "Thunderstorm"]};
+try { if (!localStorage.getItem("mytutor-today-v3")) { const t1 = new Set((getSet().today || "").split(",").filter(Boolean)); t1.delete("week"); saveSet("today", [...t1].join(",")); localStorage.setItem("mytutor-today-v3", "1"); } } catch (e) {}   // the weekly bar lives in the header ring
 try { if (!localStorage.getItem("mytutor-today-v2")) { const t0 = new Set((getSet().today || "").split(",").filter(Boolean)); t0.add("rank"); t0.add("quote"); saveSet("today", [...t0].join(",")); localStorage.setItem("mytutor-today-v2", "1"); } } catch (e) {}
 function todayOn() { return new Set((getSet().today || "").split(",").filter(Boolean)); }
 function renderToday() {
@@ -601,6 +603,8 @@ function stickyHead() {
 }
 
 /* weekly goal: stored on the laptop (jobs/prefs.json) so the Control Centre shows the same number */
+// once the weekly goal is reached, the target stretches by +5 each time (25 → 30 → 35 …)
+function weeklyTarget(done) { const g = weeklyGoal(); return done < g ? g : g + 5 * (Math.floor((done - g) / 5) + 1); }
 function weeklyGoal() { return +(S && S.weekly_goal) || 25; }
 if ($("s-wgoal")) {
   const g = $("s-wgoal"); g.value = weeklyGoal();

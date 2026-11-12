@@ -542,3 +542,5 @@ section{padding-bottom:70px}
 #b-okn.iconb{width:56px}
 .b.iconb.busy::before{margin:0}
 .take .actions.inline .row{gap:6px}
+.td-move{grid-column:1/-1}.td-move .td-breaks{margin-top:0}
+#goal.stretch .gfg{stroke:#7c5ce0}

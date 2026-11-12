@@ -173,7 +173,8 @@ function nudge(kinds, r, moment, update) {       // Ellie's achievement card, sh
       line1 = `${c.name} · ${L ? "level " + L : "on the way"} · ${v} ${c.unit}`,
       line2 = nextT ? `${nextT - v} more to ${c.name} level ${L + 1}` : nb ? `${nb - v} more to the ${nb} badge` : "Fully grown 👑";
   if (moment === "five") { kick = "🎉 Party time"; title = `${v} ${c.unit}!`; line2 = `Every 5 is a party. Next one at ${v + 5}.`; }
-  if (moment === "goal") { kick = "👑 Weekly goal"; title = `${r.approved_week} / ${goal}: goal reached!`; line1 = `🔥 ${r.week_streak || 0}-week streak · boardroom ready`; line2 = "Anything more this week is a bonus."; pct = 100; }
+  if (moment === "goal" && r.approved_week > goal) { kick = "🚀 Stretch goal"; title = `${r.approved_week} approved: stretch reached!`; line1 = `${r.approved_week - goal} above your goal of ${goal} · 🔥 ${r.week_streak || 0}-week streak`; line2 = `Next stretch: ${r.approved_week + 5}`; pct = 100; }
+  else if (moment === "goal") { kick = "👑 Weekly goal"; title = `${r.approved_week} / ${goal}: goal reached!`; line1 = `🔥 ${r.week_streak || 0}-week streak · boardroom ready`; line2 = `New stretch target: ${goal + 5}`; pct = 100; }
   let [costume, motion] = ELLIE_LOOK[moment || k];
   const pick = chosenCostume(); if (pick !== null && !moment) costume = pick;
   const gained = Math.max(0, xpOf(r) - xpOf(update ? RW_PREV : RW)), xpTxt = gained ? `<span class="rn-xp">+${gained} XP</span>` : "";
@@ -378,7 +379,8 @@ async function refreshRewards(kinds) {
   if (fresh.length) fresh.slice(0, 4).forEach(k => celebrate(describe(k, r)));
   else if (kinds && kinds.length) {
     const prev = RW_PREV || {}, goal = typeof weeklyGoal === "function" ? weeklyGoal() : 25;
-    const goalHit = prev.approved_week != null && prev.approved_week < goal && r.approved_week >= goal;
+    const wk0 = prev.approved_week, wk1 = r.approved_week;
+    const goalHit = wk0 != null && wk1 > wk0 && wk1 >= goal && (wk0 < goal || (wk1 - goal) % 5 === 0);   // goal, then every +5 stretch
     const five = ["approved", "takes", "reflections"].find(k => statOf(r, k) > (prev[k] || 0) && statOf(r, k) % 5 === 0);
     const moment = goalHit ? "goal" : five ? "five" : null;
     nudge(kinds, r, moment, true);
