@@ -349,7 +349,7 @@ function enhance(ta, opts = {}) {
     if (on) pv.innerHTML = md(ta.value || "*Nothing yet.*"); else ta.focus(); };
   bar.appendChild(prev);
   ta.before(bar); ta.after(pv);
-  const grow = () => { ta.style.height = "auto"; ta.style.height = Math.min(ta.scrollHeight + 4, window.innerHeight * 0.6) + "px"; };
+  const grow = () => { ta.style.height = "auto"; ta.style.height = Math.min(ta.scrollHeight + 4, window.innerHeight * 0.7) + "px"; };
   ta.addEventListener("input", grow); setTimeout(grow, 0);
   ta.addEventListener("keydown", e => {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b") { e.preventDefault(); wrap(ta, "**"); }

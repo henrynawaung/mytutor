@@ -228,3 +228,29 @@ aside{display:flex;flex-direction:column;overflow:hidden}
 .grpbody .ico{width:22px;height:22px;font-size:.78rem;border-radius:6px}
 .grpbody .itxt b{font-size:.86rem;font-weight:500}
 @media (max-width:800px){main,main.collapsed{grid-template-columns:1fr}.actions{left:0}aside{max-height:40vh}}
+
+/* ================= dark mode polish + wider writing (v3) ================= */
+:root{--measure:900px}
+:root[data-width=wide]{--measure:1120px}
+main.collapsed{--measure:1040px}
+:root[data-width=wide] main.collapsed{--measure:1240px}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0e1116;--panel:#161a21;--chip:#20252e;--line:#2a303a;--ink:#e9edf3;--muted:#a3adbb;--shadow:0 1px 0 rgba(255,255,255,.03) inset,0 8px 24px -16px rgba(0,0,0,.7)}}
+:root[data-theme=dark]{--bg:#0e1116;--panel:#161a21;--chip:#20252e;--line:#2a303a;--ink:#e9edf3;--muted:#a3adbb;--shadow:0 1px 0 rgba(255,255,255,.03) inset,0 8px 24px -16px rgba(0,0,0,.7)}
+section{background:radial-gradient(900px 400px at 50% -10%,color-mix(in srgb,var(--brand) 5%,transparent),transparent 70%)}
+.doc{color:var(--ink)}
+.doc p,.doc li{color:color-mix(in srgb,var(--ink) 92%,var(--muted))}
+.doc strong{color:var(--ink)}
+.take{padding:18px 20px;border-radius:14px;background:color-mix(in srgb,var(--panel) 96%,var(--brand))}
+.take label{font-size:.9rem;color:var(--ink)}
+.take textarea,.qbody textarea,.tkedit textarea{min-height:260px;font-size:1rem;line-height:1.65;padding:14px 16px;
+  background:color-mix(in srgb,var(--bg) 70%,var(--panel));border-color:var(--line);color:var(--ink)}
+.take textarea:focus,.qbody textarea:focus,.tkedit textarea:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px color-mix(in srgb,var(--brand) 22%,transparent)}
+.tb{background:var(--chip);border-color:var(--line)}
+.tb button{color:var(--ink);opacity:.85}.tb button:hover{opacity:1}
+.tk{background:var(--panel)}
+.chip{background:var(--chip);color:var(--muted);border:1px solid var(--line)}
+.actions{background:color-mix(in srgb,var(--panel) 94%,transparent);backdrop-filter:blur(8px)}
+aside{background:var(--panel)}
+.grphead b{color:var(--ink)}
+.item .itxt b{color:color-mix(in srgb,var(--ink) 92%,var(--muted))}
+.item.on .itxt b{color:var(--ink)}
