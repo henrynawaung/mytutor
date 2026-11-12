@@ -406,3 +406,52 @@ window.partyPopper = partyPopper; window.fireworks = fireworks;
 try { if (!localStorage.getItem("mytutor-chime-v2")) { saveSet("chime", "kalimba"); localStorage.setItem("mytutor-chime-v2", "1"); } } catch (e) {}
 const tr = document.getElementById("s-rwtest"); if (tr) tr.onclick = () => celebrate({art: charSVG("fox", 2, 150), kicker: "Preview", title: "This is a level-up", text: "Pop-ups like this appear when a crew member joins or grows, or you earn a badge."});
 refreshRewards();
+
+/* ---------- move break: after N minutes at the laptop, Ellie asks you to stand up and walk for 2 minutes ---------- */
+const MB = {start: Date.now(), last: Date.now(), snoozeTo: 0, shown: false};
+function mbMinutes() { const v = getSet().movebreak; return v === "off" ? 0 : +(v || 30); }
+function mbCount(add) {
+  const k = "mytutor-breaks-" + new Date().toLocaleDateString("en-CA");
+  let n = 0; try { n = +localStorage.getItem(k) || 0; if (add) localStorage.setItem(k, n += add); } catch (e) {} return n;
+}
+function mbReset() { MB.start = Date.now(); MB.snoozeTo = 0; MB.shown = false; }
+function mbTick() {
+  const now = Date.now(), mins = mbMinutes();
+  if (now - MB.last > 10 * 60e3) mbReset();          // laptop asleep or away 10+ min: that already counts as a break
+  MB.last = now;
+  if (!mins || MB.shown || now < MB.snoozeTo || now - MB.start < mins * 60e3) return;
+  MB.shown = true; mbAsk(Math.round((now - MB.start) / 60e3));
+}
+function mbAsk(sat) {
+  playChime("kalimba-short");
+  if (document.hidden && "Notification" in window && Notification.permission === "granted") {
+    try { new Notification("myTutor · time to move 🚶", {body: `You've been sitting about ${sat} minutes. Stand up and walk for 2 minutes.`, icon: "/static/logo64.png"}); } catch (e) {}
+  }
+  const m = document.createElement("div"); m.className = "reward-modal mb-modal";
+  m.innerHTML = `<div class="rw-card"><div class="rw-art m-walk">${ellie("", 140)}</div><div class="rw-kicker">🚶 Move break</div>
+    <h2>Time to stand up!</h2><p>You've been sitting for about ${sat} minutes. A 2-minute walk refreshes your focus. Your notes will wait.</p>
+    <div class="mb-btns"><button class="b ok" data-a="go">Start 2-min walk</button><button class="b" data-a="snooze">In 5 min</button><button class="b" data-a="skip">Skip</button></div></div>`;
+  document.body.appendChild(m);
+  m.onclick = e => { const a = e.target.closest("[data-a]"); if (!a) return;
+    if (a.dataset.a === "go") return mbWalk(m);
+    m.remove(); if (a.dataset.a === "snooze") { MB.shown = false; MB.snoozeTo = Date.now() + 5 * 60e3; } else mbReset(); };
+}
+function mbWalk(m) {
+  let left = 120; const card = m.querySelector(".rw-card");
+  card.innerHTML = `<div class="rw-art m-walk">${ellie("", 140)}</div><div class="rw-kicker">🚶 Walking with Ellie</div><div class="mb-clock">2:00</div>
+    <div class="cbar mb-bar"><i></i></div><p>Stretch, get some water, look out of the window.</p><button class="b" data-a="done">I'm back</button>`;
+  const clock = card.querySelector(".mb-clock"), bar = card.querySelector(".mb-bar i");
+  const finish = () => { clearInterval(t); mbReset(); const n = mbCount(1);
+    card.innerHTML = `<div class="rw-art m-jump">${ellie("party", 140)}</div><div class="rw-kicker">💪 Welcome back</div><h2>Break done!</h2>
+      <p>${n} move break${n > 1 ? "s" : ""} today. Fresh mind, better takes.</p><button class="b ok" data-a="close">Back to learning</button>`;
+    playChime("kalimba-short"); fillBreaks(); };
+  const t = setInterval(() => { left--; clock.textContent = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`; bar.style.width = ((120 - left) / 120 * 100) + "%"; if (left <= 0) finish(); }, 1000);
+  m.onclick = e => { const a = e.target.closest("[data-a]"); if (!a) return; if (a.dataset.a === "done") finish(); else if (a.dataset.a === "close") m.remove(); };
+}
+function fillBreaks() { const el = document.getElementById("td-breaks"); if (!el) return; const n = mbCount(0), mins = mbMinutes();
+  el.textContent = mins ? `🚶 ${n} move break${n === 1 ? "" : "s"} today · next in ${Math.max(0, Math.ceil((MB.start + mins * 60e3 - Date.now()) / 60e3))} min` : ""; }
+setInterval(() => { mbTick(); fillBreaks(); }, 20e3);
+document.querySelectorAll('[data-set="movebreak"] button').forEach(b => b.addEventListener("click", () => {
+  mbReset(); fillBreaks(); if (b.dataset.v !== "off" && "Notification" in window && Notification.permission === "default") Notification.requestPermission().catch(() => {}); }));
+const mbt = document.getElementById("s-mbtest"); if (mbt) mbt.onclick = () => { document.getElementById("settings").hidden = true; mbAsk(mbMinutes() || 30); };
+fillBreaks();

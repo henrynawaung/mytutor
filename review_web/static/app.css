@@ -478,3 +478,11 @@ main.collapsed~.actions{left:0}
 .ladder{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr))}
 .rung b{font-size:.9em;line-height:1.2}
 .td-wx{padding-left:8px}
+
+/* move break */
+.m-walk .whole{animation:walk .9s ease-in-out infinite}.m-walk .ear-l,.m-walk .ear-r{animation:flapL .45s ease-in-out infinite alternate}.m-walk .ear-r{animation-name:flapR}
+@keyframes walk{0%,100%{transform:translateX(-10px) rotate(-4deg)}25%{transform:translateY(-5px)}50%{transform:translateX(10px) rotate(4deg)}75%{transform:translateY(-5px)}}
+.mb-btns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.mb-clock{font-size:2.6em;font-weight:800;letter-spacing:.02em;margin:4px 0;font-variant-numeric:tabular-nums}
+.mb-bar{width:80%;margin:0 auto 10px}
+.td-breaks{display:block;margin-top:4px;color:var(--muted);font-size:.75em}
