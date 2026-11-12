@@ -1,4 +1,4 @@
-# myTutor by henryZ: version history
+# myTutor by henryZ: version history and tech stack
 
 Version numbers read **major.feature.fix**:
 - **Major release** (1 → 2 → 3 → 4) is a big change in what myTutor is, with major new features.
@@ -6,6 +6,46 @@ Version numbers read **major.feature.fix**:
 - **Bug fix** (4.3.1, 4.3.2 …) is a correction or polish, listed under its feature update.
 
 The running version appears at the bottom left of every myTutor page.
+
+# Tech stack (as of 4.6.2)
+Installed versions were read from the laptop's Python environment on 12 Nov 2026.
+
+## Languages
+- **Python 3.12**: pipeline, Review app, Control Centre, vault tools. Tested on 3.12.2; 3.11+ is supported.
+- **JavaScript** (plain, no framework), **HTML** and **CSS**: the browser pages.
+- **SQL** (SQLite) for the review database; **Markdown** for the Obsidian notes, which stay the master copy.
+- **Windows batch** for the start-up scripts (myTutor Control Centre.bat, start-n8n.bat).
+
+## Python libraries
+- **anthropic 1.15.0**: Claude API client for note and quiz generation.
+- **pymupdf 1.28.2**, **python-pptx 1.0.2**, **python-docx 1.2.0**: read PDF, PowerPoint and Word lecture files.
+- **flask 3.1.3** with **werkzeug 3.1.9** and **jinja2 3.1.6**: the Review app web server, scrypt password hashing and page templates.
+- **xlsxwriter 3.2.9**: evidence workbooks. **pillow 13.0.0**, **lxml 6.1.3**: used by the document readers.
+- Standard library only for the **Control Centre** (http.server, sqlite3, subprocess, threading) and for the vault tools.
+- Optional, not installed: **msal**, **requests**, needed only for OneDrive "graph" mode.
+
+## AI
+- Claude API, model **claude-sonnet-5-5** (set in config.json). The API key lives in the ANTHROPIC_API_KEY environment variable, never in files.
+
+## Browser side
+- **marked 12.0.2**: Markdown preview in the take editor.
+- Everything else is hand-written, with no extra libraries: SVG charts (trend, forecast), the canvas brain, Ellie and the crew as SVG, and sounds (kalimba, chimes) made with Web Audio.
+- **Open-Meteo**: weather on the Today card (free, no key). It is the only outside call from the pages.
+
+## Automation and notes
+- **n8n 2.x** on **Node.js 24+**: runs myTutor every 15 minutes (Execute Command node, enabled by start-n8n.bat).
+- **Obsidian** vault (henry_mba) with the **Dataview** plugin for the Review Dashboard.
+
+## Local services
+- Control Centre on **127.0.0.1:5056**; Review app on **127.0.0.1:5057**; n8n on **localhost:5678**. All stay on the laptop.
+
+## Security
+- Email login with scrypt-hashed passwords and lockout after 5 tries; CSRF tokens; Content-Security-Policy (scripts only from the app itself).
+- The Control Centre uses a per-session token and Host check, and only runs whitelisted actions.
+
+## Testing
+- **pytest**: 116 automated tests (pipeline, Review app, Control Centre, vault tools).
+- **Playwright** browser checks were used while building each UI change (on the development machine, not the laptop).
 
 # Major release 4 (current): myTutor as a second brain
 Version 4 began with the assessment release (4.0 and 4.1) and grew into a daily learning app: Review app, Control Centre and rewards. Feature updates, newest first:
