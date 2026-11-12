@@ -267,10 +267,12 @@ document.addEventListener("click", async e => {
     if (await act("/api/answer", {i: +a.dataset.ans, answer: ta.value}, "Answer saved")) { const nx = cur.prompts.find(q => !q.answer); openQ = nx ? nx.i : +a.dataset.ans; show(); } }
 });
 function setSide(collapsed) {
+  if (!$("main") || !$("b-expand")) return;          // older page layout: nothing to fold
   $("main").classList.toggle("collapsed", collapsed); $("b-expand").hidden = !collapsed;
   try { localStorage.setItem("mytutor-side", collapsed ? "1" : "0"); } catch (e) {}
 }
-$("b-collapse").onclick = () => setSide(true); $("b-expand").onclick = () => setSide(false);
+if ($("b-collapse")) $("b-collapse").onclick = () => setSide(true);
+if ($("b-expand")) $("b-expand").onclick = () => setSide(false);
 try { if (localStorage.getItem("mytutor-side") === "1") setSide(true); } catch (e) {}
 document.addEventListener("keydown", e => { if (e.key === "[" && !/TEXTAREA|INPUT|SELECT/.test(e.target.tagName)) setSide(!$("main").classList.contains("collapsed")); });
 $("b-ok").onclick = approve; $("b-fix").onclick = fix; $("b-skip").onclick = next;
