@@ -130,11 +130,12 @@ function show() {
         <div class="tkedit" hidden><textarea data-tkta="${t.i}">${esc(t.body)}</textarea>
           <div class="gap"><button class="b ok small" data-tksave="${t.i}">Save changes</button> <button class="b small" data-tkcancel="${t.i}">Cancel</button></div></div></div>`).join("") + "</div>" : ""}
     <div class="take"><label for="take">${takes.length ? "Add another take on" : "Your take on"}: <b class="takefor">${esc(n.title)}</b></label><textarea id="take" placeholder="In my own words / where I have seen this / what I would do with it…"></textarea>
-    <div class="gap"><button class="b ok" id="b-take">Save my take</button><span id="savestate" class="savestate"></span></div></div>`;
+    <div class="takebar"><span id="savestate" class="savestate"></span><span class="tiny savehint">Ctrl+Enter</span><button class="b ok savebtn" id="b-take" title="Save my take (Ctrl+Enter)"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h11l3 3v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z"/><path d="M8 3v5h7V3M8 21v-6h8v6"/></svg><span>Save</span></button></div></div>`;
   if ($("b-unrev")) $("b-unrev").onclick = async () => { if (await act("/api/undo", {status: "unreviewed"}, "")) { show(); banner("↩ Back to not reviewed: " + cur.title, "info", false); } };
   $("actions").hidden = false;
   const o = $("b-obs"); if (n.obsidian) { o.href = n.obsidian; o.hidden = false; } else o.hidden = true;
   V.scrollTop = 0; stickyHead(); $("b-take").onclick = saveTake; enhance($("take"), {template: true});
+  $("take").addEventListener("keydown", e => { if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); if ($("take").value.trim()) $("b-take").click(); } });
   keepDraft($("take"), dkey("take", n.rel)); $("take").addEventListener("input", labels); labels();
 }
 const ACT = {"approve": "✓ approved", "needs-fix": "⚑ needs fix", "my-take": "✎ take", "answer": "💬 reflection", "undo": "↩ undo"};
@@ -183,10 +184,10 @@ let lastBtn = null, savedAt = {};
 document.addEventListener("click", e => { const b = e.target.closest("button.b"); if (b) lastBtn = b; }, true);
 function btnState(b, state) {                 // busy -> done / err, so every click shows it worked
   if (!b || !b.isConnected) return;
-  if (state === "busy") { b.dataset.label = b.textContent; b.classList.add("busy"); b.disabled = true; b.textContent = "Saving…"; return; }
+  if (state === "busy") { b.dataset.label = b.innerHTML; b.classList.add("busy"); b.disabled = true; b.textContent = "Saving…"; return; }
   b.classList.remove("busy"); b.disabled = false;
   b.classList.add(state); b.textContent = state === "done" ? "✓ Saved" : "✕ Not saved, try again";
-  setTimeout(() => { if (!b.isConnected) return; b.classList.remove(state); if (b.dataset.label) b.textContent = b.dataset.label; if (cur && (b.id === "b-ok" || b.id === "b-okn")) labels(); }, 1500);
+  setTimeout(() => { if (!b.isConnected) return; b.classList.remove(state); if (b.dataset.label) b.innerHTML = b.dataset.label; if (cur && (b.id === "b-ok" || b.id === "b-okn")) labels(); }, 1500);
 }
 async function act(path, extra, msg) {
   const btn = lastBtn; lastBtn = null; btnState(btn, "busy");
@@ -233,7 +234,7 @@ function labels() {
   $("b-ok").classList.toggle("isdone", !!done && !has);
   const ss = $("savestate"); if (ss) {
     ss.className = "savestate " + (has ? "pending" : savedAt[cur.rel] ? "saved" : "");
-    ss.textContent = has ? "● Not saved yet. Click Save my take (your draft is kept meanwhile)" : savedAt[cur.rel] ? `✓ Saved to your note at ${savedAt[cur.rel]}` : "";
+    ss.textContent = has ? "● Draft (kept safe) · not saved to your note yet" : savedAt[cur.rel] ? `✓ Saved to your note at ${savedAt[cur.rel]}` : "";
   }
   if ($("b-take")) $("b-take").disabled = !has;
 }

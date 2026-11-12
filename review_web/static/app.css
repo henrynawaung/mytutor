@@ -517,3 +517,10 @@ main.collapsed~.actions{left:0}
 .actions .banner{white-space:nowrap;max-width:min(520px,100%);gap:8px;background:color-mix(in srgb,var(--panel) 94%,transparent);backdrop-filter:blur(10px);border:1px solid var(--line);color:var(--ink)}
 .actions .banner #banner-msg{overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1}
 .actions .banner.ok{border-left:3px solid var(--ok)}.actions .banner.warn{border-left:3px solid var(--warn)}.actions .banner.info{border-left:3px solid var(--muted)}
+
+/* compact save button for takes */
+.takebar{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:8px}
+.takebar .savestate{margin:0 auto 0 0}
+.savebtn{display:inline-flex;align-items:center;gap:6px;font-size:.8rem;padding:6px 14px;border-radius:9px}
+.savebtn:disabled{background:transparent;border-color:var(--line);color:var(--muted);opacity:.7}
+.savehint{color:var(--muted);opacity:.8}
