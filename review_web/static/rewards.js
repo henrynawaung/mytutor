@@ -179,7 +179,7 @@ function nudge(kinds, r, moment, update) {       // Ellie's achievement card, sh
   const gained = Math.max(0, xpOf(r) - xpOf(update ? RW_PREV : RW)), xpTxt = gained ? `<span class="rn-xp">+${gained} XP</span>` : "";
   if (combo >= 2 && !moment) kick = `🔥 Combo x${combo}`;
   let el = document.getElementById("rw-nudge"); if (!el) { el = document.createElement("div"); el.id = "rw-nudge"; document.body.appendChild(el); el.onclick = () => el.classList.remove("show"); }
-  el.innerHTML = `<div class="rn-art ${motion}">${ellie(costume, 92)}</div><div class="rn-txt"><span class="rn-kick">${kick}</span>${xpTxt}<b>${title}</b>
+  el.innerHTML = `<div class="rn-art ${motion}">${ellie(costume, 92)}</div><div class="rn-txt"><div class="rn-top"><span class="rn-kick">${kick}</span>${xpTxt}</div><b>${title}</b>
     <small>${line1}</small><div class="cbar"><i></i></div><small>${line2}</small></div>`;
   const keep = update && el.classList.contains("show") && !moment;   // refresh the numbers without replaying the entrance
   if (!keep) { el.classList.remove("show"); void el.offsetWidth; el.classList.add("show"); }

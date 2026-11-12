@@ -498,3 +498,22 @@ main.collapsed~.actions{left:0}
 @media (max-width:1250px){.brand .tag{display:none}}
 #td-weektxt span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #b-theme{display:grid;place-items:center}
+/* v4.3.9: compact toolbar at the bottom right; steady achievement card */
+.actions{padding:0 22px 12px}
+.actions .row{margin:0 0 0 auto;padding:6px;gap:6px;border-radius:14px}
+.actions .row .b{font-size:.8rem;padding:6px 12px;border-radius:9px}
+.actions .banner{margin:0 0 8px auto;width:fit-content;max-width:min(560px,100%);font-size:.82rem;padding:6px 10px;border-radius:12px}
+.actions .banner .b.small{font-size:.75rem;padding:3px 9px}
+#rw-nudge{width:360px;min-width:0;max-width:calc(100vw - 44px);height:124px;box-sizing:border-box;bottom:72px;right:22px}
+#rw-nudge .rn-art{width:92px;height:92px;flex:0 0 92px;display:grid;place-items:center}
+#rw-nudge .rn-txt{overflow:hidden}
+#rw-nudge .rn-txt b,#rw-nudge .rn-txt small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+#rw-nudge .rn-kick,#rw-nudge .rn-xp{white-space:nowrap}
+#rw-nudge .rn-top{display:flex;align-items:center;gap:8px;height:18px}
+#rw-nudge .rn-top .rn-xp{margin:0}
+/* professional layout: achievement toast top-right (like app notifications); one-line status above the toolbar */
+#rw-nudge{top:78px;bottom:auto;right:22px;transform:translateX(24px);opacity:0}
+#rw-nudge.show{transform:none;opacity:1}
+.actions .banner{white-space:nowrap;max-width:min(520px,100%);gap:8px;background:color-mix(in srgb,var(--panel) 94%,transparent);backdrop-filter:blur(10px);border:1px solid var(--line);color:var(--ink)}
+.actions .banner #banner-msg{overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1}
+.actions .banner.ok{border-left:3px solid var(--ok)}.actions .banner.warn{border-left:3px solid var(--warn)}.actions .banner.info{border-left:3px solid var(--muted)}
