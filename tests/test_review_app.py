@@ -322,3 +322,14 @@ def test_weekly_goal_prefs(tmp_path):
     assert core.weekly_goal(tmp_path) == 30
     import launcher
     assert launcher.weekly_goal_of(tmp_path) == 30
+
+
+def test_stretch_resets_each_week(tmp_path, monkeypatch):
+    from datetime import date as _d
+    assert core.weekly_extra(tmp_path) == 0
+    assert core.add_stretch(tmp_path) == 5 and core.add_stretch(tmp_path) == 10
+    assert core.weekly_extra(tmp_path) == 10
+    core.save_prefs(tmp_path, {"stretch": {"week": "2000-W01", "extra": 10}})     # an old week
+    assert core.weekly_extra(tmp_path) == 0
+    import launcher
+    assert launcher.weekly_extra_of(tmp_path) == 0

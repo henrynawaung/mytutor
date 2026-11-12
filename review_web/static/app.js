@@ -62,13 +62,13 @@ function renderProg() {
     row.querySelector("i").style.width = (v.total ? 100 * v.reviewed / v.total : 0) + "%";
     P.appendChild(row);
   }
-  const st = S.stats || {}, goal = weeklyGoal(), done = st.approved_week ?? 0, target = weeklyTarget(done), stretch = target > goal;
+  const st = S.stats || {}, goal = weeklyGoal(), done = st.approved_week ?? 0, target = weeklyTarget(), stretch = target > goal;
   $("goal-txt").textContent = `${Math.min(done, 999)}/${target}`;
   $("streak-txt").textContent = stretch ? `stretch +${target - goal} · 🔥${st.week_streak || 0} wk` : `this week · 🔥${st.week_streak || 0} wk`;
   const ring = $("goal-ring"), C = 2 * Math.PI * 15, base = stretch ? target - 5 : 0;
   ring.style.strokeDasharray = C; ring.style.strokeDashoffset = C * (1 - Math.min(1, (done - base) / (target - base)));
-  $("goal").classList.toggle("met", false); $("goal").classList.toggle("stretch", stretch);
-  $("goal").title = stretch ? `Weekly goal of ${goal} reached ✓. Stretch target: ${target} (+5 each time you hit it)` : `Weekly goal: ${goal} notes approved`;
+  $("goal").classList.toggle("met", done >= target); $("goal").classList.toggle("stretch", stretch && done < target);
+  $("goal").title = stretch ? `Weekly goal of ${goal} reached ✓. Stretch target: ${target} (you chose +${target - goal})` : `Weekly goal: ${goal} notes approved`;
 }
 function renderList() {
   const L = $("list");
@@ -603,8 +603,7 @@ function stickyHead() {
 }
 
 /* weekly goal: stored on the laptop (jobs/prefs.json) so the Control Centre shows the same number */
-// once the weekly goal is reached, the target stretches by +5 each time (25 → 30 → 35 …)
-function weeklyTarget(done) { const g = weeklyGoal(); return done < g ? g : g + 5 * (Math.floor((done - g) / 5) + 1); }
+function weeklyTarget() { return weeklyGoal() + (+(S && S.weekly_extra) || 0); }   // goal + any stretch you said yes to this week
 function weeklyGoal() { return +(S && S.weekly_goal) || 25; }
 if ($("s-wgoal")) {
   const g = $("s-wgoal"); g.value = weeklyGoal();

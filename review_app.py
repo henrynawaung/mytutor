@@ -152,7 +152,7 @@ def create_app(vault_root: Path, jobs: Path, obsidian_vault: str = "", testing: 
             if n:
                 journals.append({**r, "open": n})
         return jsonify(items=rows, journals=journals, courses=courses, stats=store.stats(),
-                       weekly_goal=core.weekly_goal(jobs))
+                       weekly_goal=core.weekly_goal(jobs), weekly_extra=core.weekly_extra(jobs))
 
     @app.get("/api/note")
     @login_required
@@ -279,6 +279,16 @@ def create_app(vault_root: Path, jobs: Path, obsidian_vault: str = "", testing: 
             return jsonify(error="Weekly goal must be between 1 and 500."), 400
         core.save_prefs(jobs, {"weekly_goal": g})
         return jsonify(weekly_goal=g)
+
+    @app.post("/api/stretch")
+    @login_required
+    def stretch():
+        try:
+            step = int((request.get_json(silent=True) or {}).get("step", 5))
+        except (TypeError, ValueError):
+            step = 5
+        step = min(500, max(5, step - step % 5))
+        return jsonify(weekly_extra=core.add_stretch(jobs, step))
 
     @app.get("/api/rewards")
     @login_required

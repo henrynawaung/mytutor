@@ -173,8 +173,8 @@ function nudge(kinds, r, moment, update) {       // Ellie's achievement card, sh
       line1 = `${c.name} · ${L ? "level " + L : "on the way"} · ${v} ${c.unit}`,
       line2 = nextT ? `${nextT - v} more to ${c.name} level ${L + 1}` : nb ? `${nb - v} more to the ${nb} badge` : "Fully grown 👑";
   if (moment === "five") { kick = "🎉 Party time"; title = `${v} ${c.unit}!`; line2 = `Every 5 is a party. Next one at ${v + 5}.`; }
-  if (moment === "goal" && r.approved_week > goal) { kick = "🚀 Stretch goal"; title = `${r.approved_week} approved: stretch reached!`; line1 = `${r.approved_week - goal} above your goal of ${goal} · 🔥 ${r.week_streak || 0}-week streak`; line2 = `Next stretch: ${r.approved_week + 5}`; pct = 100; }
-  else if (moment === "goal") { kick = "👑 Weekly goal"; title = `${r.approved_week} / ${goal}: goal reached!`; line1 = `🔥 ${r.week_streak || 0}-week streak · boardroom ready`; line2 = `New stretch target: ${goal + 5}`; pct = 100; }
+  if (moment === "goal" && r.approved_week > goal) { kick = "🚀 Stretch goal"; title = `${r.approved_week} approved: stretch reached!`; line1 = `${r.approved_week - goal} above your goal of ${goal} · 🔥 ${r.week_streak || 0}-week streak`; line2 = "Great going this week!"; pct = 100; }
+  else if (moment === "goal") { kick = "👑 Weekly goal"; title = `${r.approved_week} / ${goal}: goal reached!`; line1 = `🔥 ${r.week_streak || 0}-week streak · boardroom ready`; line2 = "Great week! Anything more is a bonus."; pct = 100; }
   let [costume, motion] = ELLIE_LOOK[moment || k];
   const pick = chosenCostume(); if (pick !== null && !moment) costume = pick;
   const gained = Math.max(0, xpOf(r) - xpOf(update ? RW_PREV : RW)), xpTxt = gained ? `<span class="rn-xp">+${gained} XP</span>` : "";
@@ -365,6 +365,7 @@ showQuote(0);
 async function refreshRewards(kinds) {
   let r; try { r = await api("/api/rewards"); } catch (e) { return; }
   RW_PREV = RW; RW = r; fillCrewRow(); fillCrew(); fillRank();
+  if (!RW_PREV && typeof weeklyTarget === "function" && (r.approved_week || 0) >= weeklyTarget() && getSet().rewards !== "off") setTimeout(askStretch, 2500);   // already past the target when the app opens
   const keys = unlockedKeys(r), seen = seenGet();
   if (seen === null) {                              // first time: welcome, don't replay every past unlock
     seenSet(keys);
@@ -379,12 +380,12 @@ async function refreshRewards(kinds) {
   if (fresh.length) fresh.slice(0, 4).forEach(k => celebrate(describe(k, r)));
   else if (kinds && kinds.length) {
     const prev = RW_PREV || {}, goal = typeof weeklyGoal === "function" ? weeklyGoal() : 25;
-    const wk0 = prev.approved_week, wk1 = r.approved_week;
-    const goalHit = wk0 != null && wk1 > wk0 && wk1 >= goal && (wk0 < goal || (wk1 - goal) % 5 === 0);   // goal, then every +5 stretch
+    const wk0 = prev.approved_week, wk1 = r.approved_week, tgt = typeof weeklyTarget === "function" ? weeklyTarget() : goal;
+    const goalHit = wk0 != null && wk0 < tgt && wk1 >= tgt;                     // reached this week's target (goal or accepted stretch)
     const five = ["approved", "takes", "reflections"].find(k => statOf(r, k) > (prev[k] || 0) && statOf(r, k) % 5 === 0);
     const moment = goalHit ? "goal" : five ? "five" : null;
     nudge(kinds, r, moment, true);
-    if (moment === "goal") { playChime(null, true); fireworks(); popSound(5, .5); }    // weekly goal: fireworks
+    if (moment === "goal") { playChime(null, true); fireworks(); popSound(5, .5); setTimeout(askStretch, 3200); }   // weekly goal: fireworks, then ask about a stretch
     else if (moment === "five") { partyPopper(); popSound(2, 0); }                     // every 5th: party poppers
   }
 }
@@ -458,3 +459,21 @@ document.querySelectorAll('[data-set="movebreak"] button').forEach(b => b.addEve
   mbReset(); fillBreaks(); if (b.dataset.v !== "off" && "Notification" in window && Notification.permission === "default") Notification.requestPermission().catch(() => {}); }));
 const mbt = document.getElementById("s-mbtest"); if (mbt) mbt.onclick = () => { document.getElementById("settings").hidden = true; mbAsk(mbMinutes() || 30); };
 fillBreaks();
+
+/* ---------- stretch goal: asked, never automatic ---------- */
+function weekId() { const d = new Date(), t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); const day = t.getUTCDay() || 7; t.setUTCDate(t.getUTCDate() + 4 - day);
+  const y0 = new Date(Date.UTC(t.getUTCFullYear(), 0, 1)); return t.getUTCFullYear() + "-W" + String(Math.ceil(((t - y0) / 864e5 + 1) / 7)).padStart(2, "0"); }
+function askStretch() {
+  try { if (localStorage.getItem("mytutor-nostretch-" + weekId())) return; } catch (e) {}
+  if (document.querySelector(".stretch-ask")) return;
+  const tgt = weeklyTarget(), done = (RW && RW.approved_week) || 0; let nxt = tgt + 5; while (nxt <= done) nxt += 5;
+  const m = document.createElement("div"); m.className = "reward-modal stretch-ask";
+  m.innerHTML = `<div class="rw-card"><div class="rw-art m-wave">${ellie("champion", 120)}</div><div class="rw-kicker">🎯 Target reached</div>
+    <h2>Stretch this week?</h2><p>You're at ${done}, past your target of ${tgt}. Want a new target of <b>${nxt}</b>? It's optional, and next week starts again at your normal goal.</p>
+    <div class="mb-btns"><button class="b ok" data-s="yes">Yes, stretch to ${nxt}</button><button class="b" data-s="no">No, I'm happy this week</button></div></div>`;
+  document.body.appendChild(m);
+  m.onclick = async e => { const b = e.target.closest("[data-s]"); if (!b) return; m.remove();
+    if (b.dataset.s === "yes") { try { const r = await api("/api/stretch", {step: nxt - tgt}); S.weekly_extra = r.weekly_extra; renderProg(); toast(`🎯 New target: ${weeklyTarget()} this week`); } catch (err) { toast(err.message); } }
+    else { try { localStorage.setItem("mytutor-nostretch-" + weekId(), "1"); } catch (err) {} toast("👍 Enjoy the rest of your week"); } };
+}
+window.askStretch = askStretch;

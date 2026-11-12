@@ -574,6 +574,23 @@ def weekly_goal(jobs: Path) -> int:
         return DEFAULT_WEEKLY_GOAL
 
 
+def week_key(d=None) -> str:
+    y, w, _ = (d or date.today()).isocalendar()
+    return f"{y}-W{w:02d}"
+
+
+def weekly_extra(jobs: Path) -> int:
+    """Stretch the user accepted this week (+5 per 'yes'); resets automatically next week."""
+    s = load_prefs(jobs).get("stretch") or {}
+    return int(s.get("extra", 0)) if s.get("week") == week_key() else 0
+
+
+def add_stretch(jobs: Path, step: int = 5) -> int:
+    extra = weekly_extra(jobs) + step
+    save_prefs(jobs, {"stretch": {"week": week_key(), "extra": extra}})
+    return extra
+
+
 def best_week_streak(active_days) -> int:
     """Longest run of consecutive ISO weeks with any activity (never goes down)."""
     weeks = sorted({date.fromisoformat(d).isocalendar()[:2] for d in active_days if d})

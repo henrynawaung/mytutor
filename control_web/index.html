@@ -239,8 +239,8 @@ function paint(s) {
   $("jobsline").textContent = busy.length ? "⏳ Working: " + busy.join(", ") : "";
   $("autostart").checked = s.autostart;
   const d = s.dashboard;
-  { const w = d.approved_week || 0, g = s.goal, t = w < g ? g : g + 5 * (Math.floor((w - g) / 5) + 1);   // +5 stretch once the goal is met
-    $("k-appr").textContent = `${w}/${t}`; $("k-appr-l").textContent = w >= g ? `approved this week · goal ${g} met ✓ · stretch +${t - g}` : "approved this week"; }
+  { const w = d.approved_week || 0, g = s.goal, t = g + (s.goal_extra || 0);   // stretch only when accepted in the Review app
+    $("k-appr").textContent = `${w}/${t}`; $("k-appr-l").textContent = w >= g ? `approved this week · goal ${g} met ✓${t > g ? ` · stretch +${t - g}` : ""}` : "approved this week"; }
   $("k-takes").textContent = d.takes_today; $("k-streak").textContent = d.streak + "🔥"; $("k-streak-l").textContent = `week streak · ${d.active_days_week || 0} active day${d.active_days_week === 1 ? "" : "s"} this week`; $("k-todo").textContent = d.to_review;
   $("k-cost").textContent = "US$" + d.month_cost.toFixed(2); $("k-cost-l").textContent = `AI cost this month · ${d.month_runs} runs`;
   const inv = d.inventory || [];

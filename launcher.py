@@ -112,6 +112,16 @@ def weekly_goal_of(jobs, cfg=None) -> int:
         return int((cfg or {}).get("weekly_goal", 25) or 25)
 
 
+def weekly_extra_of(jobs) -> int:
+    """Stretch (+5 steps) the user accepted this ISO week in the Review app; 0 otherwise."""
+    try:
+        s = json.loads((Path(jobs) / "prefs.json").read_text(encoding="utf-8")).get("stretch") or {}
+        y, w, _ = date.today().isocalendar()
+        return int(s.get("extra", 0)) if s.get("week") == f"{y}-W{w:02d}" else 0
+    except (OSError, ValueError, TypeError):
+        return 0
+
+
 def dashboard_data(jobs: Path, today: date | None = None) -> dict:
     """Numbers for the dashboard. Reads the Review app's database read-only and the run log; never writes."""
     today = today or date.today()
@@ -398,7 +408,7 @@ class Centre:
             ("n8n", "n8n automation", N8N_PORT, "runs myTutor every 15 min"),
             ("review", "Review app", REVIEW_PORT, "notes, takes, My days"))]
         return {"n8n": services[0]["up"], "review": services[1]["up"], "services": services, "jobs": jobs,
-                "autostart": STARTUP.exists(), "goal": weekly_goal_of(jobs_folder(self.cfg), self.cfg),
+                "autostart": STARTUP.exists(), "goal": weekly_goal_of(jobs_folder(self.cfg), self.cfg), "goal_extra": weekly_extra_of(jobs_folder(self.cfg)),
                 "dashboard": dashboard_data(jobs_folder(self.cfg))}
 
 
