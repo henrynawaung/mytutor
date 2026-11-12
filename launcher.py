@@ -226,7 +226,7 @@ class Jobs:
             "run": (self.py("run.py"), {}),
             "dry-run": (self.py("run.py", "--dry-run"), {}),
             "vault-check": (self.py("vault_doctor.py"), {}),
-            "practice": (self.py("practice.py", "--open"), {}),
+            "practice": (self.py("practice.py"), {}),            # builds the page; it is shown at /practice
         }
 
     def running(self, name: str) -> bool:
@@ -426,6 +426,15 @@ def make_handler(centre: Centre):
                 return self.send(403, {"error": "forbidden"})
             if u.path == "/":
                 html = page_path.read_text(encoding="utf-8").replace("__TOKEN__", centre.token)
+                return self.send(200, html, "text/html")
+            if u.path == "/practice":                              # quizzes in the same tab
+                p = jobs_folder(centre.cfg) / "practice.html"
+                if not p.exists():
+                    return self.send(404, "<p>No practice page yet. Click Practice quizzes once to build it.</p>", "text/html")
+                html = p.read_text(encoding="utf-8", errors="replace")
+                back = ('<a href="/" style="position:fixed;top:12px;right:14px;z-index:99;font:600 14px system-ui;'
+                        'background:#F59E0B;color:#1a1205;padding:8px 14px;border-radius:10px;text-decoration:none">⌂ Control Centre</a>')
+                html = html.replace("</body>", back + "</body>") if "</body>" in html else html + back
                 return self.send(200, html, "text/html")
             if u.path == "/logo.png":
                 return self.send(200, (static / "logo64.png").read_bytes(), "image/png")

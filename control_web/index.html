@@ -353,6 +353,12 @@ document.addEventListener("click", async e => {
   if (b.dataset.confirm && !b.dataset.armed) { b.dataset.armed = "1"; const t = b.innerHTML; b.innerHTML = "Click again to confirm"; setTimeout(() => { delete b.dataset.armed; b.innerHTML = t; }, 3000); return; }
   delete b.dataset.armed;
   const SAME_TAB = {"open-review": "http://127.0.0.1:5057/", "open-days": "http://127.0.0.1:5057/#days", "open-n8n": "http://localhost:5678/"};
+  if (b.dataset.a === "practice") {                 // rebuild the quiz page, then show it here
+    await api("/api/action", {action: "practice"}); toast("Preparing your quizzes…");
+    for (let i = 0; i < 40; i++) { await new Promise(r => setTimeout(r, 500));
+      const st = await api("/api/state"); const j = (st.jobs || []).find(j => j.name === "practice"); if (j && !j.running) break; }
+    location.href = "/practice"; return;
+  }
   if (SAME_TAB[b.dataset.a]) {                      // web pages open right here; the logo / ⌂ brings you back
     const st = await api("/api/state").catch(() => null);
     const up = st && (b.dataset.a === "open-n8n" ? st.n8n : st.review);

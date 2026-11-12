@@ -132,6 +132,11 @@ class CentreTests(unittest.TestCase):
         self.assertEqual(self.req("/api/action", {"action": "rm -rf"})[0], 400)
         self.req("/api/action", {"action": "open-review"})
         self.assertEqual(self.opened, [launcher.REVIEW_URL])
+        self.assertEqual(self.req("/practice")[0], 404)                 # not built yet
+        (Path(self.tmp.name) / "practice.html").write_text("<html><body>Q1</body></html>", encoding="utf-8")
+        st, page = self.req("/practice")
+        self.assertEqual(st, 200)
+        self.assertIn(b"Control Centre", page)
         state = json.loads(self.req("/api/state")[1])
         self.assertIn("dashboard", state)
 
