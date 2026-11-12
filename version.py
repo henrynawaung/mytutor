@@ -1,5 +1,5 @@
 """myTutor release version, shown at the bottom left of every myTutor page."""
-VERSION = "4.6.1"
+VERSION = "4.6.2"
 RELEASED = "2026-11-12"
 NOTES = "Interactive completion forecast (pace slider)"
 

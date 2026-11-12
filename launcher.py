@@ -345,6 +345,45 @@ def running_review_version() -> str:
         return "old"                                   # answering, but without /api/version: a copy from before v4.6.1
 
 
+def changelog_html() -> str:
+    """CHANGELOG.md as a small, readable page (headings, bullets, bold; nothing else needed)."""
+    import html as H
+    try:
+        md = Path(__file__).with_name("CHANGELOG.md").read_text(encoding="utf-8")
+    except OSError:
+        md = "# Version history\n\nCHANGELOG.md is missing."
+    out, depth = [], 0
+    def inline(t):
+        return re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", H.escape(t))
+    for line in md.splitlines():
+        m = re.match(r"^(\s*)- (.*)", line)
+        lvl = (len(m.group(1)) // 2 + 1) if m else 0
+        while depth > lvl:
+            out.append("</ul>"); depth -= 1
+        if m:
+            while depth < lvl:
+                out.append("<ul>"); depth += 1
+            out.append(f"<li>{inline(m.group(2))}</li>")
+        elif line.startswith("## "):
+            out.append(f"<h3>{inline(line[3:])}</h3>")
+        elif line.startswith("# "):
+            out.append(f"<h2>{inline(line[2:])}</h2>")
+        elif line.strip():
+            out.append(f"<p>{inline(line)}</p>")
+    out += ["</ul>"] * depth
+    return ("<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'>"
+            "<title>myTutor version history</title><link rel='icon' href='/logo.png'><style>"
+            ":root{--bg:#0f1115;--panel:#171a20;--ink:#eef1f5;--muted:#9aa3b0;--line:#2a2f38;--brand:#F59E0B}"
+            ":root[data-theme=light]{--bg:#f4f6fa;--panel:#fff;--ink:#1b2230;--muted:#5f6b7a;--line:#e2e6ec}"
+            "body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 system-ui,'Segoe UI',sans-serif}"
+            ".wrap{max-width:860px;margin:0 auto;padding:24px 16px 60px}a.home{color:var(--brand);text-decoration:none;font-weight:600}"
+            "h1{font-size:24px;margin:10px 0}h2{font-size:20px;margin:30px 0 6px;padding-top:14px;border-top:1px solid var(--line)}"
+            "h3{font-size:16px;margin:18px 0 4px;color:var(--brand)}p{color:var(--muted);margin:6px 0}ul{margin:4px 0 4px 2px;padding-left:20px}li{margin:3px 0}"
+            "</style><script>try{if(localStorage.getItem('mytutor-cc-theme')==='light')document.documentElement.dataset.theme='light'}catch(e){}</script>"
+            "</head><body><div class='wrap'><a class='home' href='/'>⌂ Control Centre</a>"
+            + "".join(out).replace("<h2>", "<h1>", 1).replace("</h2>", "</h1>", 1) + "</div></body></html>")
+
+
 def open_target(url_or_path: str):
     if IS_WIN and not url_or_path.startswith(("http", "obsidian:")):
         os.startfile(url_or_path)  # noqa: S606
@@ -504,6 +543,8 @@ def make_handler(centre: Centre):
                          + version.label() + '</div>')
                 html = html.replace("</body>", back + "</body>") if "</body>" in html else html + back
                 return self.send(200, html, "text/html")
+            if u.path == "/changelog":                                # version history, from CHANGELOG.md
+                return self.send(200, changelog_html(), "text/html")
             if u.path == "/logo.png":
                 return self.send(200, (static / "logo64.png").read_bytes(), "image/png")
             if not self.authed():

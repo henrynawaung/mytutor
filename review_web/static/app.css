@@ -545,3 +545,4 @@ section{padding-bottom:70px}
 .td-move{grid-column:1/-1}.td-move .td-breaks{margin-top:0}
 #goal.stretch .gfg{stroke:#7c5ce0}
 .banner{transition:opacity .4s}.banner.fading{opacity:0}
+.verbadge{pointer-events:auto;text-decoration:none}.verbadge:hover{opacity:1;text-decoration:underline}
