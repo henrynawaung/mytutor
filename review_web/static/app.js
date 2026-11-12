@@ -93,7 +93,9 @@ async function openNote(rel, push = true) {
     curIdx = Math.max(0, (mode === "journals" ? S.journals : filtered()).findIndex(x => x.rel === rel));
   } catch (e) { toast(e.message); }
 }
+function parkActions() { const A = $("actions"); if (A && A.classList.contains("inline")) { A.classList.remove("inline"); document.querySelector("main").after(A); } }
 function show() {
+  parkActions();
   const n = cur, p = n.props, V = $("view");
   const ST = {"reviewed": ["🏆 Approved", "ok"], "needs-fix": ["⚑ Needs fix", "warn"], "unreviewed": ["🚀 Ready for your review", "todo"]};
   const st = ST[p.status] || (p.status ? [p.status, "todo"] : null);
@@ -133,6 +135,7 @@ function show() {
     <div class="takebar"><span id="savestate" class="savestate"></span><span class="tiny savehint">Ctrl+Enter</span><button class="b ok savebtn" id="b-take" title="Save my take (Ctrl+Enter)"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h11l3 3v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z"/><path d="M8 3v5h7V3M8 21v-6h8v6"/></svg><span>Save</span></button></div></div>`;
   if ($("b-unrev")) $("b-unrev").onclick = async () => { if (await act("/api/undo", {status: "unreviewed"}, "")) { show(); banner("↩ Back to not reviewed: " + cur.title, "info", false); } };
   $("actions").hidden = false;
+  { const tk = V.querySelector(".take"); if (tk) { tk.after($("actions")); $("actions").classList.add("inline"); } }   // buttons sit right under your take
   const o = $("b-obs"); if (n.obsidian) { o.href = n.obsidian; o.hidden = false; } else o.hidden = true;
   V.scrollTop = 0; stickyHead(); $("b-take").onclick = saveTake; enhance($("take"), {template: true});
   $("take").addEventListener("keydown", e => { if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); if ($("take").value.trim()) $("b-take").click(); } });
@@ -146,6 +149,7 @@ async function showActivity() {
   const {days, stats} = await api("/api/days");
   const wk = days.filter(d => (Date.now() - new Date(d.day + "T12:00:00")) / 864e5 < 7)
     .reduce((a, d) => ({approve: a.approve + d.approve, take: a.take + d["my-take"], ans: a.ans + d.answer}), {approve: 0, take: 0, ans: 0});
+  parkActions();
   $("view").innerHTML = `<div class="doc"><p class="hello">${esc(greeting())} 👋</p><h1>My days</h1>
     <p class="weekline"><b>Last 7 days</b></p><div class="tiles weektiles"><span class="tile t-ok"><b>${wk.approve}</b>approved</span><span class="tile t-take"><b>${wk.take}</b>takes</span><span class="tile t-ref"><b>${wk.ans}</b>reflections</span><span class="tile"><b>${stats.week_streak || 0}🔥</b>week streak</span></div><div id="crewbox" class="crewbox"></div><p class="weekline"><b>Day by day</b></p>` +
     (days.map(d => weekHeader(d, days) + `<div class="daycard" data-day="${d.day}">
@@ -247,6 +251,7 @@ function setMode(m) {
   $("leftcol").hidden = m === "activity"; document.querySelector("main").classList.toggle("noside", m === "activity"); $("actions").hidden = true;
   document.querySelector(".filters").hidden = $("f-q").hidden = m !== "notes";
   if (m === "activity") return showActivity();
+  parkActions();
   $("view").innerHTML = `<div class="empty"><div class="hello">${esc(greeting())} 👋</div>${m === "journals" ? "Pick a journal on the left to reflect on." : "Pick a note on the left to start reviewing."}</div>`;
   renderList();
 }

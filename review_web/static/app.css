@@ -524,3 +524,9 @@ main.collapsed~.actions{left:0}
 .savebtn{display:inline-flex;align-items:center;gap:6px;font-size:.8rem;padding:6px 14px;border-radius:9px}
 .savebtn:disabled{background:transparent;border-color:var(--line);color:var(--muted);opacity:.7}
 .savehint{color:var(--muted);opacity:.8}
+
+/* v4.3.13: toolbar sits inline, right under the take box */
+.actions.inline{position:static;zoom:1;left:auto!important;right:auto;bottom:auto;padding:0;margin:12px 0 0;pointer-events:auto}
+.actions.inline .row{margin:0 0 0 auto;box-shadow:0 2px 10px rgba(0,0,0,.18)}
+.actions.inline .banner{margin:0 0 8px auto}
+section{padding-bottom:70px}
