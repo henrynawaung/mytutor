@@ -280,6 +280,10 @@ def create_app(vault_root: Path, jobs: Path, obsidian_vault: str = "", testing: 
         core.save_prefs(jobs, {"weekly_goal": g})
         return jsonify(weekly_goal=g)
 
+    @app.get("/api/version")
+    def api_version():                      # lets the Control Centre spot an old copy still answering
+        return jsonify(version=version.VERSION, pid=os.getpid())
+
     @app.post("/api/stretch")
     @login_required
     def stretch():

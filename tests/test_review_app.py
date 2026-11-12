@@ -116,6 +116,16 @@ class AppTests(unittest.TestCase):
     def api_csrf(self):
         return re.search(r'<meta name="csrf" content="([^"]+)"', self.c.get("/").get_data(as_text=True)).group(1)
 
+    def test_stretch_endpoint(self):
+        self.login(); tok = self.api_csrf()
+        self.assertEqual(self.c.get("/api/summary").get_json()["weekly_extra"], 0)
+        r = self.c.post("/api/stretch", json={"step": 5}, headers={"X-CSRF": tok})
+        self.assertEqual(r.status_code, 200, r.get_data(as_text=True))
+        self.assertEqual(r.get_json()["weekly_extra"], 5)
+        self.assertEqual(self.c.get("/api/summary").get_json()["weekly_extra"], 5)
+        r = self.c.post("/api/prefs", json={"weekly_goal": 30}, headers={"X-CSRF": tok})
+        self.assertEqual(r.status_code, 200)
+
     def test_pages_need_login(self):
         self.assertEqual(self.c.get("/").status_code, 302)
         self.assertEqual(self.c.get("/api/summary").status_code, 401)

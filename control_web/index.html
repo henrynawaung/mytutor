@@ -157,6 +157,7 @@ th:first-child,td:first-child{text-align:left}tr.total td{font-weight:700;color:
 #fc .cross{stroke:var(--muted);stroke-width:1;opacity:.6}
 .sw-p{width:14px;height:0;border-top:2px dashed var(--s-appr);border-radius:0;background:none}
 .fc-leg{margin-top:6px}.small{font-size:12px}
+.stale{color:var(--bad)!important;font-weight:600}
 </style>
 <script>try{if(localStorage.getItem("mytutor-cc-theme")==="light")document.documentElement.dataset.theme="light"}catch(e){}</script></head>
 <body>
@@ -275,7 +276,7 @@ function paint(s) {
   updateBrain(s.dashboard);
   svc("n8n", s.n8n); svc("review", s.review);
   if (!document.querySelector("#svcs [data-armed]")) $("svcs").innerHTML = (s.services || []).map(v => `<div class="svc-row ${v.up ? "is-up" : v.starting ? "is-wait" : "is-down"}"><span class="big-dot ${v.up ? "on" : v.starting ? "wait" : "off"}"></span>
-      <div><b>${esc(v.name)}</b><small>${esc(v.detail)} · port ${v.port}${v.up && !v.here ? " · started elsewhere" : ""}</small></div>
+      <div><b>${esc(v.name)}</b><small${v.stale ? ' class="stale"' : ""}>${esc(v.detail)} · port ${v.port}${v.up && !v.here ? " · started elsewhere" : ""}</small></div>
       <div class="acts"><span class="st ${v.up ? "up" : v.starting ? "wait" : "down"}">${v.up ? "RUNNING" : v.starting ? `Starting… ${v.since}s` : "Stopped"}</span>${v.up || v.starting
         ? `<button class="mini" data-a="restart-${v.key}">↻ Restart</button><button class="mini stop" data-a="stop-${v.key}" data-confirm="1">Stop</button>` : `<button class="mini" data-a="start-${v.key}">Start</button>`}</div></div>`).join("");
   const nUp = (s.services || []).filter(v => v.up).length, nAll = (s.services || []).length;

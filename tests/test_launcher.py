@@ -143,3 +143,8 @@ class CentreTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_file_version_reads_version_py():
+    import launcher, version
+    assert launcher.file_version() == version.VERSION

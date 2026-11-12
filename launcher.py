@@ -308,6 +308,43 @@ def stop_port(port: int) -> int:
     return n
 
 
+def stop_strays(script: str) -> int:
+    """Kill every python process running `script` (e.g. an old review_app.py started from a console window),
+    even when it is not the one holding the port. Windows only."""
+    if not IS_WIN:
+        return 0
+    ps = ("Get-CimInstance Win32_Process | Where-Object { $_.Name -like 'python*' -and $_.CommandLine -like '*" + script +
+          "*' } | ForEach-Object { $_.ProcessId }")
+    try:
+        out = subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", ps],
+                             capture_output=True, text=True, timeout=20).stdout
+    except (OSError, subprocess.SubprocessError):
+        return 0
+    n = 0
+    for pid in {int(x) for x in out.split() if x.strip().isdigit()} - {os.getpid()}:
+        subprocess.run(["taskkill", "/PID", str(pid), "/T", "/F"], capture_output=True)
+        n += 1
+    return n
+
+
+def file_version() -> str:
+    """The version in version.py on disk right now (not the one this window started with)."""
+    try:
+        m = re.search(r'VERSION\s*=\s*"([^"]+)"', (Path(__file__).with_name("version.py")).read_text(encoding="utf-8"))
+        return m.group(1) if m else ""
+    except OSError:
+        return ""
+
+
+def running_review_version() -> str:
+    from urllib.request import urlopen
+    try:
+        with urlopen(f"http://127.0.0.1:{REVIEW_PORT}/api/version", timeout=0.6) as r:
+            return json.loads(r.read().decode("utf-8")).get("version", "")
+    except Exception:
+        return "old"                                   # answering, but without /api/version: a copy from before v4.6.1
+
+
 def open_target(url_or_path: str):
     if IS_WIN and not url_or_path.startswith(("http", "obsidian:")):
         os.startfile(url_or_path)  # noqa: S606
@@ -339,7 +376,7 @@ class Centre:
             return " ".join(msgs) or "Everything is already running."
         if name in ("stop-n8n", "stop-review"):
             key = name.split("-", 1)[1]
-            n = int(j.stop(key)) + stop_port(N8N_PORT if key == "n8n" else REVIEW_PORT)
+            n = int(j.stop(key)) + stop_port(N8N_PORT if key == "n8n" else REVIEW_PORT) + (stop_strays("review_app.py") if key == "review" else 0)
             label = "n8n" if key == "n8n" else "the Review app"
             return f"Stopped {label}." if n else f"{label[0].upper() + label[1:]} was not running."
         if name in ("start-n8n", "start-review"):
@@ -347,7 +384,7 @@ class Centre:
             return "Already running." if port_open(N8N_PORT if key == "n8n" else REVIEW_PORT) else j.start(key)
         if name == "stop-all":
             n = sum(j.stop(k) for k in list(j.procs))
-            n += stop_port(N8N_PORT) + stop_port(REVIEW_PORT)
+            n += stop_port(N8N_PORT) + stop_port(REVIEW_PORT) + stop_strays("review_app.py")
             return f"Stopped {n} program(s)." if n else "Nothing was running."
         if name in ("run", "dry-run", "vault-check", "practice"):
             return j.start(name)
@@ -393,6 +430,8 @@ class Centre:
             port = N8N_PORT if k == "n8n" else REVIEW_PORT
             self.jobs.stop(k)
             stop_port(port)
+            if k == "review":
+                stop_strays("review_app.py")            # old copies started from a console window, too
             for _ in range(40):                      # wait until the old copy has let go of its port
                 if not port_open(port):
                     break
@@ -407,6 +446,13 @@ class Centre:
                      "since": int(time.time() - self.jobs.started.get(k, time.time()))} for k, nm, port, det in (
             ("n8n", "n8n automation", N8N_PORT, "runs myTutor every 15 min"),
             ("review", "Review app", REVIEW_PORT, "notes, takes, My days"))]
+        rv = services[1]
+        if rv["up"] and not rv["starting"]:
+            ver, want = running_review_version(), file_version()
+            rv["version"], rv["stale"] = ver, bool(want and ver and ver != want)
+            rv["detail"] += f" · v{ver}" if ver != "old" else " · older version"
+            if rv["stale"]:
+                rv["detail"] += f" · ⚠ v{want} is installed: click Restart"
         return {"n8n": services[0]["up"], "review": services[1]["up"], "services": services, "jobs": jobs,
                 "autostart": STARTUP.exists(), "goal": weekly_goal_of(jobs_folder(self.cfg), self.cfg), "goal_extra": weekly_extra_of(jobs_folder(self.cfg)),
                 "dashboard": dashboard_data(jobs_folder(self.cfg))}

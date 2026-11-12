@@ -21,6 +21,7 @@ async function api(path, body) {
     headers: {"X-CSRF": CSRF, "Content-Type": "application/json"}, body: body ? JSON.stringify(body) : undefined});
   if (r.status === 401) { location.href = "/login"; throw new Error("Please log in again."); }
   const j = await r.json().catch(() => ({}));
+  if (r.status === 404 && path.startsWith("/api/") && !j.error) throw new Error("This needs the newer Review app: in the Control Centre click Stop, then Start, on the Review app row.");
   if (!r.ok) throw new Error(j.error || ("Error " + r.status));
   return j;
 }
