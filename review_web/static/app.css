@@ -486,3 +486,14 @@ main.collapsed~.actions{left:0}
 .mb-clock{font-size:2.6em;font-weight:800;letter-spacing:.02em;margin:4px 0;font-variant-numeric:tabular-nums}
 .mb-bar{width:80%;margin:0 auto 10px}
 .td-breaks{display:block;margin-top:4px;color:var(--muted);font-size:.75em}
+/* v4.3.2: floating toolbar instead of a full-width dark bar */
+.actions{background:none!important;backdrop-filter:none!important;border-top:0!important;padding:0 20px 14px;pointer-events:none}
+.actions .banner,.actions .row{pointer-events:auto}
+.actions .row{width:fit-content;max-width:calc(100% - 8px);margin:0 auto;padding:8px 10px;border:1px solid var(--line);border-radius:16px;
+  background:color-mix(in srgb,var(--panel) 92%,transparent);backdrop-filter:blur(10px);box-shadow:0 10px 30px rgba(0,0,0,.28)}
+.actions .kbd{display:none}
+.actions .banner{box-shadow:0 8px 24px rgba(0,0,0,.25)}
+/* header and Today text never wrap awkwardly */
+.tabs button,.tabs a,.goal small,.goal b{white-space:nowrap}
+@media (max-width:1250px){.brand .tag{display:none}}
+#td-weektxt span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

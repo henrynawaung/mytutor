@@ -392,6 +392,7 @@ function rewardsTick(path) {                         // called after every succe
   if (!kind) return;
   pend.push(kind); if (pendT) return;
   if (kind !== "edit") bumpCombo();
+  if ((kind === "take" || kind === "edit") && typeof loadMemLine === "function") setTimeout(loadMemLine, 400);   // a new take may hold a new memory line
   if (RW && getSet().rewards !== "off") {           // show Ellie *with* the sound, using a quick estimate; real numbers fill in a moment later
     const est = Object.assign({}, RW), st = {approve: "approved", take: "takes", answer: "reflections"}[kind];
     if (st) est[st] = (est[st] || 0) + 1; if (kind === "approve") est.approved_week = (est.approved_week || 0) + 1;

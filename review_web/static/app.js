@@ -520,7 +520,7 @@ function tick() {
 function renderWeek() {
   const st = (S && S.stats) || {}, goal = weeklyGoal(), done = st.approved_week ?? 0;
   $("td-bar").style.width = Math.min(100, Math.round(done / goal * 100)) + "%";
-  $("td-weektxt").innerHTML = `<span>${done >= goal ? "🎉 Goal reached: " + done : done + " / " + goal} approved this week</span><span>🔥 ${st.week_streak || 0} wk</span>`;
+  $("td-weektxt").innerHTML = `<span>${done >= goal ? "🎉 " + done + " / " + goal + " · goal reached" : done + " / " + goal + " approved this week"}</span><span>🔥 ${st.week_streak || 0} wk</span>`;
 }
 function cacheGet(k) { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch (e) { return null; } }
 function cacheSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
@@ -553,7 +553,7 @@ async function loadMemLine() {
     const r = await api("/api/memory-line"); el.dataset.done = "1";
     if (!r.line) { el.textContent = "No memory lines yet. Use the Template button in your take and fill in 🧠 Memory line."; el.classList.add("empty"); src.hidden = true; $("td-memnext").hidden = true; return; }
     el.classList.remove("empty"); el.textContent = r.line; src.hidden = false; src.textContent = "from " + r.title; src.dataset.rel = r.rel;
-    $("td-memnext").hidden = r.count < 2;
+    $("td-memnext").hidden = false; $("td-memnext").title = r.count > 1 ? `Another one (${r.count} memory lines)` : "Refresh";
   } catch (e) {}
 }
 if ($("today")) {
@@ -565,6 +565,7 @@ if ($("today")) {
   $("s-city").onchange = e => { saveSet("city", e.target.value.trim() || "Christchurch"); loadWeather(); };
   setInterval(() => { if (todayOn().has("clock")) tick(); }, 15e3);
   setInterval(() => { if (todayOn().has("wx")) loadWeather(); }, 30 * 60e3);
+  setInterval(() => { if (todayOn().has("mem")) loadMemLine(); }, 5 * 60e3);        // a new memory line every 5 minutes
   renderToday();
 }
 
