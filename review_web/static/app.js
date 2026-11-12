@@ -135,7 +135,7 @@ function show() {
     <div class="takebar"><span id="savestate" class="savestate"></span><span class="tiny savehint">Ctrl+Enter</span><button class="b ok savebtn" id="b-take" title="Save my take (Ctrl+Enter)"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h11l3 3v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z"/><path d="M8 3v5h7V3M8 21v-6h8v6"/></svg><span>Save</span></button></div></div>`;
   if ($("b-unrev")) $("b-unrev").onclick = async () => { if (await act("/api/undo", {status: "unreviewed"}, "")) { show(); banner("↩ Back to not reviewed: " + cur.title, "info", false); } };
   $("actions").hidden = false;
-  { const tk = V.querySelector(".take"); if (tk) { tk.after($("actions")); $("actions").classList.add("inline"); } }   // buttons sit right under your take
+  { const tk = V.querySelector(".take"); if (tk) { tk.appendChild($("actions")); $("actions").classList.add("inline"); } }   // buttons sit right under your take
   const o = $("b-obs"); if (n.obsidian) { o.href = n.obsidian; o.hidden = false; } else o.hidden = true;
   V.scrollTop = 0; stickyHead(); $("b-take").onclick = saveTake; enhance($("take"), {template: true});
   $("take").addEventListener("keydown", e => { if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); if ($("take").value.trim()) $("b-take").click(); } });
@@ -188,9 +188,10 @@ let lastBtn = null, savedAt = {};
 document.addEventListener("click", e => { const b = e.target.closest("button.b"); if (b) lastBtn = b; }, true);
 function btnState(b, state) {                 // busy -> done / err, so every click shows it worked
   if (!b || !b.isConnected) return;
-  if (state === "busy") { b.dataset.label = b.innerHTML; b.classList.add("busy"); b.disabled = true; b.textContent = "Saving…"; return; }
+  const ic = b.classList.contains("iconb");
+  if (state === "busy") { b.dataset.label = b.innerHTML; b.classList.add("busy"); b.disabled = true; b.textContent = ic ? "" : "Saving…"; return; }
   b.classList.remove("busy"); b.disabled = false;
-  b.classList.add(state); b.textContent = state === "done" ? "✓ Saved" : "✕ Not saved, try again";
+  b.classList.add(state); if (ic) b.innerHTML = IC[state === "done" ? "check" : "x"]; else b.textContent = state === "done" ? "✓ Saved" : "✕ Not saved, try again";
   setTimeout(() => { if (!b.isConnected) return; b.classList.remove(state); if (b.dataset.label) b.innerHTML = b.dataset.label; if (cur && (b.id === "b-ok" || b.id === "b-okn")) labels(); }, 1500);
 }
 async function act(path, extra, msg) {
@@ -225,16 +226,19 @@ async function approveNext() {
   }
   if (await act("/api/approve", null, "")) { await next(); banner("✓ Approved" + (draft ? " and take saved" : "") + ": " + title + "  ·  now on the next note", "ok", false, false); }
 }
+const IC = {"check": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4.5 12.5l5 5 10-11\"/></svg>", "checknext": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M2.5 12.5l4 4 7-8\"/><path d=\"M14.5 12h7M18 8.5l3.5 3.5-3.5 3.5\"/></svg>", "next": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 12h15M13 6l6 6-6 6\"/></svg>", "save": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 3h11l3 3v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z\"/><path d=\"M8 3v5h7V3M8 21v-6h8v6\"/></svg>", "savenext": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 4h8l2 2v9H3z\"/><path d=\"M5.5 4v3h4.5V4\"/><path d=\"M15 12h6.5M18 8.5l3.5 3.5-3.5 3.5\"/></svg>", "flag": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 21V4\"/><path d=\"M5 4h11l-2.5 4L16 12H5\"/></svg>", "skip": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 5.5l9 6.5-9 6.5z\"/><path d=\"M18.5 5v14\"/></svg>", "open": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M14 4h6v6M20 4l-9 9\"/><path d=\"M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5\"/></svg>", "x": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M6 6l12 12M18 6L6 18\"/></svg>"};
+function setBtn(id, icon, tip) { const b = $(id); if (!b) return; b.innerHTML = IC[icon]; b.title = tip; b.setAttribute("aria-label", tip); b.classList.add("iconb"); }
 function labels() {
   const has = $("take") && $("take").value.trim(), done = cur && cur.props.status === "reviewed";
   if ($("b-ok").classList.contains("busy")) return;
   if (done) {                                   // already approved: only saving takes from now on
-    $("b-okn").textContent = has ? "Save take & Next →" : "Next →";
-    $("b-ok").textContent = has ? "Save take" : "✓ Approved"; $("b-ok").disabled = !has;
+    setBtn("b-okn", has ? "savenext" : "next", has ? "Save take & go to next note (Shift+A)" : "Next note (Shift+A)");
+    setBtn("b-ok", has ? "save" : "check", has ? "Save take (A)" : "Approved ✓"); $("b-ok").disabled = !has;
   } else {
-    $("b-okn").textContent = has ? "Save take, Approve & Next →" : "Approve & Next →";
-    $("b-ok").textContent = has ? "Save take & Approve" : "Approve"; $("b-ok").disabled = false;
+    setBtn("b-okn", "checknext", has ? "Save take, approve & go to next note (Shift+A)" : "Approve & go to next note (Shift+A)");
+    setBtn("b-ok", "check", has ? "Save take & approve (A)" : "Approve (A)"); $("b-ok").disabled = false;
   }
+  setBtn("b-fix", "flag", "Needs fix (F)"); setBtn("b-skip", "skip", "Skip to next note (→)"); setBtn("b-obs", "open", "Open in Obsidian");
   $("b-ok").classList.toggle("isdone", !!done && !has);
   const ss = $("savestate"); if (ss) {
     ss.className = "savestate " + (has ? "pending" : savedAt[cur.rel] ? "saved" : "");
