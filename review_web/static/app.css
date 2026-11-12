@@ -423,3 +423,31 @@ body.hasphoto .doc > .meta{background:color-mix(in srgb,var(--bg) 90%,transparen
 .rw-duo{display:flex;align-items:flex-end;justify-content:center;gap:4px}
 #rw-nudge .rn-art{overflow:visible}
 #rw-nudge.show .rn-art{animation:none}
+/* v4.2.1: Today card uses the space down to the version label; no inner scrollbar; clock never overlapped */
+.leftcol{max-height:calc(100vh - 100px)}
+.today{overflow:hidden;grid-template-columns:auto minmax(0,1fr)}
+.td-clock{min-width:max-content}
+.td-wx{gap:8px;min-width:0}.td-ico{font-size:1.35em}
+.td-wx>div{min-width:0;overflow:hidden}
+/* Today card keeps its natural height; the Library list gives way and scrolls */
+.leftcol{height:calc(100% - 44px);max-height:none}
+.leftcol aside{flex:1 1 0;min-height:150px}
+.today{flex:0 0 auto}
+/* large text: stack weather under the clock so nothing overlaps */
+:root[data-size=l] .today,:root[data-size=xl] .today{grid-template-columns:1fr}
+:root[data-size=l] .td-wx,:root[data-size=xl] .td-wx{justify-self:start;text-align:left}
+/* bottom bar starts right of the left column, so it never covers the Library/Today cards */
+.actions{left:calc(var(--side) + 12px)}main.collapsed~.actions{left:0}
+@media (max-width:800px){.actions{left:0}}
+/* v4.2.1: "Text size" scales the reading & writing area only. Header, Library, Today card, bottom bar and menus stay a fixed, tidy size. */
+:root{--uiz:1}
+:root[data-size=s]{--uiz:1.1333}:root[data-size=l]{--uiz:.8947}:root[data-size=xl]{--uiz:.8095}
+header,.leftcol,.actions,.settings,.umenu,#rw-nudge{zoom:var(--uiz)}
+.leftcol{width:calc(var(--side) / var(--uiz));height:calc(100% - 44px)}
+.actions{left:calc((var(--side) + 12px) / var(--uiz))}
+main.collapsed~.actions{left:0}
+/* the Today card always uses the same clean font, whatever font is chosen for reading */
+.today,.today *{font-family:"Segoe UI Variable Display","Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,sans-serif}
+.td-time{font-weight:600;letter-spacing:-.01em}
+:root[data-size=l] .today,:root[data-size=xl] .today{grid-template-columns:auto minmax(0,1fr)}
+:root[data-size=l] .td-wx,:root[data-size=xl] .td-wx{justify-self:end;text-align:right}
