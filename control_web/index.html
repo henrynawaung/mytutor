@@ -111,7 +111,9 @@ th:first-child,td:first-child{text-align:left}tr.total td{font-weight:700;color:
 .dot.on{background:radial-gradient(circle at 35% 35%,#86efac,#16a34a 55%,#166534);box-shadow:0 0 5px 1px rgba(34,197,94,.35);animation:none}
 /* light mode (toggle at top right) */
 :root[data-theme=light]{--bg:#f4f6fa;--panel:#ffffff;--panel2:#f0f2f6;--line:#e2e6ec;--ink:#1b2230;--muted:#5f6b7a;--teal:#0f9f86;--ok:#0f8f78;--bad:#dc2626;--warn:#b45309;--blue:#2563eb}
-:root[data-theme=light] .hero{--ink:#eef1f5;--muted:#9aa3b0}
+:root[data-theme=light] .hero{border-color:rgba(15,159,134,.25);background:radial-gradient(600px 260px at 70% 50%,rgba(60,196,168,.14),transparent 70%),linear-gradient(135deg,#ffffff,#eef7f5 60%);box-shadow:0 1px 3px rgba(16,24,40,.08),0 20px 40px -28px rgba(15,159,134,.35)}
+:root[data-theme=light] .hero::after{background:linear-gradient(90deg,#ffffff 0%,transparent 38%)}
+:root[data-theme=light] .big{background-image:linear-gradient(90deg,#1b2230,#0f9f86)}
 :root[data-theme=light] .card,:root[data-theme=light] .kpi{background:rgba(255,255,255,.95);box-shadow:0 1px 3px rgba(16,24,40,.08)}
 :root[data-theme=light] .bar{background:#e6e9ef}
 :root[data-theme=light] body{background-color:var(--bg)}
@@ -275,6 +277,7 @@ function byWeek(rows) {
 }
 // ---------------- the brain: one dot per note; it lights up and connects as you review and write takes
 const Brain = (() => {
+  const LIGHT = () => document.documentElement.dataset.theme === "light";
   const cv = document.getElementById("brain"), cx = cv.getContext("2d");
   const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   let W = 0, H = 0, nodes = [], lit = 0, links = 0, edges = [], pulses = [], target = {lit: 0, links: 0}, ready = false;
@@ -313,20 +316,20 @@ const Brain = (() => {
     const live = edges.filter(([a, b]) => a < nLit && b < nLit);
     const show = live.slice(0, Math.round(live.length * Math.min(1, 0.35 + links)));
     cx.lineWidth = 0.8 * dpr;
-    cx.strokeStyle = "rgba(150,170,200,0.075)";       // the whole brain as a faint mesh, so its shape always reads
+    cx.strokeStyle = LIGHT() ? "rgba(60,80,110,0.09)" : "rgba(150,170,200,0.075)";       // the whole brain as a faint mesh, so its shape always reads
     cx.beginPath();
     for (const [a, b] of edges) { const [x1, y1] = pos(nodes[a]), [x2, y2] = pos(nodes[b]); cx.moveTo(x1, y1); cx.lineTo(x2, y2); }
     cx.stroke();
     cx.lineWidth = 1.1 * dpr;
     for (const [a, b] of show) {
       const [x1, y1] = pos(nodes[a]), [x2, y2] = pos(nodes[b]);
-      cx.strokeStyle = "rgba(110,220,195,0.20)"; cx.beginPath(); cx.moveTo(x1, y1); cx.lineTo(x2, y2); cx.stroke();
+      cx.strokeStyle = LIGHT() ? "rgba(15,150,125,0.28)" : "rgba(110,220,195,0.20)"; cx.beginPath(); cx.moveTo(x1, y1); cx.lineTo(x2, y2); cx.stroke();
     }
     nodes.forEach((n, i) => {
       const [x, y] = pos(n), on = i < nLit, tw = still ? 1 : 0.75 + 0.25 * Math.sin(t / 900 + n.tw);
       cx.beginPath(); cx.arc(x, y, (on ? 2.6 : 1.5) * dpr, 0, 6.29);
-      cx.fillStyle = on ? `rgba(80,215,185,${0.85 * tw})` : "rgba(170,182,200,0.26)";
-      if (on) { cx.shadowColor = "rgba(60,196,168,.9)"; cx.shadowBlur = 6 * dpr; }
+      cx.fillStyle = on ? (LIGHT() ? `rgba(13,148,122,${0.9 * tw})` : `rgba(80,215,185,${0.85 * tw})`) : (LIGHT() ? "rgba(90,105,125,0.28)" : "rgba(170,182,200,0.26)");
+      if (on) { cx.shadowColor = LIGHT() ? "rgba(60,196,168,.45)" : "rgba(60,196,168,.9)"; cx.shadowBlur = 6 * dpr; }
       if (on && i < nLit * Math.min(0.5, links) && i % 3 === 0) { cx.shadowColor = "rgba(245,158,11,.8)"; cx.shadowBlur = 10 * dpr; cx.fillStyle = `rgba(245,158,11,${0.7 * tw})`; }
       cx.fill(); cx.shadowBlur = 0;
     });
