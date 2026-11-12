@@ -123,6 +123,24 @@ th:first-child,td:first-child{text-align:left}tr.total td{font-weight:700;color:
 :root[data-theme=light] .btn.stopall{color:#b91c1c;background:rgba(239,68,68,.08)}
 .themebtn{margin-left:auto;width:36px;height:36px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer;display:grid;place-items:center}
 .themebtn:hover{border-color:var(--brand)}
+/* weekly trend chart */
+:root{--s-appr:#1fa68b;--s-take:#c97a06}
+:root[data-theme=light]{--s-appr:#0f9f86;--s-take:#d97706}
+.trend{margin:4px 0 14px}
+.trendhead{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+.trendsum{font-size:13px;color:var(--muted)}.trendsum b{color:var(--ink);font-size:15px}
+.trendsum .up{color:var(--ok);font-weight:700}.trendsum .down{color:var(--bad);font-weight:700}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--muted)}.legend span{display:flex;align-items:center;gap:6px}
+.sw{display:inline-block;width:10px;height:10px;border-radius:3px}.sw-a{background:var(--s-appr)}.sw-t{background:var(--s-take)}
+.sw-g{width:14px;height:0;border-top:2px dashed var(--muted);border-radius:0}
+.trendplot{position:relative}
+#trend{width:100%;height:190px;display:block;overflow:visible}
+#trend .ax{fill:var(--muted);font-size:11px}#trend .grid{stroke:var(--line);stroke-width:1}
+#trend .goal{stroke:var(--muted);stroke-width:1.5;stroke-dasharray:5 4}
+#trend .val{fill:var(--ink);font-size:11px;font-weight:700}
+#trend .hit{fill:transparent;cursor:default}#trend .hit:hover{fill:color-mix(in srgb,var(--ink) 5%,transparent)}
+.ttip{position:absolute;pointer-events:none;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:12px;box-shadow:0 8px 24px rgba(0,0,0,.25);white-space:nowrap;z-index:5}
+.ttip b{display:block;margin-bottom:3px;color:var(--ink)}.ttip div{display:flex;align-items:center;gap:6px;color:var(--muted)}.ttip div span:last-child{margin-left:auto;padding-left:12px;color:var(--ink);font-weight:700}
 </style>
 <script>try{if(localStorage.getItem("mytutor-cc-theme")==="light")document.documentElement.dataset.theme="light"}catch(e){}</script></head>
 <body>
@@ -199,6 +217,9 @@ th:first-child,td:first-child{text-align:left}tr.total td{font-weight:700;color:
   </div>
 
   <div class="card"><h2>Review history <a href="#" data-a="open-days" class="seeall">Open My days →</a></h2>
+    <div class="trend"><div class="trendhead"><div id="trend-sum" class="trendsum"></div>
+      <div class="legend"><span><i class="sw sw-a"></i>Approved</span><span><i class="sw sw-t"></i>Takes</span><span><i class="sw sw-g"></i>Weekly goal</span></div></div>
+      <div class="trendplot"><svg id="trend" role="img" aria-label="Approved notes and takes per week"></svg><div class="ttip" id="ttip" hidden></div></div></div>
     <table><thead><tr><th>Week / day</th><th>Notes worked on</th><th>Approved</th><th>Takes</th><th>Reflections</th></tr></thead><tbody id="hist"></tbody></table></div>
 
   <div class="card console">
@@ -255,12 +276,43 @@ function paint(s) {
   const r = d.last_run;
   $("lastrun").innerHTML = r ? `<span>Finished</span><b>${esc(r.finished)}</b><span>Sources</span><b>${esc(r.sources)}</b><span>Notes made</span><b>${esc(r.notes)}</b>
      <span>Cost</span><b>US$${(+r.cost || 0).toFixed(2)}</b><span>Failed</span><b style="color:${+r.failed ? "var(--bad)" : "var(--ok)"}">${esc(r.failed || 0)}</b>` : '<span>No runs logged yet.</span><b></b>';
+  renderTrend(d.history || [], s.goal || 25);
   $("hist").innerHTML = byWeek(d.history || []).slice(0, 6).map(w =>
       `<tr class="wk"><td>${esc(w.label)}</td><td>${w.notes}</td><td>${w.approved}</td><td>${w.takes}</td><td>${w.reflections}</td></tr>`
       + w.days.map(h => `<tr class="wkday"><td>${esc(new Date(h.day + "T12:00:00").toLocaleDateString(undefined, {weekday: "short", day: "numeric", month: "short"}))}</td><td>${h.notes}</td><td>${h.approved}</td><td>${h.takes}</td><td>${h.reflections}</td></tr>`).join("")).join("")
     || '<tr><td colspan="5" class="muted">No reviews yet.</td></tr>';
   $("recent").innerHTML = (d.recent || []).map(([t, a, n]) => `<li><time>${esc(t)}</time><span class="tagx">${esc(a)}</span><span>${esc(n)}</span></li>`).join("") || '<li class="muted">Nothing yet today.</li>';
   document.querySelectorAll("[data-a=run],[data-a=dry-run]").forEach(b => b.disabled = (s.jobs || []).some(j => (j.name === "run" || j.name === "dry-run") && j.running));
+}
+function renderTrend(rows, goal) {
+  const svg = $("trend"); if (!svg) return;
+  const W = Math.max(320, svg.clientWidth || 640), H = 190, padL = 30, padR = 8, padT = 14, padB = 24;
+  const weeks = [], m0 = mondayOf(new Date().toISOString().slice(0, 10));
+  const first = rows.length ? mondayOf(rows.map(r => r.day).sort()[0]) : m0, span = Math.round((m0 - first) / 6048e5) + 1;
+  const n = Math.min(12, Math.max(4, span));                             // from your first active week (at least 4, at most 12)
+  for (let k = n - 1; k >= 0; k--) { const m = new Date(m0); m.setDate(m0.getDate() - 7 * k); weeks.push({m, key: m.toDateString(), approved: 0, takes: 0, reflections: 0, notes: 0}); }
+  for (const r of rows) { const w = weeks.find(x => x.key === mondayOf(r.day).toDateString()); if (w) for (const k of ["approved", "takes", "reflections", "notes"]) w[k] += r[k] || 0; }
+  const max = Math.max(goal, ...weeks.map(w => Math.max(w.approved, w.takes))), step = max > 60 ? 20 : max > 30 ? 10 : 5, top = Math.ceil(max * 1.1 / step) * step;
+  const y = v => padT + (H - padT - padB) * (1 - v / top), slot = (W - padL - padR) / weeks.length, bw = Math.min(16, slot / 3.2);
+  const bar = (x, v, cls) => { if (!v) return ""; const yy = y(v), h = y(0) - yy, r = Math.min(4, h);
+    return `<path fill="var(${cls})" d="M${x} ${y(0)}V${yy + r}q0 -${r} ${r} -${r}h${bw - 2 * r}q${r} 0 ${r} ${r}V${y(0)}z"/>`; };
+  let g = "";
+  for (let v = 0; v <= top; v += step) g += `<line class="grid" x1="${padL}" x2="${W - padR}" y1="${y(v)}" y2="${y(v)}"/><text class="ax" x="${padL - 6}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
+  weeks.forEach((w, i) => { const cx = padL + slot * i + slot / 2;
+    g += bar(cx - bw - 1, w.approved, "--s-appr") + bar(cx + 1, w.takes, "--s-take");
+    g += `<text class="ax" x="${cx}" y="${H - 6}" text-anchor="middle">${i === weeks.length - 1 ? "This wk" : w.m.toLocaleDateString(undefined, {day: "numeric", month: "short"})}</text>`;
+    if (i === weeks.length - 1) { if (w.approved) g += `<text class="val" x="${cx - bw / 2 - 1}" y="${y(w.approved) - 4}" text-anchor="middle">${w.approved}</text>`;
+      if (w.takes) g += `<text class="val" x="${cx + bw / 2 + 1}" y="${y(w.takes) - 4}" text-anchor="middle">${w.takes}</text>`; }
+    g += `<rect class="hit" data-i="${i}" x="${padL + slot * i}" y="${padT}" width="${slot}" height="${H - padT - padB}"/>`; });
+  g += `<line class="goal" x1="${padL}" x2="${W - padR}" y1="${y(goal)}" y2="${y(goal)}"/><text class="ax" x="${padL + 4}" y="${y(goal) - 5}">goal ${goal}</text>`;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.innerHTML = g;
+  const tw = weeks[weeks.length - 1], lw = weeks[weeks.length - 2], diff = tw.approved - lw.approved;
+  $("trend-sum").innerHTML = `This week <b>${tw.approved}</b> approved · <b>${tw.takes}</b> takes · ` + (lw.approved || tw.approved ? `<span class="${diff >= 0 ? "up" : "down"}">${diff >= 0 ? "▲" : "▼"} ${Math.abs(diff)}</span> vs last week` : "first week");
+  const tip = $("ttip");
+  svg.querySelectorAll(".hit").forEach(r => { r.onmousemove = e => { const w = weeks[+r.dataset.i], sun = new Date(w.m), f = o => o.toLocaleDateString(undefined, {day: "numeric", month: "short"}); sun.setDate(w.m.getDate() + 6);
+      tip.innerHTML = `<b>${f(w.m)} – ${f(sun)}</b><div><i class="sw sw-a"></i><span>Approved</span><span>${w.approved}</span></div><div><i class="sw sw-t"></i><span>Takes</span><span>${w.takes}</span></div><div><span>Reflections</span><span>${w.reflections}</span></div><div><span>Goal</span><span>${w.approved >= goal ? "met ✓" : goal}</span></div>`;
+      tip.hidden = false; const box = svg.getBoundingClientRect(); let lx = e.clientX - box.left + 12; if (lx > box.width - 170) lx -= 190; tip.style.left = lx + "px"; tip.style.top = (e.clientY - box.top - 10) + "px"; };
+    r.onmouseleave = () => { tip.hidden = true; }; });
 }
 function mondayOf(iso) { const d = new Date(iso + "T12:00:00"); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d; }
 function byWeek(rows) {

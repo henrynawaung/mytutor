@@ -1,7 +1,7 @@
 """myTutor release version, shown at the bottom left of every myTutor page."""
-VERSION = "4.4.2"
+VERSION = "4.5"
 RELEASED = "2026-11-12"
-NOTES = "Stretch goal +5 after weekly goal; Today card without duplicate weekly bar"
+NOTES = "Weekly trend chart in Review history"
 
 
 def label() -> str:
