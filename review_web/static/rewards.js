@@ -167,7 +167,7 @@ function nudge(kinds, r, moment, update) {       // Ellie's achievement card, sh
   const c = CREW.find(x => x.stat === map[k]), v = statOf(r, c.stat), L = levelOf(c, r), nextT = c.lv[L], prevT = c.lv[L - 1] || 0;
   const bd = BADGES.find(x => x.stat === c.stat), nb = bd && bd.at.find(t => v < t), goal = typeof weeklyGoal === "function" ? weeklyGoal() : 25;
   let pct = nextT ? Math.round((v - prevT) / (nextT - prevT) * 100) : 100;
-  const both = kinds.includes("approve") && kinds.includes("take") ? " + take saved" : "";
+  const both = "";                                       // (approve + take is shown in the status line instead)
   if (!update || !nudge._cheer) nudge._cheer = CHEERS[k][Math.floor(Math.random() * CHEERS[k].length)];
   let kick = "🏅 Achievement", title = nudge._cheer + both,
       line1 = `${c.name} · ${L ? "level " + L : "on the way"} · ${v} ${c.unit}`,
