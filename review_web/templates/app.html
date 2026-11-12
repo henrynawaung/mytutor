@@ -5,7 +5,7 @@
 <link rel="icon" href="{{ url_for('static', filename='logo.svg') }}" type="image/svg+xml">
 <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
 <script src="{{ url_for('static', filename='marked.min.js') }}" defer></script>
-<script src="{{ url_for('static', filename='app.js') }}" defer></script><script src="{{ url_for('static', filename='rewards.js') }}" defer></script></head>
+<script src="{{ url_for('static', filename='app.js') }}" defer></script><script src="{{ url_for('static', filename='ellie.js') }}" defer></script><script src="{{ url_for('static', filename='rewards.js') }}" defer></script></head>
 <body><div class="bgphoto" id="bgphoto" hidden></div>
 <header>
 <a class="brand home" href="http://127.0.0.1:5056/" title="Back to the Control Centre (home)"><img src="{{ url_for('static', filename='logo.svg') }}" alt="myTutor home" width="34" height="34"><div><h1>myTutor <span>Review</span></h1><p class="tag" id="tagline">Your second brain · read, reflect, apply</p></div></a>
@@ -53,7 +53,7 @@
 <div class="grp"><span>Remind me about notes approved without a take</span><div class="seg" data-set="remind"><button data-v="off">Off</button><button data-v="on">On</button></div></div>
 <div class="grp"><span>Today card (bottom left)</span><div class="seg multi" id="s-today"><button data-k="clock">Time</button><button data-k="wx">Weather</button><button data-k="week">This week</button><button data-k="crew">My crew</button><button data-k="mem">Memory line</button></div></div>
 <div class="grp"><span>Reward pop-ups (crew &amp; badges)</span><div class="seg" data-set="rewards"><button data-v="on">On</button><button data-v="off">Off</button></div><button class="b small" id="s-rwtest" type="button">Preview</button></div>
-<div class="grp"><span>Chime on every save (click to hear)</span><div class="seg" data-set="chime"><button data-v="bell">Bell</button><button data-v="coin">Coin</button><button data-v="marimba">Marimba</button><button data-v="sparkle">Sparkle</button><button data-v="harp">Harp</button><button data-v="fanfare">Fanfare</button><button data-v="off">Off</button></div></div>
+<div class="grp"><span>Chime on every save (click to hear)</span><div class="seg" data-set="chime"><button data-v="kalimba">Kalimba</button><button data-v="bell">Bell</button><button data-v="coin">Coin</button><button data-v="marimba">Marimba</button><button data-v="sparkle">Sparkle</button><button data-v="harp">Harp</button><button data-v="fanfare">Fanfare</button><button data-v="off">Off</button></div></div>
 <div class="grp"><span>Weather city</span><input class="sinput" id="s-city" maxlength="60" placeholder="e.g. Christchurch"></div>
 <div class="grp"><span>Layout density</span><div class="seg" data-set="density"><button data-v="comfy">Comfortable</button><button data-v="compact">Compact</button></div></div>
 <div class="grp"><span>Text size</span><div class="seg" data-set="size"><button data-v="s">S</button><button data-v="m">M</button><button data-v="l">L</button><button data-v="xl">XL</button></div></div>
@@ -66,4 +66,4 @@
 <div class="grp"><span>Reading width</span><div class="seg" data-set="width"><button data-v="normal">Normal</button><button data-v="wide">Wide</button></div></div>
 </div>
 <div class="toast" id="toast"></div>
-</body></html>
+<div class="verbadge" title="Release version">{{ version_label }}</div></body></html>

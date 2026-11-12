@@ -84,6 +84,26 @@ function tone(f, t0, dur, type = "sine", vol = .14) {
 }
 // [frequency Hz, start s, length s, wave, volume]: short melody + soft fading chord, about 5-7 seconds
 const CHIME_NOTES = {"bell":[[1046.5,0.0,3.8,"sine",0.12],[1318.5,0.28,3.8,"sine",0.12],[1568.0,0.56,3.8,"sine",0.12],[2093.0,0.95,4.2,"sine",0.08],[523.3,0.95,4.3,"sine",0.045],[784.0,0.95,4.3,"sine",0.045]],"coin":[[987.8,0,0.1,"square",0.06],[1318.5,0.09,0.6,"square",0.06],[1318.5,0.6,1.0,"triangle",0.07],[1661.2,0.75,1.0,"triangle",0.07],[1975.5,0.9,1.0,"triangle",0.07],[659.3,0.95,4.4,"sine",0.045],[987.8,0.95,4.4,"sine",0.045],[1318.5,0.95,4.4,"sine",0.045]],"marimba":[[784.0,0.0,0.7,"triangle",0.15],[1046.5,0.18,0.7,"triangle",0.15],[1318.5,0.36,0.7,"triangle",0.15],[1568.0,0.54,0.7,"triangle",0.15],[1318.5,0.72,0.7,"triangle",0.15],[1046.5,0.9,0.7,"triangle",0.15],[523.3,1.05,4.3,"sine",0.05],[659.3,1.05,4.3,"sine",0.05],[784.0,1.05,4.3,"sine",0.05]],"sparkle":[[1568.0,0.0,1.6,"sine",0.06],[2093.0,0.13,1.6,"sine",0.06],[2637.0,0.26,1.6,"sine",0.06],[3136.0,0.39,1.6,"sine",0.06],[2637.0,0.52,1.6,"sine",0.06],[2093.0,0.65,1.6,"sine",0.06],[1568.0,0.78,1.6,"sine",0.06],[1318.5,0.91,1.6,"sine",0.06],[1046.5,0.9,4.4,"sine",0.035],[1568.0,0.9,4.4,"sine",0.035]],"harp":[[261.6,0.0,3.0,"triangle",0.09],[329.6,0.11,3.0,"triangle",0.09],[392.0,0.22,3.0,"triangle",0.09],[523.3,0.33,3.0,"triangle",0.09],[659.3,0.44,3.0,"triangle",0.09],[784.0,0.55,3.0,"triangle",0.09],[1046.5,0.66,3.0,"triangle",0.09],[1318.5,0.77,3.0,"triangle",0.09],[1046.5,1.1,3.2,"triangle",0.07],[784.0,1.26,3.2,"triangle",0.07],[659.3,1.42,3.2,"triangle",0.07],[523.3,1.6,3.8,"sine",0.035],[659.3,1.6,3.8,"sine",0.035],[784.0,1.6,3.8,"sine",0.035]],"fanfare":[[523.3,0.0,0.45,"triangle",0.14],[659.3,0.16,0.45,"triangle",0.14],[784.0,0.32,0.45,"triangle",0.14],[1046.5,0.5,1.2,"triangle",0.14],[784.0,1.25,0.5,"triangle",0.12],[1046.5,1.45,0.5,"triangle",0.12],[1318.5,1.7,1.6,"triangle",0.13],[261.6,2.2,4.6,"triangle",0.05],[523.3,2.2,4.6,"triangle",0.05],[659.3,2.2,4.6,"triangle",0.05],[784.0,2.2,4.6,"triangle",0.05],[1046.5,2.2,4.6,"triangle",0.05],[1318.5,2.2,4.6,"triangle",0.05]]};
+/* Kalimba (thumb piano) save tune, about 3 seconds, made in the browser with Web Audio. */
+const KALIMBA = [[72,0,.8,-.2],[76,.13,.7,.2],[79,.26,.75,0],[84,.4,.8,.2],[81,.62,.7,-.2],[79,.75,.7,0],[76,.88,.7,.2],
+  [77,1.1,.65,-.2],[76,1.23,.65,0],[74,1.36,.65,.2],[72,1.62,.85,0],[79,1.62,.45,-.2],[84,1.65,.5,.2]];
+const KALIMBA_BIG = KALIMBA.concat([[88,1.95,.55,.2],[91,2.08,.5,-.2],[96,2.21,.6,0]]);
+function playKalimba(ac, big, dest, volume = .22) {
+  const t0 = ac.currentTime + .03, out = ac.createGain(); out.gain.value = volume;
+  const echo = ac.createDelay(); echo.delayTime.value = .13; const fb = ac.createGain(); fb.gain.value = .28; const wet = ac.createGain(); wet.gain.value = .35;
+  dest = dest || ac.destination; out.connect(dest); out.connect(echo); echo.connect(fb); fb.connect(echo); echo.connect(wet); wet.connect(dest);
+  for (const [m, t, v, pan] of (big ? KALIMBA_BIG : KALIMBA)) {
+    const f = 440 * 2 ** ((m - 69) / 12), at = t0 + t, p = ac.createStereoPanner ? ac.createStereoPanner() : ac.createGain();
+    if (p.pan) p.pan.value = pan; p.connect(out);
+    for (const [mul, amp, len] of [[1, v, 1.5], [5.4, v * .22, .09]]) {      // tine + its bright "click"
+      const o = ac.createOscillator(), g = ac.createGain(); o.type = "sine"; o.frequency.value = f * mul;
+      g.gain.setValueAtTime(0.0001, at); g.gain.exponentialRampToValueAtTime(amp, at + .004); g.gain.exponentialRampToValueAtTime(0.0001, at + len);
+      o.connect(g); g.connect(p); o.start(at); o.stop(at + len + .05);
+    }
+  }
+  setTimeout(() => { try { fb.gain.value = 0; } catch (e) {} }, (big ? 3.6 : 3.0) * 1000);
+}
+
 function playNotes(notes, t) {
   for (const [f, t0, d, ty, v] of notes) { tone(f, t + t0, d, ty, v); tone(f, t + t0 + .32, d, ty, v * .32); tone(f, t + t0 + .64, d, ty, v * .1); }
 }
@@ -93,7 +113,8 @@ function playChime(name, big) {
     AC = AC || new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === "suspended") AC.resume();
     if (AC._master) { try { AC._master.gain.cancelScheduledValues(0); AC._master.disconnect(); } catch (e) {} }   // a new chime replaces one still ringing
     AC._master = AC.createGain(); AC._master.connect(AC.destination);
-    playNotes(big ? CHIME_NOTES.fanfare : (CHIME_NOTES[name] || CHIME_NOTES.bell), AC.currentTime + .02);
+    if (name === "kalimba") playKalimba(AC, big, AC._master);
+    else playNotes(big ? CHIME_NOTES.fanfare : (CHIME_NOTES[name] || CHIME_NOTES.bell), AC.currentTime + .02);
   } catch (e) {}
 }
 
@@ -111,7 +132,7 @@ function celebrate(item) { queue.push(item); if (!showing) nextCelebration(); }
 function nextCelebration() {
   const it = queue.shift(); if (!it) { showing = false; return; } showing = true;
   const m = document.createElement("div"); m.className = "reward-modal";
-  m.innerHTML = `<div class="rw-card"><div class="rw-confetti"></div><div class="rw-art">${it.art}</div><div class="rw-kicker">${it.kicker}</div>
+  m.innerHTML = `<div class="rw-card"><div class="rw-confetti"></div><div class="rw-art"><div class="rw-duo">${it.art}<div class="m-jump">${ellie("graduate", 120)}</div></div></div><div class="rw-kicker">${it.kicker}</div>
     <h2>${it.title}</h2><p>${it.text}</p><button class="b ok" type="button">Nice! Keep going</button></div>`;
   document.body.appendChild(m); confetti(m.querySelector(".rw-confetti")); playChime(null, true); fireworks(); popSound(5, .5);
   const close = () => { m.classList.add("out"); setTimeout(() => { m.remove(); nextCelebration(); }, 220); };
@@ -132,22 +153,28 @@ const CHEERS = {approve: ["Note approved!", "Another one done!", "Sharp work!", 
   take: ["Take saved!", "Your voice, on record!", "Strategist move!", "Insight captured!"],
   answer: ["Reflection saved!", "Deep thinking!", "Connected the dots!"],
   fix: ["Flagged for fixing!", "Good catch!"], edit: ["Take polished!", "Sharper now!"]};
-function nudge(kinds, r) {               // achievement card with the character, as long as the chime plays
+const ELLIE_LOOK = {approve: ["", "m-wave"], take: ["boss", "m-toot"], edit: ["boss", "m-toot"], answer: ["graduate", "m-wave"], fix: ["", "m-toot"],
+  five: ["party", "m-dance"], goal: ["champion", "m-dance"]};
+function nudge(kinds, r, moment) {       // Ellie's achievement card, shown while the tune plays
   const s = getSet(); if (s.rewards === "off") return;
   const map = {approve: "approved", take: "takes", answer: "reflections", fix: "approved", edit: "takes"};
   const k = ["approve", "take", "answer", "fix", "edit"].find(x => kinds.includes(x)); if (!k) return;
   const c = CREW.find(x => x.stat === map[k]), v = statOf(r, c.stat), L = levelOf(c, r), nextT = c.lv[L], prevT = c.lv[L - 1] || 0;
-  const bd = BADGES.find(x => x.stat === c.stat), nb = bd && bd.at.find(t => v < t);
-  const pct = nextT ? Math.round((v - prevT) / (nextT - prevT) * 100) : 100;
+  const bd = BADGES.find(x => x.stat === c.stat), nb = bd && bd.at.find(t => v < t), goal = typeof weeklyGoal === "function" ? weeklyGoal() : 25;
+  let pct = nextT ? Math.round((v - prevT) / (nextT - prevT) * 100) : 100;
   const both = kinds.includes("approve") && kinds.includes("take") ? " + take saved" : "";
-  const cheer = CHEERS[k][Math.floor(Math.random() * CHEERS[k].length)];
+  let kick = "🏅 Achievement", title = CHEERS[k][Math.floor(Math.random() * CHEERS[k].length)] + both,
+      line1 = `${c.name} · ${L ? "level " + L : "on the way"} · ${v} ${c.unit}`,
+      line2 = nextT ? `${nextT - v} more to ${c.name} level ${L + 1}` : nb ? `${nb - v} more to the ${nb} badge` : "Fully grown 👑";
+  if (moment === "five") { kick = "🎉 Party time"; title = `${v} ${c.unit}!`; line2 = `Every 5 is a party. Next one at ${v + 5}.`; }
+  if (moment === "goal") { kick = "👑 Weekly goal"; title = `${r.approved_week} / ${goal}: goal reached!`; line1 = `🔥 ${r.week_streak || 0}-week streak · boardroom ready`; line2 = "Anything more this week is a bonus."; pct = 100; }
+  const [costume, motion] = ELLIE_LOOK[moment || k];
   let el = document.getElementById("rw-nudge"); if (!el) { el = document.createElement("div"); el.id = "rw-nudge"; document.body.appendChild(el); el.onclick = () => el.classList.remove("show"); }
-  el.innerHTML = `<div class="rn-art">${charSVG(c.id, Math.max(1, L), 78)}</div><div class="rn-txt"><span class="rn-kick">🏅 Achievement</span><b>${cheer}${both}</b>
-    <small>${c.name} · ${L ? "level " + L : "on the way"} · ${v} ${c.unit}</small><div class="cbar"><i></i></div>
-    <small>${nextT ? `${nextT - v} more to ${c.name} level ${L + 1}` : nb ? `${nb - v} more to the ${nb} badge` : "Fully grown 👑"}${nb && nextT ? ` · ${nb - v} to the ${nb} badge` : ""}</small></div>`;
+  el.innerHTML = `<div class="rn-art ${motion}">${ellie(costume, 92)}</div><div class="rn-txt"><span class="rn-kick">${kick}</span><b>${title}</b>
+    <small>${line1}</small><div class="cbar"><i></i></div><small>${line2}</small></div>`;
   el.classList.remove("show"); void el.offsetWidth; el.classList.add("show");
   const bar = el.querySelector(".cbar i"); bar.style.width = "0%"; setTimeout(() => bar.style.width = Math.max(4, pct) + "%", 250);
-  clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove("show"), getSet().chime === "off" ? 4000 : 6500);
+  clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove("show"), moment ? 5200 : 4000);
 }
 
 /* ---------- party poppers & fireworks (one full-screen canvas, clicks pass through) ---------- */
@@ -257,9 +284,13 @@ async function refreshRewards(kinds) {
   if (getSet().rewards === "off") return;
   if (fresh.length) fresh.slice(0, 4).forEach(k => celebrate(describe(k, r)));
   else if (kinds && kinds.length) {
-    nudge(kinds, r);
-    const prev = RW_PREV || {}, hit = ["approved", "takes", "reflections"].find(k => statOf(r, k) > (prev[k] || 0) && statOf(r, k) % 5 === 0);
-    if (hit) { partyPopper(); popSound(2, .0); }              // every 5th: party poppers
+    const prev = RW_PREV || {}, goal = typeof weeklyGoal === "function" ? weeklyGoal() : 25;
+    const goalHit = prev.approved_week != null && prev.approved_week < goal && r.approved_week >= goal;
+    const five = ["approved", "takes", "reflections"].find(k => statOf(r, k) > (prev[k] || 0) && statOf(r, k) % 5 === 0);
+    const moment = goalHit ? "goal" : five ? "five" : null;
+    nudge(kinds, r, moment);
+    if (moment === "goal") { playChime(null, true); fireworks(); popSound(5, .5); }    // weekly goal: fireworks
+    else if (moment === "five") { partyPopper(); popSound(2, 0); }                     // every 5th: party poppers
   }
 }
 let pend = [], pendT = null;
@@ -273,5 +304,6 @@ function rewardsTick(path) {                         // called after every succe
 window.rewardsTick = rewardsTick; window.fillCrew = fillCrew; window.fillCrewRow = fillCrewRow;
 document.querySelectorAll('[data-set="chime"] button').forEach(b => b.addEventListener("click", () => playChime(b.dataset.v)));
 window.partyPopper = partyPopper; window.fireworks = fireworks;
+try { if (!localStorage.getItem("mytutor-chime-v2")) { saveSet("chime", "kalimba"); localStorage.setItem("mytutor-chime-v2", "1"); } } catch (e) {}
 const tr = document.getElementById("s-rwtest"); if (tr) tr.onclick = () => celebrate({art: charSVG("fox", 2, 150), kicker: "Preview", title: "This is a level-up", text: "Pop-ups like this appear when a crew member joins or grows, or you earn a badge."});
 refreshRewards();

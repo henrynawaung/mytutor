@@ -1,6 +1,6 @@
 "use strict";
 // ---- display settings (kept in this browser) ----
-const SET_DEF = {remind: "off", size: "m", theme: "auto", font: "sans", width: "normal", photo: "soft", goal: "5", accent: "amber", density: "comfy", name: "", today: "clock,wx,week,crew,mem", rewards: "on", chime: "fanfare", city: "Christchurch"};
+const SET_DEF = {remind: "off", size: "m", theme: "auto", font: "sans", width: "normal", photo: "soft", goal: "5", accent: "amber", density: "comfy", name: "", today: "clock,wx,week,crew,mem", rewards: "on", chime: "kalimba", city: "Christchurch"};
 function getSet() { try { return Object.assign({}, SET_DEF, JSON.parse(localStorage.getItem("mytutor-settings") || "{}")); } catch (e) { return {...SET_DEF}; } }
 function applySet(s) {
   const r = document.documentElement;

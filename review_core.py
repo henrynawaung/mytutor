@@ -502,7 +502,7 @@ class Store:
         today = today or date.today()
         courses = self.q(f"SELECT course, COUNT(*) total, SUM(status='reviewed') done FROM notes "
                          f"WHERE status != '' AND type IN ({types}) GROUP BY course")
-        return {"approved": approved, "takes": takes, "reflections": refl,
+        return {"approved": approved, "takes": takes, "reflections": refl, "approved_week": self.stats()["approved_week"],
                 "week_streak": week_streak(days, today), "best_streak": best_week_streak(days),
                 "memory_lines": len(memory_lines(vault)),
                 "courses_done": [r["course"] for r in courses if r["course"] and r["total"] and r["done"] == r["total"]]}

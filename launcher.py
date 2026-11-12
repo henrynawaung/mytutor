@@ -25,6 +25,8 @@ import sys
 import threading
 import time
 import webbrowser
+
+import version
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from urllib.parse import quote
@@ -433,7 +435,7 @@ def make_handler(centre: Centre):
             if not self.ok_host():
                 return self.send(403, {"error": "forbidden"})
             if u.path == "/":
-                html = page_path.read_text(encoding="utf-8").replace("__TOKEN__", centre.token)
+                html = page_path.read_text(encoding="utf-8").replace("__TOKEN__", centre.token).replace("__VERSION__", version.label())
                 return self.send(200, html, "text/html")
             if u.path == "/practice":                              # quizzes in the same tab
                 p = jobs_folder(centre.cfg) / "practice.html"
@@ -442,6 +444,8 @@ def make_handler(centre: Centre):
                 html = p.read_text(encoding="utf-8", errors="replace")
                 back = ('<a href="/" style="position:fixed;top:12px;right:14px;z-index:99;font:600 14px system-ui;'
                         'background:#F59E0B;color:#1a1205;padding:8px 14px;border-radius:10px;text-decoration:none">⌂ Control Centre</a>')
+                back += ('<div style="position:fixed;left:14px;bottom:8px;z-index:99;font:11px system-ui;color:#8a94a3;opacity:.8">'
+                         + version.label() + '</div>')
                 html = html.replace("</body>", back + "</body>") if "</body>" in html else html + back
                 return self.send(200, html, "text/html")
             if u.path == "/logo.png":

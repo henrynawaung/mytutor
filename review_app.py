@@ -28,6 +28,7 @@ from flask import Flask, abort, jsonify, redirect, render_template, request, sen
 from werkzeug.security import check_password_hash, generate_password_hash
 
 import review_core as core
+import version
 
 HERE = Path(__file__).resolve().parent
 DUMMY_HASH = generate_password_hash("not-a-real-password")
@@ -55,6 +56,7 @@ def create_app(vault_root: Path, jobs: Path, obsidian_vault: str = "", testing: 
     app.config.update(SECRET_KEY=secret_key(jobs), SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Strict",
                       PERMANENT_SESSION_LIFETIME=timedelta(hours=8), TESTING=testing)
     vault = core.Vault(vault_root, jobs, obsidian_vault)
+    app.context_processor(lambda: {"version_label": version.label()})
     store = core.Store(jobs / "mytutor.db")
     store.sync(vault)
     store.import_all_takes(vault)

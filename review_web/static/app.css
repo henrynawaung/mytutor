@@ -403,3 +403,23 @@ body.hasphoto .doc > .meta{background:color-mix(in srgb,var(--bg) 90%,transparen
 @media (max-height:920px){.td-mem{display:none!important}}
 @media (max-height:760px){.td-crew{display:none!important}}
 @media (max-height:640px){.today{display:none}}
+.verbadge{position:fixed;left:14px;bottom:8px;z-index:5;font-size:11px;color:var(--muted,#8a94a3);opacity:.75;letter-spacing:.02em;pointer-events:none;font-family:system-ui,sans-serif}
+.ellie{overflow:visible}.ellie g{transform-box:view-box}
+.ellie .ear-l{transform-origin:72px 80px}.ellie .ear-r{transform-origin:128px 80px}
+.ellie .trunk{transform-origin:100px 96px}.ellie .whole{transform-origin:100px 186px}.ellie .headg{transform-origin:100px 120px}
+.ellie .arm-l{transform-origin:66px 136px}.ellie .arm-r{transform-origin:134px 136px}
+/* motions */
+.m-wave .ear-l{animation:flapL .5s ease-in-out infinite alternate}.m-wave .ear-r{animation:flapR .5s ease-in-out infinite alternate}
+@keyframes flapL{to{transform:rotate(-18deg) scaleX(1.08)}}@keyframes flapR{to{transform:rotate(18deg) scaleX(1.08)}}
+.m-jump .whole{animation:jump 1s cubic-bezier(.3,0,.3,1) infinite}.m-jump .shadow{animation:shad 1s cubic-bezier(.3,0,.3,1) infinite;transform-origin:100px 190px}
+@keyframes jump{0%,100%{transform:translateY(0) scale(1.06,.94)}15%{transform:translateY(0) scale(1)}50%{transform:translateY(-34px) scale(.97,1.03)}85%{transform:translateY(0)}}
+@keyframes shad{50%{transform:scale(.6);opacity:.07}}
+.m-toot .trunk{animation:toot 1.4s ease-in-out infinite}.m-toot .headg{animation:nod 1.4s ease-in-out infinite}
+@keyframes toot{0%,100%{transform:rotate(0)}40%,60%{transform:rotate(-58deg)}}@keyframes nod{40%,60%{transform:rotate(-6deg)}}
+.m-dance .whole{animation:sway 1.2s ease-in-out infinite}.m-dance .ear-l,.m-dance .ear-r{animation:flapL .3s ease-in-out infinite alternate}.m-dance .ear-r{animation-name:flapR}
+.m-dance .arm-l{animation:armL .6s ease-in-out infinite alternate}.m-dance .arm-r{animation:armR .6s ease-in-out infinite alternate}
+@keyframes sway{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(8deg) translateY(-6px)}}
+@keyframes armL{to{transform:rotate(60deg)}}@keyframes armR{to{transform:rotate(-60deg)}}
+.rw-duo{display:flex;align-items:flex-end;justify-content:center;gap:4px}
+#rw-nudge .rn-art{overflow:visible}
+#rw-nudge.show .rn-art{animation:none}
