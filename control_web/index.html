@@ -104,10 +104,6 @@ th:first-child,td:first-child{text-align:left}tr.total td{font-weight:700;color:
 <header>
   <a class="homelink" href="/" title="Home"><img src="/logo.png" alt="myTutor home">
   <div><h1>myTutor <span>Control Centre</span></h1><p class="tag">Your second brain · read, reflect, apply</p></div></a>
-  <div class="svc">
-    <div class="pill"><span class="dot" id="d-n8n"></span>n8n automation <span class="muted" id="s-n8n">…</span></div>
-    <div class="pill"><span class="dot" id="d-review"></span>Review app <span class="muted" id="s-review">…</span></div>
-  </div>
 </header>
 
 <div class="wrap">
@@ -201,7 +197,7 @@ async function api(path, body) {
   return r.json();
 }
 function toast(t) { const e = $("toast"); e.textContent = t; e.classList.add("show"); clearTimeout(e._t); e._t = setTimeout(() => e.classList.remove("show"), 2600); }
-function svc(key, up) { $("d-" + key).className = "dot " + (up ? "on" : "off"); $("s-" + key).textContent = up ? "RUNNING" : "STOPPED";
+function svc(key, up) { if (!$("d-" + key)) return; $("d-" + key).className = "dot " + (up ? "on" : "off"); $("s-" + key).textContent = up ? "RUNNING" : "STOPPED";
   const p = $("d-" + key).parentElement; p.classList.toggle("p-up", up); p.classList.toggle("p-down", !up); }
 
 function paint(s) {
