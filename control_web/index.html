@@ -28,6 +28,7 @@ body{background:
 .lg{width:8px;height:8px;border-radius:50%;display:inline-block}.lg.n{background:#3CC4A8;box-shadow:0 0 6px #3CC4A8}.lg.k{background:#F59E0B;box-shadow:0 0 6px #F59E0B}.lg.o{background:#4b5563}
 #brain{width:100%;height:280px;display:block}
 .ctx a,.conn{float:right;text-transform:none;letter-spacing:0;color:var(--teal);font-weight:700}
+.homelink{display:flex;align-items:center;gap:14px;text-decoration:none;color:inherit;border-radius:12px;padding:2px 8px 2px 2px}.homelink:hover{background:var(--panel2)}
 header img{width:34px;height:34px;border-radius:9px}
 header h1{font-size:17px;margin:0;font-weight:700}header h1 span{color:var(--muted);font-weight:500}
 header .tag{margin:0;font-size:12px;color:var(--muted)}
@@ -100,8 +101,8 @@ th:first-child,td:first-child{text-align:left}tr.total td{font-weight:700;color:
 </style></head>
 <body>
 <header>
-  <img src="/logo.png" alt="">
-  <div><h1>myTutor <span>Control Centre</span></h1><p class="tag">Your second brain · read, reflect, apply</p></div>
+  <a class="homelink" href="/" title="Home"><img src="/logo.png" alt="myTutor home">
+  <div><h1>myTutor <span>Control Centre</span></h1><p class="tag">Your second brain · read, reflect, apply</p></div></a>
   <div class="svc">
     <div class="pill"><span class="dot" id="d-n8n"></span>n8n automation <span class="muted" id="s-n8n">…</span></div>
     <div class="pill"><span class="dot" id="d-review"></span>Review app <span class="muted" id="s-review">…</span></div>

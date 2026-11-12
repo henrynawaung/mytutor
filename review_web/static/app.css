@@ -202,3 +202,5 @@ body.hasphoto .takes .tk{background:color-mix(in srgb,var(--panel) 90%,transpare
 .chip.nt-ok{color:var(--muted);border:1px solid var(--line);background:none}
 .weekhead{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px;margin:22px 0 6px;padding-bottom:6px;border-bottom:2px solid var(--brand)}
 .weekhead b{font-size:1.05rem}.weekhead span{color:var(--muted);font-size:.85rem}
+.brand.home{text-decoration:none;color:inherit;border-radius:12px;padding:2px 6px 2px 2px;margin-left:-2px;transition:background .15s}.brand.home:hover{background:var(--chip)}
+.homebtn{display:grid;place-items:center;text-decoration:none;font-size:1.2rem}
