@@ -87,15 +87,16 @@ const CHIME_NOTES = {"bell":[[1046.5,0.0,3.8,"sine",0.12],[1318.5,0.28,3.8,"sine
 /* Kalimba (thumb piano) save tune, about 3 seconds, made in the browser with Web Audio. */
 const KALIMBA = [[72,0,.8,-.2],[76,.13,.7,.2],[79,.26,.75,0],[84,.4,.8,.2],[81,.62,.7,-.2],[79,.75,.7,0],[76,.88,.7,.2],
   [77,1.1,.65,-.2],[76,1.23,.65,0],[74,1.36,.65,.2],[72,1.62,.85,0],[79,1.62,.45,-.2],[84,1.65,.5,.2]];
+const KALIMBA_SHORT = [[72,0,.8,-.2],[76,.1,.7,.2],[79,.2,.75,0],[84,.3,.8,.2],[72,.55,.8,0],[79,.55,.45,-.2],[84,.58,.5,.2]];
 const KALIMBA_BIG = KALIMBA.concat([[88,1.95,.55,.2],[91,2.08,.5,-.2],[96,2.21,.6,0]]);
-function playKalimba(ac, big, dest, volume = .22) {
+function playKalimba(ac, big, dest, volume = .22, short = false) {
   const t0 = ac.currentTime + .03, out = ac.createGain(); out.gain.value = volume;
   const echo = ac.createDelay(); echo.delayTime.value = .13; const fb = ac.createGain(); fb.gain.value = .28; const wet = ac.createGain(); wet.gain.value = .35;
   dest = dest || ac.destination; out.connect(dest); out.connect(echo); echo.connect(fb); fb.connect(echo); echo.connect(wet); wet.connect(dest);
-  for (const [m, t, v, pan] of (big ? KALIMBA_BIG : KALIMBA)) {
+  for (const [m, t, v, pan] of (big ? KALIMBA_BIG : short ? KALIMBA_SHORT : KALIMBA)) {
     const f = 440 * 2 ** ((m - 69) / 12), at = t0 + t, p = ac.createStereoPanner ? ac.createStereoPanner() : ac.createGain();
     if (p.pan) p.pan.value = pan; p.connect(out);
-    for (const [mul, amp, len] of [[1, v, 1.5], [5.4, v * .22, .09]]) {      // tine + its bright "click"
+    for (const [mul, amp, len] of [[1, v, short ? .95 : 1.5], [5.4, v * .22, .09]]) {      // tine + its bright "click"
       const o = ac.createOscillator(), g = ac.createGain(); o.type = "sine"; o.frequency.value = f * mul;
       g.gain.setValueAtTime(0.0001, at); g.gain.exponentialRampToValueAtTime(amp, at + .004); g.gain.exponentialRampToValueAtTime(0.0001, at + len);
       o.connect(g); g.connect(p); o.start(at); o.stop(at + len + .05);
@@ -113,7 +114,7 @@ function playChime(name, big) {
     AC = AC || new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === "suspended") AC.resume();
     if (AC._master) { try { AC._master.gain.cancelScheduledValues(0); AC._master.disconnect(); } catch (e) {} }   // a new chime replaces one still ringing
     AC._master = AC.createGain(); AC._master.connect(AC.destination);
-    if (name === "kalimba") playKalimba(AC, big, AC._master);
+    if (name === "kalimba" || name === "kalimba-short") playKalimba(AC, big, AC._master, .22, name === "kalimba-short" && !big);
     else playNotes(big ? CHIME_NOTES.fanfare : (CHIME_NOTES[name] || CHIME_NOTES.bell), AC.currentTime + .02);
   } catch (e) {}
 }
@@ -155,7 +156,7 @@ const CHEERS = {approve: ["Note approved!", "Another one done!", "Sharp work!", 
   fix: ["Flagged for fixing!", "Good catch!"], edit: ["Take polished!", "Sharper now!"]};
 const ELLIE_LOOK = {approve: ["", "m-wave"], take: ["boss", "m-toot"], edit: ["boss", "m-toot"], answer: ["graduate", "m-wave"], fix: ["", "m-toot"],
   five: ["party", "m-dance"], goal: ["champion", "m-dance"]};
-function nudge(kinds, r, moment) {       // Ellie's achievement card, shown while the tune plays
+function nudge(kinds, r, moment, update) {       // Ellie's achievement card, shown while the tune plays
   const s = getSet(); if (s.rewards === "off") return;
   const map = {approve: "approved", take: "takes", answer: "reflections", fix: "approved", edit: "takes"};
   const k = ["approve", "take", "answer", "fix", "edit"].find(x => kinds.includes(x)); if (!k) return;
@@ -163,7 +164,8 @@ function nudge(kinds, r, moment) {       // Ellie's achievement card, shown whil
   const bd = BADGES.find(x => x.stat === c.stat), nb = bd && bd.at.find(t => v < t), goal = typeof weeklyGoal === "function" ? weeklyGoal() : 25;
   let pct = nextT ? Math.round((v - prevT) / (nextT - prevT) * 100) : 100;
   const both = kinds.includes("approve") && kinds.includes("take") ? " + take saved" : "";
-  let kick = "🏅 Achievement", title = CHEERS[k][Math.floor(Math.random() * CHEERS[k].length)] + both,
+  if (!update || !nudge._cheer) nudge._cheer = CHEERS[k][Math.floor(Math.random() * CHEERS[k].length)];
+  let kick = "🏅 Achievement", title = nudge._cheer + both,
       line1 = `${c.name} · ${L ? "level " + L : "on the way"} · ${v} ${c.unit}`,
       line2 = nextT ? `${nextT - v} more to ${c.name} level ${L + 1}` : nb ? `${nb - v} more to the ${nb} badge` : "Fully grown 👑";
   if (moment === "five") { kick = "🎉 Party time"; title = `${v} ${c.unit}!`; line2 = `Every 5 is a party. Next one at ${v + 5}.`; }
@@ -172,9 +174,10 @@ function nudge(kinds, r, moment) {       // Ellie's achievement card, shown whil
   let el = document.getElementById("rw-nudge"); if (!el) { el = document.createElement("div"); el.id = "rw-nudge"; document.body.appendChild(el); el.onclick = () => el.classList.remove("show"); }
   el.innerHTML = `<div class="rn-art ${motion}">${ellie(costume, 92)}</div><div class="rn-txt"><span class="rn-kick">${kick}</span><b>${title}</b>
     <small>${line1}</small><div class="cbar"><i></i></div><small>${line2}</small></div>`;
-  el.classList.remove("show"); void el.offsetWidth; el.classList.add("show");
-  const bar = el.querySelector(".cbar i"); bar.style.width = "0%"; setTimeout(() => bar.style.width = Math.max(4, pct) + "%", 250);
-  clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove("show"), moment ? 5200 : 4000);
+  const keep = update && el.classList.contains("show") && !moment;   // refresh the numbers without replaying the entrance
+  if (!keep) { el.classList.remove("show"); void el.offsetWidth; el.classList.add("show"); }
+  const bar = el.querySelector(".cbar i"); bar.style.width = keep ? Math.max(4, pct) + "%" : "0%"; if (!keep) setTimeout(() => bar.style.width = Math.max(4, pct) + "%", 120);
+  if (!keep) { clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove("show"), moment ? 5200 : 4000); }
 }
 
 /* ---------- party poppers & fireworks (one full-screen canvas, clicks pass through) ---------- */
@@ -288,7 +291,7 @@ async function refreshRewards(kinds) {
     const goalHit = prev.approved_week != null && prev.approved_week < goal && r.approved_week >= goal;
     const five = ["approved", "takes", "reflections"].find(k => statOf(r, k) > (prev[k] || 0) && statOf(r, k) % 5 === 0);
     const moment = goalHit ? "goal" : five ? "five" : null;
-    nudge(kinds, r, moment);
+    nudge(kinds, r, moment, true);
     if (moment === "goal") { playChime(null, true); fireworks(); popSound(5, .5); }    // weekly goal: fireworks
     else if (moment === "five") { partyPopper(); popSound(2, 0); }                     // every 5th: party poppers
   }
@@ -298,6 +301,11 @@ function rewardsTick(path) {                         // called after every succe
   const kind = ({"/api/approve": "approve", "/api/take": "take", "/api/answer": "answer", "/api/take-edit": "edit", "/api/needs-fix": "fix"})[path];
   if (!kind) return;
   pend.push(kind); if (pendT) return;
+  if (RW && getSet().rewards !== "off") {           // show Ellie *with* the sound, using a quick estimate; real numbers fill in a moment later
+    const est = Object.assign({}, RW), st = {approve: "approved", take: "takes", answer: "reflections"}[kind];
+    if (st) est[st] = (est[st] || 0) + 1; if (kind === "approve") est.approved_week = (est.approved_week || 0) + 1;
+    nudge([kind], est, null);
+  }
   playChime();
   pendT = setTimeout(() => { const k = pend; pend = []; pendT = null; refreshRewards(k); }, 300);
 }
