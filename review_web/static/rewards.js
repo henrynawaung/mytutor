@@ -69,6 +69,7 @@ function unlockedKeys(r) {
   for (const c of CREW) for (let l = 1; l <= levelOf(c, r); l++) out.push(`c:${c.id}:${l}`);
   for (const b of BADGES) for (const t of b.at) if (statOf(r, b.stat) >= t) out.push(`b:${b.stat}:${t}`);
   for (const c of r.courses_done || []) out.push(`course:${c}`);
+  for (let i = 1; i <= rankOf(xpOf(r)); i++) out.push(`rank:${i}`);
   return out;
 }
 function seenGet() { try { return JSON.parse(localStorage.getItem("mytutor-rewards-seen") || "null"); } catch (e) { return null; } }
@@ -133,7 +134,7 @@ function celebrate(item) { queue.push(item); if (!showing) nextCelebration(); }
 function nextCelebration() {
   const it = queue.shift(); if (!it) { showing = false; return; } showing = true;
   const m = document.createElement("div"); m.className = "reward-modal";
-  m.innerHTML = `<div class="rw-card"><div class="rw-confetti"></div><div class="rw-art"><div class="rw-duo">${it.art}<div class="m-jump">${ellie("graduate", 120)}</div></div></div><div class="rw-kicker">${it.kicker}</div>
+  m.innerHTML = `<div class="rw-card"><div class="rw-confetti"></div><div class="rw-art">${it.ellieDone ? it.art : `<div class="rw-duo">${it.art}<div class="m-jump">${ellie("graduate", 120)}</div></div>`}</div><div class="rw-kicker">${it.kicker}</div>
     <h2>${it.title}</h2><p>${it.text}</p><button class="b ok" type="button">Nice! Keep going</button></div>`;
   document.body.appendChild(m); confetti(m.querySelector(".rw-confetti")); playChime(null, true); fireworks(); popSound(5, .5);
   const close = () => { m.classList.add("out"); setTimeout(() => { m.remove(); nextCelebration(); }, 220); };
@@ -148,6 +149,9 @@ function describe(key, r) {
       text: `${c.role} · ${c.lv[L - 1]} ${c.unit}${L < 3 ? ` · next level at ${c.lv[L]}` : " · fully grown 👑"}`}; }
   if (k === "b") { const bd = BADGES.find(x => x.stat === a), t = +b, i = bd.at.indexOf(t);
     return {art: badgeHTML(bd, t, i, true, true), kicker: "Badge earned!", title: `${t} ${bd.unit}`, text: i + 1 < bd.at.length ? `Next badge at ${bd.at[i + 1]}.` : "That is the top badge. Legendary."}; }
+  if (k === "rank") { const R = RANKS[+a], w = WARDROBE.find(x => x.rank === +a && x.id);
+    return {art: `<div class="m-dance">${ellie(w ? w.id : "champion", 150)}</div>`, kicker: "🎖 Promotion!", ellieDone: true,
+      title: `You are now ${R.icon} ${R.name}`, text: `${xpOf(RW).toLocaleString()} XP.${w ? ` New outfit unlocked for Ellie: ${w.name}.` : ""}${RANKS[+a + 1] ? ` Next: ${RANKS[+a + 1].name} at ${RANKS[+a + 1].xp.toLocaleString()} XP.` : " The top of the ladder!"}`}; }
   return {art: charSVG("dragon", 1, 150), kicker: "Course complete!", title: `${a} fully approved`, text: "Every note in this course is reviewed. Boardroom ready."};
 }
 const CHEERS = {approve: ["Note approved!", "Another one done!", "Sharp work!", "On a roll!", "Board-ready thinking!"],
@@ -170,13 +174,17 @@ function nudge(kinds, r, moment, update) {       // Ellie's achievement card, sh
       line2 = nextT ? `${nextT - v} more to ${c.name} level ${L + 1}` : nb ? `${nb - v} more to the ${nb} badge` : "Fully grown 👑";
   if (moment === "five") { kick = "🎉 Party time"; title = `${v} ${c.unit}!`; line2 = `Every 5 is a party. Next one at ${v + 5}.`; }
   if (moment === "goal") { kick = "👑 Weekly goal"; title = `${r.approved_week} / ${goal}: goal reached!`; line1 = `🔥 ${r.week_streak || 0}-week streak · boardroom ready`; line2 = "Anything more this week is a bonus."; pct = 100; }
-  const [costume, motion] = ELLIE_LOOK[moment || k];
+  let [costume, motion] = ELLIE_LOOK[moment || k];
+  const pick = chosenCostume(); if (pick !== null && !moment) costume = pick;
+  const gained = Math.max(0, xpOf(r) - xpOf(update ? RW_PREV : RW)), xpTxt = gained ? `<span class="rn-xp">+${gained} XP</span>` : "";
+  if (combo >= 2 && !moment) kick = `🔥 Combo x${combo}`;
   let el = document.getElementById("rw-nudge"); if (!el) { el = document.createElement("div"); el.id = "rw-nudge"; document.body.appendChild(el); el.onclick = () => el.classList.remove("show"); }
-  el.innerHTML = `<div class="rn-art ${motion}">${ellie(costume, 92)}</div><div class="rn-txt"><span class="rn-kick">${kick}</span><b>${title}</b>
+  el.innerHTML = `<div class="rn-art ${motion}">${ellie(costume, 92)}</div><div class="rn-txt"><span class="rn-kick">${kick}</span>${xpTxt}<b>${title}</b>
     <small>${line1}</small><div class="cbar"><i></i></div><small>${line2}</small></div>`;
   const keep = update && el.classList.contains("show") && !moment;   // refresh the numbers without replaying the entrance
   if (!keep) { el.classList.remove("show"); void el.offsetWidth; el.classList.add("show"); }
   const bar = el.querySelector(".cbar i"); bar.style.width = keep ? Math.max(4, pct) + "%" : "0%"; if (!keep) setTimeout(() => bar.style.width = Math.max(4, pct) + "%", 120);
+  el.classList.toggle("combo", combo >= 3 && !moment);
   if (!keep) { clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove("show"), moment ? 5200 : 4000); }
 }
 
@@ -257,7 +265,12 @@ function fillCrew() {
   box.innerHTML = `<h2 id="crew">🌟 My crew</h2><p class="muted">Your study companions grow as you approve notes, write takes, reflect and keep your week streak.</p>
     <div class="crew-grid">${CREW.map(c => crewCard(c, r)).join("")}</div>
     <h2>🏅 Badges <small class="muted">${earned.length} earned</small></h2><div class="badges">${earned.join("") || '<p class="muted">Your first badge is close. See below.</p>'}</div>
-    <p class="weekline"><b>Up next</b></p><div class="badges next">${next.join("")}</div>`;
+    <p class="weekline"><b>Up next</b></p><div class="badges next">${next.join("")}</div>
+    <h2>🎖 Career ladder <small class="muted">${xpOf(r).toLocaleString()} XP</small></h2><div class="ladder">${RANKS.map((R, i) => `<div class="rung${i <= rankOf(xpOf(r)) ? " got" : ""}${i === rankOf(xpOf(r)) ? " now" : ""}"><span>${R.icon}</span><b>${R.name}</b><small>${R.xp.toLocaleString()} XP</small></div>`).join("")}</div>
+    <p class="muted small">XP: approve a note +10 · write a take +25 · answer a reflection +15 · each memory line +20</p>
+    <h2>👗 Ellie's wardrobe</h2><div class="wardrobe">${[{id: "auto", name: "Auto (fits the moment)", rank: 0}].concat(WARDROBE).map(w => { const open = w.id === "auto" || rankOf(xpOf(r)) >= w.rank, cur = (getSet().ellie || "auto") === (w.id === "" ? "everyday" : w.id);
+      return `<button class="wcard${open ? "" : " locked"}${cur ? " on" : ""}" data-ellie="${w.id === "" ? "everyday" : w.id}" ${open ? "" : "disabled"}>${ellie(w.id === "auto" ? "" : w.id, 84)}<b>${w.name}</b><small>${open ? (cur ? "Wearing" : "Tap to wear") : "Unlocks at " + RANKS[w.rank].name}</small></button>`; }).join("")}</div>`;
+  box.querySelectorAll("[data-ellie]").forEach(b => b.onclick = () => { saveSet("ellie", b.dataset.ellie); fillCrew(); const n = document.getElementById("rw-nudge"); });
   box.querySelectorAll("[data-w]").forEach(i => i.style.width = i.dataset.w + "%");   // CSP: no inline style attributes
 }
 function fillCrewRow() {
@@ -272,10 +285,85 @@ async function openCrew() {
   setTimeout(() => { const h = document.getElementById("crew"); if (h) h.scrollIntoView({behavior: "smooth", block: "start"}); }, 350);
 }
 
+
+/* ---------- XP & career ladder, combo, Ellie's wardrobe, quote of the day ---------- */
+const XP_PER = {approved: 10, takes: 25, reflections: 15, memory_lines: 20};
+function xpOf(r) { return r ? Object.entries(XP_PER).reduce((a, [k, v]) => a + (r[k] || 0) * v, 0) : 0; }
+const RANKS = [
+  {name: "Analyst", xp: 0, icon: "📋"}, {name: "Senior Analyst", xp: 500, icon: "📈", unlock: "party"},
+  {name: "Manager", xp: 1200, icon: "🧭", unlock: "graduate"}, {name: "Senior Manager", xp: 2200, icon: "🗂️"},
+  {name: "Director", xp: 3500, icon: "🎯", unlock: "boss"}, {name: "Vice President", xp: 5500, icon: "🚀"},
+  {name: "C-suite", xp: 8000, icon: "🏛️", unlock: "champion"}, {name: "Board Chair", xp: 12000, icon: "👑"}];
+function rankOf(xp) { let i = 0; RANKS.forEach((r, k) => { if (xp >= r.xp) i = k; }); return i; }
+const WARDROBE = [
+  {id: "", name: "Everyday", rank: 0}, {id: "party", name: "Party hat", rank: 1}, {id: "graduate", name: "Graduate", rank: 2},
+  {id: "boss", name: "C-suite", rank: 4}, {id: "champion", name: "Champion", rank: 6}];
+function wardrobeOpen(id) { const w = WARDROBE.find(x => x.id === id); return !!w && RW && rankOf(xpOf(RW)) >= w.rank; }
+function chosenCostume() { const c = getSet().ellie; return c && c !== "auto" && wardrobeOpen(c === "everyday" ? "" : c) ? (c === "everyday" ? "" : c) : null; }
+
+let combo = 0, lastSave = 0;
+function bumpCombo() { const now = Date.now(); combo = now - lastSave < 180e3 ? combo + 1 : 1; lastSave = now; return combo; }
+
+function fillRank() {
+  const row = document.getElementById("td-rank"); if (!row || !RW) return;
+  const xp = xpOf(RW), i = rankOf(xp), R = RANKS[i], N = RANKS[i + 1];
+  const pct = N ? Math.round((xp - R.xp) / (N.xp - R.xp) * 100) : 100;
+  row.innerHTML = `<div class="rk-top"><span class="rk-badge">${R.icon}</span><div><b>${R.name}</b><small>${xp.toLocaleString()} XP${N ? ` · ${(N.xp - xp).toLocaleString()} to ${N.name}` : " · top of the ladder"}</small></div></div><div class="td-bar rk-bar"><i></i></div>`;
+  row.querySelector(".rk-bar i").style.width = Math.max(3, pct) + "%";
+}
+
+const QUOTES = [
+  ["The best way to predict the future is to create it.", "attributed to Peter Drucker"],
+  ["Management is doing things right; leadership is doing the right things.", "Peter Drucker"],
+  ["The greatest danger in times of turbulence is not the turbulence; it is to act with yesterday's logic.", "Peter Drucker"],
+  ["Culture eats strategy for breakfast.", "attributed to Peter Drucker"],
+  ["The essence of strategy is choosing what not to do.", "Michael Porter"],
+  ["Leadership is the capacity to translate vision into reality.", "Warren Bennis"],
+  ["A leader is one who knows the way, goes the way, and shows the way.", "John C. Maxwell"],
+  ["Before you are a leader, success is all about growing yourself. When you become a leader, success is all about growing others.", "Jack Welch"],
+  ["Change before you have to.", "Jack Welch"],
+  ["Innovation distinguishes between a leader and a follower.", "Steve Jobs"],
+  ["Your most unhappy customers are your greatest source of learning.", "Bill Gates"],
+  ["If you are not embarrassed by the first version of your product, you've launched too late.", "Reid Hoffman"],
+  ["People don't buy what you do; they buy why you do it.", "Simon Sinek"],
+  ["Leadership is not about being in charge. It is about taking care of those in your charge.", "Simon Sinek"],
+  ["The function of leadership is to produce more leaders, not more followers.", "Ralph Nader"],
+  ["Vision without execution is hallucination.", "attributed to Thomas Edison"],
+  ["It always seems impossible until it's done.", "Nelson Mandela"],
+  ["Education is the most powerful weapon which you can use to change the world.", "Nelson Mandela"],
+  ["Success is not final, failure is not fatal: it is the courage to continue that counts.", "attributed to Winston Churchill"],
+  ["Strategy without tactics is the slowest route to victory. Tactics without strategy is the noise before defeat.", "attributed to Sun Tzu"],
+  ["We are what we repeatedly do. Excellence, then, is not an act, but a habit.", "Will Durant"],
+  ["An investment in knowledge pays the best interest.", "Benjamin Franklin"],
+  ["Live as if you were to die tomorrow. Learn as if you were to live forever.", "attributed to Mahatma Gandhi"],
+  ["Price is what you pay. Value is what you get.", "Warren Buffett"],
+  ["Risk comes from not knowing what you're doing.", "Warren Buffett"],
+  ["Whether you think you can, or you think you can't, you're right.", "attributed to Henry Ford"],
+  ["Coming together is a beginning, staying together is progress, and working together is success.", "attributed to Henry Ford"],
+  ["Quality means doing it right when no one is looking.", "attributed to Henry Ford"],
+  ["Ideas are easy. Implementation is hard.", "Guy Kawasaki"],
+  ["If you want to go fast, go alone. If you want to go far, go together.", "proverb"],
+  ["The secret of getting ahead is getting started.", "attributed to Mark Twain"],
+  ["Done is better than perfect.", "Sheryl Sandberg"],
+  ["A goal without a plan is just a wish.", "attributed to Antoine de Saint-Exupéry"],
+  ["Learning never exhausts the mind.", "attributed to Leonardo da Vinci"],
+  ["The only way to do great work is to love what you do.", "Steve Jobs"],
+  ["Patience, persistence and perspiration make an unbeatable combination for success.", "Napoleon Hill"]];
+let qIdx = null;
+function showQuote(step) {
+  const t = document.getElementById("td-qtext"); if (!t) return;
+  const day = Math.floor((Date.now() - new Date().getTimezoneOffset() * 60e3) / 864e5);
+  qIdx = qIdx === null ? day % QUOTES.length : (qIdx + step + QUOTES.length) % QUOTES.length;
+  const [q, by] = QUOTES[qIdx]; t.textContent = "“" + q + "”"; document.getElementById("td-qby").textContent = "— " + by;
+}
+window.fillRank = fillRank; window.showQuote = showQuote;
+const qn = document.getElementById("td-qnext"); if (qn) qn.onclick = () => showQuote(1);
+showQuote(0);
+
 /* ---------- the loop ---------- */
 async function refreshRewards(kinds) {
   let r; try { r = await api("/api/rewards"); } catch (e) { return; }
-  RW_PREV = RW; RW = r; fillCrewRow(); fillCrew();
+  RW_PREV = RW; RW = r; fillCrewRow(); fillCrew(); fillRank();
   const keys = unlockedKeys(r), seen = seenGet();
   if (seen === null) {                              // first time: welcome, don't replay every past unlock
     seenSet(keys);
@@ -283,7 +371,9 @@ async function refreshRewards(kinds) {
       kicker: "Meet your crew!", title: "Your study rewards are here", text: `You have already earned ${keys.filter(k => k.startsWith("b:") || k.startsWith("course:")).length} badges and ${CREW.filter(c => levelOf(c, r)).length} crew members. They grow as you keep going.`});
     return;
   }
-  const fresh = keys.filter(k => !seen.includes(k)); seenSet([...new Set([...seen, ...keys])]);
+  let fresh = keys.filter(k => !seen.includes(k)); seenSet([...new Set([...seen, ...keys])]);
+  const newRanks = fresh.filter(k => k.startsWith("rank:"));                 // a promotion: celebrate only the highest new rank, first
+  if (newRanks.length) fresh = [newRanks[newRanks.length - 1], ...fresh.filter(k => !k.startsWith("rank:"))];
   if (getSet().rewards === "off") return;
   if (fresh.length) fresh.slice(0, 4).forEach(k => celebrate(describe(k, r)));
   else if (kinds && kinds.length) {
@@ -301,6 +391,7 @@ function rewardsTick(path) {                         // called after every succe
   const kind = ({"/api/approve": "approve", "/api/take": "take", "/api/answer": "answer", "/api/take-edit": "edit", "/api/needs-fix": "fix"})[path];
   if (!kind) return;
   pend.push(kind); if (pendT) return;
+  if (kind !== "edit") bumpCombo();
   if (RW && getSet().rewards !== "off") {           // show Ellie *with* the sound, using a quick estimate; real numbers fill in a moment later
     const est = Object.assign({}, RW), st = {approve: "approved", take: "takes", answer: "reflections"}[kind];
     if (st) est[st] = (est[st] || 0) + 1; if (kind === "approve") est.approved_week = (est.approved_week || 0) + 1;

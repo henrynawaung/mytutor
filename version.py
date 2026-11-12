@@ -1,7 +1,7 @@
 """myTutor release version, shown at the bottom left of every myTutor page."""
-VERSION = "4.2.2"
+VERSION = "4.3"
 RELEASED = "2026-11-12"
-NOTES = "Review app: Today card, rewards (Ellie, crew, badges, kalimba), weekly goal setting"
+NOTES = "Gamification: XP & career ladder, combo streak, Ellie wardrobe, quote of the day"
 
 
 def label() -> str:

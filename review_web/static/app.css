@@ -451,3 +451,30 @@ main.collapsed~.actions{left:0}
 .td-time{font-weight:600;letter-spacing:-.01em}
 :root[data-size=l] .today,:root[data-size=xl] .today{grid-template-columns:auto minmax(0,1fr)}
 :root[data-size=l] .td-wx,:root[data-size=xl] .td-wx{justify-self:end;text-align:right}
+
+/* XP & ranks, combo, wardrobe, quote */
+.td-rank,.td-quote{grid-column:1/-1}
+.rk-top{display:flex;align-items:center;gap:10px}.rk-top b{display:block;font-size:.95em}.rk-top small{color:var(--muted);font-size:.78em}
+.rk-badge{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-size:1.2em;background:linear-gradient(135deg,#7c5ce0,#4dabf7);box-shadow:0 2px 8px rgba(124,92,224,.35)}
+.rk-bar{margin-top:7px}.rk-bar i{background:linear-gradient(90deg,#7c5ce0,#4dabf7)}
+.td-quote{border-top:1px solid var(--line);padding-top:9px}
+.td-quote blockquote{margin:5px 0 2px;font-size:.9em;line-height:1.4;font-style:italic}
+.td-qby{color:var(--muted);font-size:.75em}
+@media (max-height:840px){.td-quote{display:none!important}}
+.rn-xp{display:inline-block;margin-left:8px;font-size:.72em;font-weight:800;color:#7c5ce0;background:color-mix(in srgb,#7c5ce0 16%,transparent);border-radius:8px;padding:1px 7px;animation:xpup .9s ease-out}
+@keyframes xpup{from{transform:translateY(8px) scale(.6);opacity:0}}
+#rw-nudge.combo{border-left-color:#ff6b6b;box-shadow:0 0 0 2px color-mix(in srgb,#ff922b 45%,transparent),0 10px 30px rgba(0,0,0,.3);animation:comboglow 1s ease-in-out infinite alternate}
+#rw-nudge.combo .rn-kick{color:#ff6b6b}
+@keyframes comboglow{to{box-shadow:0 0 18px 4px color-mix(in srgb,#ff922b 50%,transparent),0 10px 30px rgba(0,0,0,.3)}}
+.ladder{display:flex;flex-wrap:wrap;gap:8px}
+.rung{flex:1 1 110px;border:1px solid var(--line);border-radius:12px;padding:8px 10px;background:var(--panel);opacity:.5;display:flex;flex-direction:column;gap:1px}
+.rung span{font-size:1.3em}.rung small{color:var(--muted);font-size:.75em}
+.rung.got{opacity:1}.rung.now{border-color:#7c5ce0;box-shadow:0 0 0 2px color-mix(in srgb,#7c5ce0 35%,transparent)}
+.wardrobe{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.wcard{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px 6px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;color:var(--ink);font:inherit}
+.wcard:hover:not(:disabled){transform:translateY(-2px)}.wcard.on{border-color:var(--brand);box-shadow:0 0 0 2px color-mix(in srgb,var(--brand) 40%,transparent)}
+.wcard small{color:var(--muted);font-size:.75em}.wcard.locked{cursor:default}.wcard.locked .ellie{filter:grayscale(1) brightness(.4);opacity:.5}
+#rw-nudge .rn-xp{align-self:flex-start;margin:2px 0 0}
+.ladder{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr))}
+.rung b{font-size:.9em;line-height:1.2}
+.td-wx{padding-left:8px}
