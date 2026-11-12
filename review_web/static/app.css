@@ -254,3 +254,10 @@ aside{background:var(--panel)}
 .grphead b{color:var(--ink)}
 .item .itxt b{color:color-mix(in srgb,var(--ink) 92%,var(--muted))}
 .item.on .itxt b{color:var(--ink)}
+.collapse{width:auto;padding:0 10px;font-weight:600;font-size:.8rem;color:var(--brand);border-color:color-mix(in srgb,var(--brand) 45%,var(--line))}
+.rail{width:auto;height:auto;padding:10px 8px;writing-mode:vertical-rl;transform:rotate(180deg);font-weight:600;font-size:.8rem;color:var(--brand)}
+.tgrp{margin:2px 0}
+.tgrphead{display:flex;align-items:center;gap:6px;width:100%;border:0;background:none;color:var(--muted);font:inherit;font-size:.8rem;padding:5px 8px;border-radius:7px;cursor:pointer;text-align:left}
+.tgrphead:hover{background:var(--chip);color:var(--ink)}.tgrphead .cnt{margin-left:auto;font-size:.7rem;background:var(--chip);border-radius:999px;padding:0 7px}
+.tgrphead .chev{font-size:.65rem;transition:transform .15s}.tgrp.open>.tgrphead .chev{transform:rotate(90deg)}
+.tgrp .item{margin-left:12px}

@@ -77,7 +77,7 @@ function renderList() {
       <span><button class="linkbtn" data-grp="open">expand all</button> · <button class="linkbtn" data-grp="close">collapse all</button></span></div>`
     + groups.map(g => { const open = q || openGroups.has(g.key);
       return `<div class="grp${open ? " open" : ""}"><button class="grphead" data-g="${esc(g.key)}"><span class="chev">▸</span><b>${esc(g.key)}</b><span class="cnt">${g.items.length}</span></button>
-        ${open ? `<div class="grpbody">${g.items.map(row).join("")}</div>` : ""}</div>`; }).join("");
+        ${open ? `<div class="grpbody">${typeGroups(g, row, q)}</div>` : ""}</div>`; }).join("");
 }
 async function load() {
   S = await api("/api/summary");
@@ -170,7 +170,7 @@ async function openDay(card) {
   body.dataset.loaded = "1";
 }
 let curIdx = 0, openQ = null;
-const openGroups = new Set();
+const openGroups = new Set(), openTypes = new Set();
 function next() {
   const f = mode === "journals" ? S.journals : filtered();
   const i = f.findIndex(x => cur && x.rel === cur.rel);
@@ -231,10 +231,12 @@ function setMode(m) {
   renderList();
 }
 document.addEventListener("click", async e => {
+  const th = e.target.closest("[data-t]");
+  if (th) { const k = th.dataset.t; openTypes.has(k) ? openTypes.delete(k) : openTypes.add(k); return renderList(); }
   const gh = e.target.closest("[data-g]");
   if (gh) { const k = gh.dataset.g; openGroups.has(k) ? openGroups.delete(k) : openGroups.add(k); return renderList(); }
   const ga = e.target.closest("[data-grp]");
-  if (ga) { if (ga.dataset.grp === "open") document.querySelectorAll("[data-g]").forEach(b => openGroups.add(b.dataset.g)); else openGroups.clear(); return renderList(); }
+  if (ga) { if (ga.dataset.grp === "open") document.querySelectorAll("[data-g]").forEach(b => openGroups.add(b.dataset.g)); else { openGroups.clear(); openTypes.clear(); } return renderList(); }
   const op = e.target.closest("[data-open]");
   if (op) { setMode(op.dataset.kind); return openNote(op.dataset.open); }
   const ih = e.target.closest(".dayitemhead");
@@ -435,4 +437,18 @@ function weekHeader(d, days) {
   const now = weekMonday(new Date().toISOString().slice(0, 10)).toDateString() === key;
   return `<div class="weekhead"><b>${now ? "This week" : "Week"} · ${esc(f(m))} – ${esc(f(sun))}</b>
     <span>${sum("approve")} approved · ${sum("my-take")} takes · ${sum("answer")} reflections · ${wk.length} active day${wk.length === 1 ? "" : "s"}</span></div>`;
+}
+
+// inside a day: fold by kind (sources, cases, concepts, hubs), so a 66-note day shows 3–4 short lines
+const KINDS = [["reference", "📖", "Sources"], ["case", "🏢", "Cases"], ["core", "💡", "Concepts"], ["hub", "🔗", "Hubs"]];
+function typeGroups(g, row, q) {
+  return KINDS.map(([k, ico, label]) => {
+    const items = g.items.filter(i => i.type === k); if (!items.length) return "";
+    const key = g.key + "|" + k, has = cur && items.some(i => i.rel === cur.rel);
+    if (has) openTypes.add(key);
+    const open = q || openTypes.has(key) || items.length <= 3;
+    const done = items.filter(i => i.status === "reviewed").length;
+    return `<div class="tgrp${open ? " open" : ""}"><button class="tgrphead" data-t="${esc(key)}"><span class="chev">▸</span>${ico} ${label}<span class="cnt">${done ? done + "/" : ""}${items.length}</span></button>
+      ${open ? items.map(row).join("") : ""}</div>`;
+  }).join("");
 }
