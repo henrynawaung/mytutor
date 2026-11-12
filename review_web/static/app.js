@@ -37,7 +37,21 @@ function md(t) {
 }
 function filtered() {
   const c = $("f-course").value, s = $("f-status").value, ty = $("f-type").value, q = $("f-q").value.trim().toLowerCase();
-  return S.items.filter(i => (!c || i.course === c) && (!s || i.status === s) && (!ty || i.type === ty) && (!q || i.title.toLowerCase().includes(q)));
+  return S.items.filter(i => (!c || i.course === c) && (!s || i.status === s) && (!ty || i.type === ty) && (!q || i.title.toLowerCase().includes(q)))
+    .sort(byCourseDay);
+}
+// Library order: course A-Z, then Day 1, 2 … 10 (or dates oldest first), Hubs last; notes keep their order inside a day
+function dayRank(i) {
+  if (i.rel.startsWith("Hubs/")) return [2, 0, ""];
+  const d = String(i.day || "");
+  if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return [0, 0, d];
+  const m = d.match(/day[\s-]*(\d+)/i); if (m) return [0, +m[1], ""];
+  return [1, 0, d];
+}
+function byCourseDay(a, b) {
+  const c = String(a.course || "").localeCompare(String(b.course || "")); if (c) return c;
+  const x = dayRank(a), y = dayRank(b);
+  return x[0] - y[0] || x[1] - y[1] || x[2].localeCompare(y[2]);
 }
 function renderProg() {
   if ($("today") && todayOn().has("week")) renderWeek();
