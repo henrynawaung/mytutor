@@ -78,24 +78,22 @@ function seenSet(a) { try { localStorage.setItem("mytutor-rewards-seen", JSON.st
 let AC = null;
 function tone(f, t0, dur, type = "sine", vol = .14) {
   const o = AC.createOscillator(), g = AC.createGain();
-  o.type = type; o.frequency.value = f; o.connect(g); g.connect(AC.destination);
+  o.type = type; o.frequency.value = f; o.connect(g); g.connect(AC._master || AC.destination);
   g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(vol, t0 + .015); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
   o.start(t0); o.stop(t0 + dur + .05);
 }
-const CHIMES = {
-  bell: t => { tone(1046.5, t, .9); tone(1318.5, t + .12, 1.1); },
-  coin: t => { tone(987.8, t, .09, "square", .07); tone(1318.5, t + .08, .45, "square", .07); },
-  marimba: t => { [784, 1046.5, 1318.5].forEach((f, i) => tone(f, t + i * .09, .35, "triangle", .16)); },
-  sparkle: t => { [1568, 2093, 2637, 3136].forEach((f, i) => tone(f, t + i * .06, .5, "sine", .07)); },
-  harp: t => { [523.3, 659.3, 784, 1046.5].forEach((f, i) => tone(f, t + i * .05, .9, "triangle", .1)); },
-};
+// [frequency Hz, start s, length s, wave, volume]: short melody + soft fading chord, about 5-7 seconds
+const CHIME_NOTES = {"bell":[[1046.5,0.0,3.8,"sine",0.12],[1318.5,0.28,3.8,"sine",0.12],[1568.0,0.56,3.8,"sine",0.12],[2093.0,0.95,4.2,"sine",0.08],[523.3,0.95,4.3,"sine",0.045],[784.0,0.95,4.3,"sine",0.045]],"coin":[[987.8,0,0.1,"square",0.06],[1318.5,0.09,0.6,"square",0.06],[1318.5,0.6,1.0,"triangle",0.07],[1661.2,0.75,1.0,"triangle",0.07],[1975.5,0.9,1.0,"triangle",0.07],[659.3,0.95,4.4,"sine",0.045],[987.8,0.95,4.4,"sine",0.045],[1318.5,0.95,4.4,"sine",0.045]],"marimba":[[784.0,0.0,0.7,"triangle",0.15],[1046.5,0.18,0.7,"triangle",0.15],[1318.5,0.36,0.7,"triangle",0.15],[1568.0,0.54,0.7,"triangle",0.15],[1318.5,0.72,0.7,"triangle",0.15],[1046.5,0.9,0.7,"triangle",0.15],[523.3,1.05,4.3,"sine",0.05],[659.3,1.05,4.3,"sine",0.05],[784.0,1.05,4.3,"sine",0.05]],"sparkle":[[1568.0,0.0,1.6,"sine",0.06],[2093.0,0.13,1.6,"sine",0.06],[2637.0,0.26,1.6,"sine",0.06],[3136.0,0.39,1.6,"sine",0.06],[2637.0,0.52,1.6,"sine",0.06],[2093.0,0.65,1.6,"sine",0.06],[1568.0,0.78,1.6,"sine",0.06],[1318.5,0.91,1.6,"sine",0.06],[1046.5,0.9,4.4,"sine",0.035],[1568.0,0.9,4.4,"sine",0.035]],"harp":[[261.6,0.0,3.0,"triangle",0.09],[329.6,0.11,3.0,"triangle",0.09],[392.0,0.22,3.0,"triangle",0.09],[523.3,0.33,3.0,"triangle",0.09],[659.3,0.44,3.0,"triangle",0.09],[784.0,0.55,3.0,"triangle",0.09],[1046.5,0.66,3.0,"triangle",0.09],[1318.5,0.77,3.0,"triangle",0.09],[1046.5,1.1,3.2,"triangle",0.07],[784.0,1.26,3.2,"triangle",0.07],[659.3,1.42,3.2,"triangle",0.07],[523.3,1.6,3.8,"sine",0.035],[659.3,1.6,3.8,"sine",0.035],[784.0,1.6,3.8,"sine",0.035]],"fanfare":[[523.3,0.0,0.45,"triangle",0.14],[659.3,0.16,0.45,"triangle",0.14],[784.0,0.32,0.45,"triangle",0.14],[1046.5,0.5,1.2,"triangle",0.14],[784.0,1.25,0.5,"triangle",0.12],[1046.5,1.45,0.5,"triangle",0.12],[1318.5,1.7,1.6,"triangle",0.13],[261.6,2.2,4.6,"triangle",0.05],[523.3,2.2,4.6,"triangle",0.05],[659.3,2.2,4.6,"triangle",0.05],[784.0,2.2,4.6,"triangle",0.05],[1046.5,2.2,4.6,"triangle",0.05],[1318.5,2.2,4.6,"triangle",0.05]]};
+function playNotes(notes, t) {
+  for (const [f, t0, d, ty, v] of notes) { tone(f, t + t0, d, ty, v); tone(f, t + t0 + .32, d, ty, v * .32); tone(f, t + t0 + .64, d, ty, v * .1); }
+}
 function playChime(name, big) {
   const s = getSet(); name = name || s.chime; if (!name || name === "off") return;
   try {
     AC = AC || new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === "suspended") AC.resume();
-    const t = AC.currentTime + .02;
-    if (big) { [523.3, 659.3, 784].forEach((f, i) => tone(f, t + i * .11, .3, "triangle", .14)); [523.3, 659.3, 784, 1046.5].forEach(f => tone(f, t + .36, 1.4, "triangle", .08)); }
-    else (CHIMES[name] || CHIMES.bell)(t);
+    if (AC._master) { try { AC._master.gain.cancelScheduledValues(0); AC._master.disconnect(); } catch (e) {} }   // a new chime replaces one still ringing
+    AC._master = AC.createGain(); AC._master.connect(AC.destination);
+    playNotes(big ? CHIME_NOTES.fanfare : (CHIME_NOTES[name] || CHIME_NOTES.bell), AC.currentTime + .02);
   } catch (e) {}
 }
 
