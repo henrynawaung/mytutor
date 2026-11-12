@@ -352,6 +352,13 @@ document.addEventListener("click", async e => {
   const b = e.target.closest("[data-a]"); if (!b || b.disabled) return; e.preventDefault();
   if (b.dataset.confirm && !b.dataset.armed) { b.dataset.armed = "1"; const t = b.innerHTML; b.innerHTML = "Click again to confirm"; setTimeout(() => { delete b.dataset.armed; b.innerHTML = t; }, 3000); return; }
   delete b.dataset.armed;
+  const SAME_TAB = {"open-review": "http://127.0.0.1:5057/", "open-days": "http://127.0.0.1:5057/#days", "open-n8n": "http://localhost:5678/"};
+  if (SAME_TAB[b.dataset.a]) {                      // web pages open right here; the logo / ⌂ brings you back
+    const st = await api("/api/state").catch(() => null);
+    const up = st && (b.dataset.a === "open-n8n" ? st.n8n : st.review);
+    if (!up) { toast((b.dataset.a === "open-n8n" ? "n8n" : "The Review app") + " is not running yet: click Start first."); return; }
+    location.href = SAME_TAB[b.dataset.a]; return;
+  }
   try { const r = await api("/api/action", {action: b.dataset.a}); toast(r.message);
     if (b.dataset.a === "restart-centre") return waitAndReload(); } catch (err) { toast(err.message); }
   poll(); pollLog();
