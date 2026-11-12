@@ -297,7 +297,8 @@ if ($("b-expand")) $("b-expand").onclick = () => setSide(false);
 try { if (localStorage.getItem("mytutor-side") === "1") setSide(true); } catch (e) {}
 document.addEventListener("keydown", e => { if (e.key === "[" && !/TEXTAREA|INPUT|SELECT/.test(e.target.tagName)) setSide(!$("main").classList.contains("collapsed")); });
 function isDark() { const t = getSet().theme; return t === "dark" || (t === "auto" && matchMedia("(prefers-color-scheme: dark)").matches); }
-function themeIcon() { if ($("b-theme")) { $("b-theme").textContent = isDark() ? "☀" : "🌙"; $("b-theme").title = isDark() ? "Switch to light" : "Switch to dark"; } }
+const ICON_SUN = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>', ICON_MOON = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2z"/></svg>';
+function themeIcon() { if ($("b-theme")) { $("b-theme").innerHTML = isDark() ? ICON_SUN : ICON_MOON; $("b-theme").title = isDark() ? "Switch to light" : "Switch to dark"; } }
 if ($("b-theme")) $("b-theme").onclick = () => { saveSet("theme", isDark() ? "light" : "dark"); themeIcon(); };
 themeIcon();
 $("b-ok").onclick = approve; $("b-fix").onclick = fix; $("b-skip").onclick = next;

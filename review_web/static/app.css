@@ -497,3 +497,4 @@ main.collapsed~.actions{left:0}
 .tabs button,.tabs a,.goal small,.goal b{white-space:nowrap}
 @media (max-width:1250px){.brand .tag{display:none}}
 #td-weektxt span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#b-theme{display:grid;place-items:center}
