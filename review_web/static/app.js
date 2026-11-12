@@ -1,6 +1,6 @@
 "use strict";
 // ---- display settings (kept in this browser) ----
-const SET_DEF = {wgoal: "20", remind: "off", size: "m", theme: "auto", font: "sans", width: "normal", photo: "soft", goal: "5", accent: "amber", density: "comfy", name: "", today: "clock,wx,week,mem", city: "Christchurch"};
+const SET_DEF = {wgoal: "20", remind: "off", size: "m", theme: "auto", font: "sans", width: "normal", photo: "soft", goal: "5", accent: "amber", density: "comfy", name: "", today: "clock,wx,week,crew,mem", rewards: "on", chime: "bell", city: "Christchurch"};
 function getSet() { try { return Object.assign({}, SET_DEF, JSON.parse(localStorage.getItem("mytutor-settings") || "{}")); } catch (e) { return {...SET_DEF}; } }
 function applySet(s) {
   const r = document.documentElement;
@@ -146,14 +146,14 @@ async function showActivity() {
   const wk = days.filter(d => (Date.now() - new Date(d.day + "T12:00:00")) / 864e5 < 7)
     .reduce((a, d) => ({approve: a.approve + d.approve, take: a.take + d["my-take"], ans: a.ans + d.answer}), {approve: 0, take: 0, ans: 0});
   $("view").innerHTML = `<div class="doc"><p class="hello">${esc(greeting())} 👋</p><h1>My days</h1>
-    <p class="weekline"><b>Last 7 days</b></p><div class="tiles weektiles"><span class="tile t-ok"><b>${wk.approve}</b>approved</span><span class="tile t-take"><b>${wk.take}</b>takes</span><span class="tile t-ref"><b>${wk.ans}</b>reflections</span><span class="tile"><b>${stats.week_streak || 0}🔥</b>week streak</span></div>` +
+    <p class="weekline"><b>Last 7 days</b></p><div class="tiles weektiles"><span class="tile t-ok"><b>${wk.approve}</b>approved</span><span class="tile t-take"><b>${wk.take}</b>takes</span><span class="tile t-ref"><b>${wk.ans}</b>reflections</span><span class="tile"><b>${stats.week_streak || 0}🔥</b>week streak</span></div><div id="crewbox" class="crewbox"></div><p class="weekline"><b>Day by day</b></p>` +
     (days.map(d => weekHeader(d, days) + `<div class="daycard" data-day="${d.day}">
       <div class="dayhead"><b>${esc(niceDay(d.day))}</b>
         <span><div class="tiles"><span class="tile t-ok"><b>${d.approve}</b>approved</span><span class="tile t-take"><b>${d["my-take"]}</b>takes</span><span class="tile t-ref"><b>${d.answer}</b>reflections</span>${d["needs-fix"] ? `<span class="tile t-warn"><b>${d["needs-fix"]}</b>needs fix</span>` : ""}</div>${d.no_take && getSet().remind === "on" ? `<em class="notake">${d.no_take} approved without a take</em>` : ""}</span>
         <small>${Object.entries(d.types).map(([t, n]) => { const w = (TYPES[t] || t).toLowerCase(); return `${n} ${n === 1 && w !== "core" ? w.replace(/s$/, "") : w}`; }).join(" · ")}</small>
         <span class="chev">▸</span></div>
       <div class="daybody" hidden></div></div>`).join("") || '<p class="empty">Nothing yet. Approve a note or write a take, and your day shows up here.</p>') + "</div>";
-  $("actions").hidden = true;
+  $("actions").hidden = true; if (window.fillCrew) fillCrew();
 }
 async function openDay(card) {
   const body = card.querySelector(".daybody"), open = body.hidden;
@@ -190,7 +190,7 @@ function btnState(b, state) {                 // busy -> done / err, so every cl
 }
 async function act(path, extra, msg) {
   const btn = lastBtn; lastBtn = null; btnState(btn, "busy");
-  try { const rel = cur.rel; const r = await api(path, Object.assign({rel, mtime: cur.mtime}, extra || {})); cur = r.note; btnState(btn, "done");
+  try { const rel = cur.rel; const r = await api(path, Object.assign({rel, mtime: cur.mtime}, extra || {})); cur = r.note; btnState(btn, "done"); if (window.rewardsTick) rewardsTick(path);
     savedAt[rel] = new Date().toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"});
     if (path === "/api/take") dset(dkey("take", rel), "");
     if (path === "/api/answer") dset(dkey("ans", rel, extra.i), ""); if (msg) toast(msg); await load(); return true; }
@@ -501,7 +501,8 @@ function todayOn() { return new Set((getSet().today || "").split(",").filter(Boo
 function renderToday() {
   const on = todayOn(), card = $("today"); if (!card) return;
   card.hidden = on.size === 0;
-  for (const k of ["clock", "wx", "week", "mem"]) $("td-" + k).hidden = !on.has(k);
+  for (const k of ["clock", "wx", "week", "crew", "mem"]) $("td-" + k).hidden = !on.has(k);
+  if (on.has("crew") && window.fillCrewRow) fillCrewRow();
   document.querySelectorAll("#s-today button").forEach(b => b.classList.toggle("on", on.has(b.dataset.k)));
   if (on.has("clock")) tick();
   if (on.has("week")) renderWeek();

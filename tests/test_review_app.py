@@ -308,3 +308,9 @@ def test_memory_lines_in():
     t = "#### 🧠 Memory line: one line to remember\n- **Culture eats strategy.**\n\n**Memory line:** Alignment before speed.\n"
     assert core.memory_lines_in(t) == ["Culture eats strategy.", "Alignment before speed."]
     assert core.memory_lines_in("#### 🧠 Memory line: one line to remember\n\n#### Next") == []
+
+
+def test_best_week_streak():
+    assert core.best_week_streak([]) == 0
+    assert core.best_week_streak(["2026-10-20", "2026-11-02", "2026-11-10"]) == 2   # weeks 45+46 in a row
+    assert core.best_week_streak(["2026-11-02", "2026-11-03"]) == 1

@@ -265,6 +265,11 @@ def create_app(vault_root: Path, jobs: Path, obsidian_vault: str = "", testing: 
     for kind in PHOTOS:
         photo_routes(kind)
 
+    @app.get("/api/rewards")
+    @login_required
+    def rewards():
+        return jsonify(store.rewards(vault))
+
     @app.get("/api/memory-line")
     @login_required
     def memory_line():

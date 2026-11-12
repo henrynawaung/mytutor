@@ -339,3 +339,49 @@ body.hasphoto .doc > .meta{background:color-mix(in srgb,var(--bg) 90%,transparen
 .today{grid-template-columns:minmax(0,1fr) minmax(0,auto);overflow:hidden}
 .td-wx>div{min-width:0}.td-wx b,.td-wx small{overflow:hidden;text-overflow:ellipsis}
 .td-mem{min-width:0}
+
+/* ---- rewards: crew, badges, pop-ups ---- */
+.ch.locked{filter:grayscale(1) brightness(.35) contrast(.8);opacity:.45}
+.td-crew{grid-column:1/-1;border-top:1px solid var(--line);padding-top:10px}
+.td-crew a{font-size:.85em;color:var(--muted);font-weight:500}
+.crew-row{display:flex;justify-content:space-between;cursor:pointer;margin-top:6px}
+.crew-mini{position:relative;display:inline-block;transition:transform .15s}.crew-mini:hover{transform:translateY(-3px) scale(1.08)}
+.crew-mini i{position:absolute;right:-2px;bottom:-2px;font-style:normal;font-size:.62em;font-weight:800;background:var(--brand);color:#1b1205;border-radius:9px;padding:0 4px;line-height:1.4}
+.crewbox h2{margin-top:26px}
+.crew-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.crew-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 10px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:3px;box-shadow:var(--shadow)}
+.crew-card:not(.is-locked) .ch{animation:bob 3s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-4px)}}
+.crew-card small{color:var(--muted);font-size:.78em}
+.crew-card .lvl{color:var(--brand);letter-spacing:2px;font-size:.95em}
+.crew-card.is-locked .lvl{color:var(--muted);letter-spacing:0;font-size:.8em}
+.cbar{width:85%;height:6px;background:var(--line);border-radius:6px;overflow:hidden;margin:4px 0 2px}.cbar i{display:block;height:100%;background:linear-gradient(90deg,var(--brand),#1f9d55)}
+.badges{display:flex;flex-wrap:wrap;gap:14px}
+.badge{display:flex;flex-direction:column;align-items:center;width:92px;text-align:center;gap:4px}
+.badge small{font-size:.74em;color:var(--muted);line-height:1.25}
+.medal{width:62px;height:62px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:800;line-height:1;position:relative;box-shadow:inset 0 -4px 0 rgba(0,0,0,.18),0 2px 6px rgba(0,0,0,.25)}
+.medal span{font-size:1.1em}.medal b{font-size:.95em;margin-top:2px}
+.badge.bronze .medal{background:radial-gradient(circle at 35% 30%,#f3c08f,#b8733a);color:#3b1f08}
+.badge.silver .medal{background:radial-gradient(circle at 35% 30%,#fbfbfd,#a9b1bd);color:#2a3038}
+.badge.gold .medal{background:radial-gradient(circle at 35% 30%,#fff1a8,#e0a800);color:#3d2c00}
+.badge.platinum .medal{background:radial-gradient(circle at 35% 30%,#e6fcff,#7fc8d8 60%,#b197fc);color:#162b33}
+.badge.locked .medal{background:var(--chip);color:var(--muted);box-shadow:none;border:2px dashed var(--line)}.badge.locked .medal span{filter:grayscale(1);opacity:.5}
+.badge.big{width:auto}.badge.big .medal{width:130px;height:130px;font-size:2em}
+.reward-modal{position:fixed;inset:0;z-index:100;background:rgba(10,12,18,.55);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;animation:fadein .2s}
+.reward-modal.out{opacity:0;transition:opacity .2s}
+@keyframes fadein{from{opacity:0}}
+.rw-card{position:relative;overflow:hidden;background:var(--panel);color:var(--ink);border-radius:22px;padding:26px 34px 24px;width:min(380px,90vw);text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.4);animation:pop .45s cubic-bezier(.2,1.4,.4,1)}
+@keyframes pop{from{transform:scale(.6);opacity:0}}
+.rw-art{display:flex;justify-content:center;animation:hop 1s ease-in-out infinite}
+.rw-trio{display:flex;gap:4px}
+@keyframes hop{50%{transform:translateY(-8px)}}
+.rw-kicker{margin-top:8px;color:var(--brand);font-weight:800;text-transform:uppercase;letter-spacing:.08em;font-size:.8em}
+.rw-card h2{margin:4px 0 6px;font-size:1.35em}.rw-card p{color:var(--muted);margin:0 0 16px}
+.rw-confetti{position:absolute;inset:0;pointer-events:none}
+.cf{position:absolute;top:-12px;width:8px;height:12px;border-radius:2px;animation:fall 2s ease-in forwards}
+@keyframes fall{to{top:110%;transform:rotate(540deg) translateX(30px)}}
+#rw-nudge{position:fixed;right:22px;bottom:118px;z-index:60;display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--brand);border-radius:14px;padding:8px 14px 8px 10px;box-shadow:0 10px 30px rgba(0,0,0,.3);transform:translateY(20px);opacity:0;pointer-events:none;transition:all .3s cubic-bezier(.2,1.3,.4,1)}
+#rw-nudge.show{transform:none;opacity:1}
+#rw-nudge b{display:block;color:var(--ok)}#rw-nudge small{color:var(--muted)}
+@media (prefers-reduced-motion:reduce){.rw-art,.crew-card .ch,.cf{animation:none}}
+.rw-card>*:not(.rw-confetti){position:relative;z-index:1}

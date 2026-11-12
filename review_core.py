@@ -7,7 +7,7 @@ the notes plus everything you do in the app: reviews, your takes, answers to ref
 import re
 import sqlite3
 import threading
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from urllib.parse import quote
 
@@ -490,6 +490,22 @@ class Store:
             n["has_take"] = n["type"] == "theme" or (vault is not None and self.has_take(vault, n["rel"]))
         return list(notes.values())
 
+    def rewards(self, vault, today=None) -> dict:
+        """Counts behind the characters and badges (all derived from what is already stored)."""
+        types = ",".join("'%s'" % t for t in REVIEW_TYPES)
+        approved = self.q(f"SELECT COUNT(*) n FROM notes WHERE status='reviewed' AND type IN ({types})")[0]["n"]
+        takes = self.q("SELECT COUNT(*) n FROM (SELECT DISTINCT rel, substr(at,1,10) FROM activity WHERE action='my-take')")[0]["n"]
+        refl = self.q("SELECT COUNT(*) n FROM (SELECT DISTINCT rel, detail FROM activity WHERE action='answer')")[0]["n"]
+        days = {r["d"] for r in self.q("SELECT DISTINCT substr(at,1,10) d FROM activity "
+                                        "WHERE action IN ('approve','needs-fix','my-take','answer')")}
+        today = today or date.today()
+        courses = self.q(f"SELECT course, COUNT(*) total, SUM(status='reviewed') done FROM notes "
+                         f"WHERE status != '' AND type IN ({types}) GROUP BY course")
+        return {"approved": approved, "takes": takes, "reflections": refl,
+                "week_streak": week_streak(days, today), "best_streak": best_week_streak(days),
+                "memory_lines": len(memory_lines(vault)),
+                "courses_done": [r["course"] for r in courses if r["course"] and r["total"] and r["done"] == r["total"]]}
+
     def recent(self, n: int = 30) -> list:
         return self.q("SELECT at, action, rel, detail FROM activity WHERE action NOT LIKE 'login%' "
                       "ORDER BY id DESC LIMIT ?", (n,))
@@ -531,6 +547,18 @@ def memory_lines(vault) -> list:
             for line in memory_lines_in(t["body"]):
                 out.append({"line": line[:300], "title": p.stem, "rel": rel.as_posix(), "date": t["date"]})
     return out
+
+
+def best_week_streak(active_days) -> int:
+    """Longest run of consecutive ISO weeks with any activity (never goes down)."""
+    weeks = sorted({date.fromisoformat(d).isocalendar()[:2] for d in active_days if d})
+    best = run = 0
+    prev = None
+    for y, w in weeks:
+        monday = date.fromisocalendar(y, w, 1)
+        run = run + 1 if prev and (monday - prev).days == 7 else 1
+        best, prev = max(best, run), monday
+    return best
 
 
 def week_streak(active_days, today) -> int:
