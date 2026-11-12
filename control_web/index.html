@@ -100,11 +100,34 @@ th:first-child,td:first-child{text-align:left}tr.total td{font-weight:700;color:
 @media (max-width:800px){.wrap{grid-template-columns:1fr;padding:14px 16px}.svc{display:none}.kpis{grid-template-columns:repeat(2,1fr)}}
 .verbadge{position:fixed;left:14px;bottom:8px;z-index:5;font-size:11px;color:#8a94a3;opacity:.8;pointer-events:none}
 .btn.restartall{background:#2563eb;border-color:#2563eb;color:#fff;font-weight:700;justify-content:center;padding:12px}.btn.restartall:hover{background:#1d4ed8}
-</style></head>
+/* v4.3.5: calmer buttons and status lights */
+.btn.primary{background:rgba(245,158,11,.16);border-color:rgba(245,158,11,.55);color:#fbbf24}.btn.primary:hover{background:rgba(245,158,11,.26)}
+.btn.restartall{background:rgba(59,130,246,.14);border-color:rgba(59,130,246,.5);color:#93c5fd}.btn.restartall:hover{background:rgba(59,130,246,.24)}
+.btn.stopall{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.45);color:#fca5a5}.btn.stopall:hover{background:rgba(239,68,68,.22);border-color:rgba(239,68,68,.7)}
+.big-dot{width:16px;height:16px}
+.big-dot.on{background:radial-gradient(circle at 35% 35%,#86efac,#16a34a 55%,#166534);box-shadow:0 0 6px 1px rgba(34,197,94,.35);animation:glowsoft 3s ease-in-out infinite}
+@keyframes glowsoft{50%{box-shadow:0 0 9px 2px rgba(34,197,94,.45)}}
+.big-dot.off{background:radial-gradient(circle at 35% 35%,#fca5a5,#dc2626 55%,#7f1d1d);box-shadow:0 0 5px 1px rgba(239,68,68,.3)}
+.dot.on{background:radial-gradient(circle at 35% 35%,#86efac,#16a34a 55%,#166534);box-shadow:0 0 5px 1px rgba(34,197,94,.35);animation:none}
+/* light mode (toggle at top right) */
+:root[data-theme=light]{--bg:#f4f6fa;--panel:#ffffff;--panel2:#f0f2f6;--line:#e2e6ec;--ink:#1b2230;--muted:#5f6b7a;--teal:#0f9f86;--ok:#0f8f78;--bad:#dc2626;--warn:#b45309;--blue:#2563eb}
+:root[data-theme=light] .hero{--ink:#eef1f5;--muted:#9aa3b0}
+:root[data-theme=light] .card,:root[data-theme=light] .kpi{background:rgba(255,255,255,.95);box-shadow:0 1px 3px rgba(16,24,40,.08)}
+:root[data-theme=light] .bar{background:#e6e9ef}
+:root[data-theme=light] body{background-color:var(--bg)}
+.log{color:#d6dde6}
+:root[data-theme=light] .btn.primary{color:#b45309;background:rgba(245,158,11,.14)}
+:root[data-theme=light] .btn.restartall{color:#1d4ed8;background:rgba(59,130,246,.10)}
+:root[data-theme=light] .btn.stopall{color:#b91c1c;background:rgba(239,68,68,.08)}
+.themebtn{margin-left:auto;width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-size:17px;cursor:pointer}
+.themebtn:hover{border-color:var(--brand)}
+</style>
+<script>try{if(localStorage.getItem("mytutor-cc-theme")==="light")document.documentElement.dataset.theme="light"}catch(e){}</script></head>
 <body>
 <header>
   <a class="homelink" href="/" title="Home"><img src="/logo.png" alt="myTutor home">
   <div><h1>myTutor <span>Control Centre</span></h1><p class="tag">Your second brain · read, reflect, apply</p></div></a>
+  <button class="themebtn" id="b-theme" title="Switch dark / light">🌙</button>
 </header>
 
 <div class="wrap">
@@ -379,4 +402,6 @@ async function waitAndReload() {
 }
 poll(); pollLog(); setInterval(poll, 4000); setInterval(pollLog, 1000);
 </script>
-<div class="verbadge" title="Release version">__VERSION__</div></body></html>
+<div class="verbadge" title="Release version">__VERSION__</div><script>(function(){const b=document.getElementById("b-theme"),r=document.documentElement;
+const icon=()=>{b.textContent=r.dataset.theme==="light"?"🌙":"☀️";b.title=r.dataset.theme==="light"?"Switch to dark":"Switch to light"};icon();
+b.onclick=()=>{if(r.dataset.theme==="light")delete r.dataset.theme;else r.dataset.theme="light";try{localStorage.setItem("mytutor-cc-theme",r.dataset.theme||"dark")}catch(e){}icon();};})();</script></body></html>
