@@ -274,10 +274,12 @@ async function undoLast() { if (!undoStatus) return; const s = undoStatus; if (a
 async function saveTake() { const t = $("take").value.trim(); if (!t) return; if (await act("/api/take", {take: t}, "")) { show(); banner("✓ Take saved: " + cur.title, "ok", false); } }
 function setMode(m) {
   mode = m; cur = null;
-  for (const t of ["notes", "journals", "activity"]) $("t-" + t).classList.toggle("on", t === m);
-  $("leftcol").hidden = m === "activity"; document.querySelector("main").classList.toggle("noside", m === "activity"); $("actions").hidden = true;
+  for (const t of ["notes", "journals", "activity", "cases"]) $("t-" + t).classList.toggle("on", t === m);
+  const wide = m === "activity" || m === "cases";
+  $("leftcol").hidden = wide; document.querySelector("main").classList.toggle("noside", wide); $("actions").hidden = true;
   document.querySelector(".filters").hidden = $("f-q").hidden = m !== "notes";
   if (m === "activity") return showActivity();
+  if (m === "cases") return showCases();
   parkActions();
   $("view").innerHTML = `<div class="empty"><div class="hello">${esc(greeting())} 👋</div>${m === "journals" ? "Pick a journal on the left to reflect on." : "Pick a note on the left to start reviewing."}</div>`;
   renderList();
@@ -412,6 +414,7 @@ function highlightSearch() {                       // mark the searched words in
   for (const n of nodes) { const span = document.createElement("span"); span.innerHTML = esc(n.nodeValue).replace(re, '<mark class="hit">$1</mark>'); n.replaceWith(span); first = first || span.querySelector("mark"); }
   if (first) setTimeout(() => first.scrollIntoView({block: "center", behavior: "smooth"}), 120);
 }
+$("t-cases").onclick = () => setMode("cases");
 $("t-notes").onclick = () => setMode("notes"); $("t-journals").onclick = () => setMode("journals"); $("t-activity").onclick = () => setMode("activity");
 document.addEventListener("keydown", e => {
   if (/TEXTAREA|INPUT|SELECT/.test(e.target.tagName) || !cur || mode !== "notes") return;
@@ -772,3 +775,51 @@ $("view").addEventListener("click", async e => {
   b.classList.add(ok ? "done" : "err"); lab.textContent = ok ? "Copied" : "Copy failed";
   setTimeout(() => { b.classList.remove("done", "err"); lab.textContent = "Copy"; }, 1500);
 });
+
+
+/* ---------- 4.9 Case Lab: a board-ready case + model answer from a situation (unlocks at 50% reviewed) ---------- */
+async function showCases() {
+  const V = $("view"); parkActions(); V.innerHTML = `<div class="empty">Loading Case Lab…</div>`;
+  let st; try { st = await api("/api/case-status"); } catch (e) { V.innerHTML = `<div class="empty">${esc(e.message)}</div>`; return; }
+  const pct = Math.round(st.share * 100), goal = Math.round(st.unlock_at * 100);
+  const past = (S.items || []).filter(i => i.course === "Case Lab").sort((a, b) => (b.created + b.rel).localeCompare(a.created + a.rel));
+  const pastHtml = past.length ? `<h3>Your cases</h3><div class="cl-past">${past.map(i => `<button class="cl-item" data-open="${esc(i.rel)}" data-kind="notes"><b>${esc(i.title)}</b><small>${esc(i.day)}${i.status === "reviewed" ? " · ✓ reviewed" : ""}</small></button>`).join("")}</div>` : "";
+  if (!st.unlocked) {
+    V.innerHTML = `<div class="doc cl"><div class="cl-lock"><div class="cl-ico">🔒</div><h2>Case Lab unlocks at ${goal}% reviewed</h2>
+      <p>Case Lab turns a situation into a board-ready case with a model answer built from <b>your own notes</b>, so it gets better the more you have reviewed. Keep going!</p>
+      <div class="cl-bar"><i></i><span class="cl-mark"></span></div>
+      <p class="cl-num"><b>${st.reviewed}</b> of ${st.total} notes reviewed (${pct}%) · <b>${st.needed}</b> more to unlock</p></div>${pastHtml}</div>`;
+    V.querySelector(".cl-bar i").style.width = Math.min(100, pct / goal * 100) + "%";
+    return;
+  }
+  V.innerHTML = `<div class="doc cl"><h1>🧭 Case Lab</h1>
+    <p class="muted">Describe a situation, paste an article, or name a board topic. myTutor writes the case and a <b>model answer</b> to guide you: recommendation, options, risks, first 90 days, the questions a board will ask, what <b>your notes</b> say, and extra key points with sources.</p>
+    <textarea id="cl-in" class="cl-in" placeholder="e.g. Our hospital group plans AI triage in two emergency departments. Senior clinicians resist and worry about liability; the CFO wants savings within 12 months. What should the board decide?"></textarea>
+    <div class="cl-row"><label class="cl-chk"><input type="checkbox" id="cl-web" checked> Add key points from web search (with sources)</label>
+      <span class="tiny muted">About US$0.10–0.20 per case · 1–2 minutes</span>
+      <button class="b ok" id="cl-go">Create case</button></div>
+    <div id="cl-msg" class="cl-msg" hidden></div>${pastHtml}</div>`;
+  try { const d = localStorage.getItem("mytutor-case-draft"); if (d) $("cl-in").value = d; } catch (e) {}
+  $("cl-in").oninput = () => { try { localStorage.setItem("mytutor-case-draft", $("cl-in").value); } catch (e) {} };
+  $("cl-go").onclick = async () => {
+    const b = $("cl-go"), msg = $("cl-msg"), text = $("cl-in").value.trim();
+    msg.hidden = false; msg.className = "cl-msg";
+    if (text.length < 40) { msg.textContent = "Describe the situation in a few sentences first."; msg.classList.add("err"); return; }
+    b.disabled = true; b.textContent = "Working…";
+    try {
+      const r = await api("/api/case", {situation: text, web: $("cl-web").checked});
+      const t0 = Date.now();
+      for (;;) {
+        await new Promise(res => setTimeout(res, 2500));
+        const s = await api("/api/case/" + r.id);
+        if (s.state === "done") {
+          try { localStorage.removeItem("mytutor-case-draft"); } catch (e) {}
+          await load(); toast(`🧭 Case ready · ${s.notes_used} of your notes used · about US$${s.cost_usd.toFixed(2)}`);
+          setMode("notes"); return openNote(s.rel);
+        }
+        if (s.state === "error") throw new Error(s.error);
+        msg.textContent = `${s.step || "Working…"} (${Math.round((Date.now() - t0) / 1000)} s)`;
+      }
+    } catch (e) { msg.textContent = e.message; msg.classList.add("err"); b.disabled = false; b.textContent = "Create case"; }
+  };
+}

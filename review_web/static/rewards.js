@@ -468,9 +468,10 @@ function mbAsk(sat) {
 }
 function mbWalk(m) {
   let left = 120; const card = m.querySelector(".rw-card");
-  card.innerHTML = `<div class="rw-art m-walk">${ellie("", 140)}</div><div class="rw-kicker">🚶 Walking with Ellie</div><div class="mb-clock">2:00</div>
+  card.innerHTML = `<div class="rw-art m-walk m-stroll">${ellie("walker", 140)}</div><div class="rw-kicker">🚶 Ellie is walking with you</div><div class="mb-clock">2:00</div>
     <div class="cbar mb-bar"><i></i></div><p>Stretch, get some water, look out of the window.</p><button class="b ok" data-a="done">I'm back, continue learning</button>`;
   const clock = card.querySelector(".mb-clock"), bar = card.querySelector(".mb-bar i");
+  bar.style.width = "0%";
   const finish = manual => { clearInterval(t); mbReset(); const n = mbCount(1);
     if (manual) { m.remove(); playChime("kalimba-short"); fillBreaks(); toast(`💪 Welcome back! ${n} move break${n > 1 ? "s" : ""} today`); return; }   // "I'm back": one click, straight back to learning
     setTimeout(() => m.remove(), 5000);                                                     // timer ran out: show the cheer, then close by itself

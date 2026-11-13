@@ -638,3 +638,36 @@ body:has(main:not(.rclosed) .rpanel) #rw-nudge{right:calc(var(--rside) + 22px)}
 #rw-nudge.combo{border-left-color:#ff6b6b}
 #rw-nudge .rn-left{align-self:center;justify-content:center;height:100%}
 #rw-nudge .rn-art{overflow:hidden;border-radius:12px;background:transparent}
+
+/* 4.9: Ellie's move break: she strolls left and right, steps, swings her arm, and checks her watch every few seconds */
+.ellie .leg-l{transform-origin:82px 152px}.ellie .leg-r{transform-origin:118px 152px}
+.m-stroll{overflow:hidden}
+.m-stroll .ellie{animation:stroll 9s ease-in-out infinite}
+.m-stroll .whole{animation:step .5s ease-in-out infinite}
+.m-stroll .leg-l{animation:legA .5s ease-in-out infinite alternate}.m-stroll .leg-r{animation:legB .5s ease-in-out infinite alternate}
+.m-stroll .arm-r{animation:swing .5s ease-in-out infinite alternate}
+.m-stroll .arm-l{animation:watchArm 6s ease-in-out infinite}
+.m-stroll .headg{animation:watchHead 6s ease-in-out infinite}
+.m-stroll .ear-l,.m-stroll .ear-r{animation:none}
+@keyframes stroll{0%{transform:translateX(-46px)}45%{transform:translateX(46px)}50%{transform:translateX(46px) scaleX(-1)}95%{transform:translateX(-46px) scaleX(-1)}100%{transform:translateX(-46px)}}
+@keyframes step{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+@keyframes legA{from{transform:rotate(-9deg)}to{transform:rotate(9deg)}}
+@keyframes legB{from{transform:rotate(9deg)}to{transform:rotate(-9deg)}}
+@keyframes swing{from{transform:rotate(-14deg)}to{transform:rotate(14deg)}}
+@keyframes watchArm{0%,62%,100%{transform:rotate(0)}70%,88%{transform:rotate(-112deg) translate(6px,-6px)}}
+@keyframes watchHead{0%,62%,100%{transform:rotate(0)}70%,88%{transform:rotate(-12deg) translate(-4px,5px)}}
+
+/* 4.9 Case Lab */
+main.noside{grid-template-columns:minmax(0,1fr) var(--rside)}main.noside.rclosed{grid-template-columns:minmax(0,1fr) 0}
+.cl{max-width:820px}
+.cl-lock{text-align:center;padding:30px 10px 10px}.cl-ico{font-size:2.6rem}.cl-lock h2{margin:.3em 0}
+.cl-bar{position:relative;height:12px;border-radius:12px;background:var(--line);margin:18px auto 8px;max-width:460px;overflow:hidden}
+.cl-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--brand),var(--teal));border-radius:12px}
+.cl-num{color:var(--muted)}
+.cl-in{width:100%;box-sizing:border-box;min-height:180px;font:inherit;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);resize:vertical}
+.cl-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:10px 0}.cl-row .b{margin-left:auto}
+.cl-chk{display:flex;align-items:center;gap:6px;font-size:.9rem}
+.cl-msg{padding:10px 14px;border-radius:10px;background:var(--chip);font-size:.9rem}.cl-msg.err{color:#e06c6c}
+.cl-past{display:grid;gap:6px}.cl-item{text-align:left;border:1px solid var(--line);background:var(--panel);color:inherit;border-radius:10px;padding:10px 12px;cursor:pointer;font:inherit}
+.cl-item:hover{border-color:var(--brand)}.cl-item b{display:block}.cl-item small{color:var(--muted)}
+main.noside.noside{grid-template-columns:minmax(0,1fr) var(--rside)}main.noside.noside.rclosed{grid-template-columns:minmax(0,1fr) 0}

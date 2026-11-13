@@ -9,6 +9,7 @@ function ellie(costume = "", size = 120) {
       body: `<rect x="142" y="134" width="20" height="26" rx="3" fill="#f8f3e6" transform="rotate(15 152 147)"/><path d="M144 141h14" stroke="#c92a2a" stroke-width="3" transform="rotate(15 152 147)"/>`},
     boss: {face: `<g fill="none" stroke="#1d1d2b" stroke-width="3"><circle cx="82" cy="82" r="11"/><circle cx="118" cy="82" r="11"/><path d="M93 82h14M71 80l-10-4M129 80l10-4"/></g>`,
       body: `<path d="M88 124h24l-6 6 4 26-10 8-10-8 4-26z" fill="#c92a2a"/><path d="M88 124h24l-6 6h-12z" fill="#a51d1d"/><rect x="134" y="138" width="26" height="20" rx="3" fill="#5a3e2b"/><path d="M142 138v-4h10v4" stroke="#5a3e2b" stroke-width="3" fill="none"/>`},
+    walker: {armL: `<g class="watch" transform="rotate(20 62 146)"><rect x="51" y="149" width="22" height="7" rx="3" fill="#5a3e2b"/><circle cx="62" cy="152.5" r="6.5" fill="#f8f3e6" stroke="#e8a400" stroke-width="2"/><path d="M62 149.5v3l2 1.5" stroke="#1d1d2b" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>`},
     champion: {back: `<path d="M64 124q36-10 72 0l14 58H50z" fill="#c92a2a"/>`,
       head: `<path d="M72 48l8 12 20-24 20 24 8-12 2 22H70z" fill="#ffd34d" stroke="#e8a400" stroke-width="2"/><circle cx="100" cy="36" r="4" fill="#ff6b9a"/><circle cx="72" cy="48" r="3" fill="#4dabf7"/><circle cx="128" cy="48" r="3" fill="#4dabf7"/>`,
       body: `<circle cx="100" cy="140" r="9" fill="#ffd34d" stroke="#e8a400" stroke-width="2"/><path d="M96 131l-4-8M104 131l4-8" stroke="#4dabf7" stroke-width="4"/>`},
@@ -19,10 +20,10 @@ function ellie(costume = "", size = 120) {
   <g class="whole">
    ${k.back || ""}
    <g class="bodyg">
-    <rect x="70" y="150" width="24" height="36" rx="11" fill="${C.skin}"/><rect x="106" y="150" width="24" height="36" rx="11" fill="${C.skin}"/>
-    <path d="M74 182q4-3 8 0M84 182q4-3 8 0M110 182q4-3 8 0M120 182q4-3 8 0" stroke="${C.light}" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <g class="leg leg-l"><rect x="70" y="150" width="24" height="36" rx="11" fill="${C.skin}"/><path d="M74 182q4-3 8 0M84 182q4-3 8 0" stroke="${C.light}" stroke-width="2.5" fill="none" stroke-linecap="round"/></g>
+    <g class="leg leg-r"><rect x="106" y="150" width="24" height="36" rx="11" fill="${C.skin}"/><path d="M110 182q4-3 8 0M120 182q4-3 8 0" stroke="${C.light}" stroke-width="2.5" fill="none" stroke-linecap="round"/></g>
     <ellipse cx="100" cy="146" rx="40" ry="30" fill="${C.skin}"/><ellipse cx="100" cy="152" rx="24" ry="18" fill="${C.light}" opacity=".6"/>
-    <g class="arm arm-l"><ellipse cx="62" cy="146" rx="10" ry="16" fill="${C.dark}" transform="rotate(20 62 146)"/></g>
+    <g class="arm arm-l"><ellipse cx="62" cy="146" rx="10" ry="16" fill="${C.dark}" transform="rotate(20 62 146)"/>${k.armL || ""}</g>
     <g class="arm arm-r"><ellipse cx="138" cy="146" rx="10" ry="16" fill="${C.dark}" transform="rotate(-20 138 146)"/></g>
     ${k.body || ""}
    </g>

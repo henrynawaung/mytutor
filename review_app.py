@@ -17,8 +17,10 @@ import json
 import os
 import random
 import re
+import math
 import secrets
 import sys
+import threading
 import webbrowser
 from datetime import date, timedelta
 from functools import wraps
@@ -27,6 +29,7 @@ from pathlib import Path
 from flask import Flask, abort, jsonify, redirect, render_template, request, send_file, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
+import caselab
 import review_core as core
 import version
 
@@ -50,7 +53,8 @@ def secret_key(jobs: Path) -> bytes:
     return f.read_bytes()
 
 
-def create_app(vault_root: Path, jobs: Path, obsidian_vault: str = "", testing: bool = False) -> Flask:
+def create_app(vault_root: Path, jobs: Path, obsidian_vault: str = "", testing: bool = False,
+               model: str = "claude-sonnet-5-5", case_client=None) -> Flask:
     app = Flask(__name__, template_folder=str(HERE / "review_web" / "templates"),
                 static_folder=str(HERE / "review_web" / "static"))
     app.config.update(SECRET_KEY=secret_key(jobs), SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Strict",
@@ -295,6 +299,70 @@ def create_app(vault_root: Path, jobs: Path, obsidian_vault: str = "", testing: 
         rows = store.done(a.get("show", "both"), a.get("course", "")[:80], a.get("kind", "")[:20], a.get("since", "all"))
         return jsonify(items=rows, count=len(rows))
 
+    # ---------------- Case Lab: a board-ready case + model answer from a situation (runs in the background)
+    CASE_UNLOCK = 0.5                        # unlocks when half of all notes are reviewed
+    cases: dict = {}
+
+    def review_share() -> tuple:
+        rows = store.q("SELECT status FROM notes WHERE status != '' AND type IN ('core','case','hub','reference') "
+                       "AND course != ?", (caselab.CASE_FOLDER,))
+        done = sum(1 for r in rows if r["status"] == "reviewed")
+        return done, len(rows)
+
+    @app.get("/api/case-status")
+    @login_required
+    def case_status():
+        done, total = review_share()
+        share = done / total if total else 0
+        return jsonify(unlocked=share >= CASE_UNLOCK, share=round(share, 3), reviewed=done, total=total,
+                       needed=max(0, math.ceil(total * CASE_UNLOCK) - done), unlock_at=CASE_UNLOCK)
+
+    @app.post("/api/case")
+    @login_required
+    def case_start():
+        done, total = review_share()
+        if not total or done / total < CASE_UNLOCK:
+            return jsonify(ok=False, error=f"Case Lab unlocks when {int(CASE_UNLOCK * 100)}% of your notes are reviewed "
+                                           f"(now {done}/{total})."), 403
+        d = request.get_json(silent=True) or {}
+        situation = str(d.get("situation", "")).strip()
+        if len(situation) < 40:
+            return jsonify(ok=False, error="Describe the situation in a few sentences (at least 40 characters)."), 400
+        if case_client is None and not os.environ.get("ANTHROPIC_API_KEY"):
+            return jsonify(ok=False, error="ANTHROPIC_API_KEY is not set for the Review app."), 400
+        cid = secrets.token_hex(6)
+        cases[cid] = {"state": "working", "step": "Finding your notes…"}
+        web, who = bool(d.get("web", True)), session.get("user", "")
+
+        def work():
+            try:
+                notes = caselab.relevant_notes(vault, situation)
+                cases[cid]["step"] = f"Writing the case with {len(notes)} of your notes" + (" and a few web searches…" if web else "…")
+                client = case_client
+                if client is None:
+                    import anthropic
+                    client = anthropic.Anthropic(max_retries=2)
+                res = caselab.run_case(client, model, situation, notes, web_search=web)
+                rel = caselab.save_case(vault.root, situation, res, notes)
+                store.sync(vault)
+                store.log(who, "case", rel, situation[:2000])
+                cases[cid] = {"state": "done", "rel": rel, "cost_usd": caselab.cost_usd(res["usage"]),
+                              "notes_used": len(notes), "searches": res["usage"]["searches"]}
+            except Exception as exc:                          # shown to the user; nothing is half-written
+                cases[cid] = {"state": "error", "error": f"{type(exc).__name__}: {exc}"[:400]}
+
+        if app.config.get("TESTING"):
+            work()
+        else:
+            threading.Thread(target=work, daemon=True).start()
+        return jsonify(ok=True, id=cid)
+
+    @app.get("/api/case/<cid>")
+    @login_required
+    def case_poll(cid):
+        c = cases.get(cid)
+        return (jsonify(c), 200) if c else (jsonify(state="error", error="Unknown case."), 404)
+
     @app.get("/api/version")
     def api_version():                      # lets the Control Centre spot an old copy still answering
         return jsonify(version=version.VERSION, pid=os.getpid())
@@ -426,7 +494,7 @@ def main(argv=None) -> int:
         core.Store(jobs / "mytutor.db").add_user(email, generate_password_hash(pw))
         print(f"Login for {email} is ready (password stored as a one-way scrypt hash). Now run: py review_app.py")
         return 0
-    app = create_app(vault, jobs, cfg.get("obsidian_vault_name", ""))
+    app = create_app(vault, jobs, cfg.get("obsidian_vault_name", ""), model=cfg.get("model", "claude-sonnet-5-5"))
     url = f"http://127.0.0.1:{a.port}/"
     print(f"myTutor Review: {url}   (this laptop only; close this window or press Ctrl+C to stop)")
     if not a.no_open:

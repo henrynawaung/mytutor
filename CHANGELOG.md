@@ -7,7 +7,7 @@ Version numbers read **major.feature.fix**:
 
 The running version appears at the bottom left of every myTutor page.
 
-# Tech stack (as of 4.8)
+# Tech stack (as of 4.9)
 Installed versions were read from the laptop's Python environment on 12 Nov 2026.
 
 ## Languages
@@ -25,7 +25,7 @@ Installed versions were read from the laptop's Python environment on 12 Nov 2026
 - Optional, not installed: **msal**, **requests**, needed only for OneDrive "graph" mode.
 
 ## AI
-- Claude API, model **claude-sonnet-5-5** (set in config.json). The API key lives in the ANTHROPIC_API_KEY environment variable, never in files.
+- Claude API, model **claude-sonnet-5-5** (set in config.json). Case Lab also uses Claude's server-side **web search tool** (web_search_20250305, up to 4 searches per case). The API key lives in the ANTHROPIC_API_KEY environment variable, never in files.
 
 ## Browser side
 - **marked 12.0.2**: Markdown preview in the take editor.
@@ -44,11 +44,19 @@ Installed versions were read from the laptop's Python environment on 12 Nov 2026
 - The Control Centre uses a per-session token and Host check, and only runs whitelisted actions.
 
 ## Testing
-- **pytest**: 120 automated tests (pipeline, Review app, Control Centre, vault tools).
+- **pytest**: 125 automated tests (pipeline, Review app, Control Centre, vault tools).
 - **Playwright** browser checks were used while building each UI change (on the development machine, not the laptop).
 
 # Major release 4 (current): myTutor as a second brain
 Version 4 began with the assessment release (4.0 and 4.1) and grew into a daily learning app: Review app, Control Centre and rewards. Feature updates, newest first:
+
+## 4.9 · 14 Nov 2026 · Case Lab
+- New **🧭 Case Lab** tab. Describe a situation, paste an article or name a board topic, and myTutor writes a board-ready case with a **model answer to guide you** when a similar situation comes up: the case, recommendation, options considered, rationale, risks and how to reduce them, first 90 days, and the questions a board will ask with strong answers.
+- Built on **your own notes first**: it finds the most relevant concepts, cases, sources and your takes (quoted as "Your take"), links each one, then adds **key points from web search** of reputable sources, each with its source, plus the gaps your notes don't cover yet.
+- Each case is saved in Obsidian under **Case Lab / date** and appears in the Library like any other note (search, copy, add takes). About US$0.10 to 0.20 per case.
+- **Unlocks when 50% of your notes are reviewed**; until then the tab shows your progress and how many more to go.
+- Move break: **Ellie now walks** back and forth with you, swinging her arms, and **checks her watch** every few seconds.
+- Fixed: My days and Case Lab keep the Done panel in its column.
 
 ## 4.8 · 14 Nov 2026 · Done panel
 - A new **Done** panel on the right lists your completed work, newest first, grouped Today / Yesterday / by date.
