@@ -1,7 +1,7 @@
 """myTutor release version, shown at the bottom left of every myTutor page."""
-VERSION = "4.7.2"
-RELEASED = "2026-11-12"
-NOTES = "Tidier Today card: rank in the header, crew in the profile menu"
+VERSION = "4.7.3"
+RELEASED = "2026-11-14"
+NOTES = "Stretch suggests higher targets when you are past it"
 
 
 def label() -> str:

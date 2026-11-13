@@ -65,11 +65,12 @@ function renderProg() {
   }
   const st = S.stats || {}, goal = weeklyGoal(), done = st.approved_week ?? 0, target = weeklyTarget(), stretch = target > goal;
   $("goal-txt").textContent = `${Math.min(done, 999)}/${target}`;
-  $("streak-txt").textContent = stretch ? `stretch +${target - goal} · 🔥${st.week_streak || 0} wk` : `this week · 🔥${st.week_streak || 0} wk`;
+  $("streak-txt").textContent = done > target ? `met ✓ · tap to stretch` : stretch ? `stretch +${target - goal} · 🔥${st.week_streak || 0} wk` : `this week · 🔥${st.week_streak || 0} wk`;
   const ring = $("goal-ring"), C = 2 * Math.PI * 15, base = stretch ? target - 5 : 0;
   ring.style.strokeDasharray = C; ring.style.strokeDashoffset = C * (1 - Math.min(1, (done - base) / (target - base)));
   $("goal").classList.toggle("met", done >= target); $("goal").classList.toggle("stretch", stretch && done < target);
-  $("goal").title = stretch ? `Weekly goal of ${goal} reached ✓. Stretch target: ${target} (you chose +${target - goal})` : `Weekly goal: ${goal} notes approved`;
+  $("goal").classList.toggle("ask", done >= target);
+  $("goal").title = done >= target ? `Target ${target} reached ✓ (${done} this week). Click to set a higher target for this week.` : stretch ? `Weekly goal of ${goal} reached ✓. Stretch target: ${target} (you chose +${target - goal})` : `Weekly goal: ${goal} notes approved`;
 }
 function renderList() {
   const L = $("list");
@@ -649,3 +650,6 @@ if ($("s-wgoal")) {
     catch (e) { toast(e.message); g.value = weeklyGoal(); }
   };
 }
+
+// Weekly ring: once the target is reached, clicking it offers a higher stretch target
+$("goal").addEventListener("click", () => { if ($("goal").classList.contains("ask") && window.askStretch) askStretch(true); });

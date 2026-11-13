@@ -59,6 +59,7 @@ Version 4 began with the assessment release (4.0 and 4.1) and grew into a daily 
 - The stretch question reads correctly when you are exactly on target.
 - Bug fix 4.7.1: Library groups **fold again**. The group of the open note, and small groups such as Sources, used to spring back open; now they open once and stay folded when you close them.
 - Bug fix 4.7.2: a **tidier Today card** (time, weather, move breaks, quote of the day). Rank and XP moved to a compact pill in the header (click it for the ladder and crew); **My crew** moved to the profile menu; the memory line is off by default (switch it on in Personalise). The profile menu now opens above the note header.
+- Bug fix 4.7.3 (14 Nov): when you are **past your target**, Ellie suggests the next three targets above your count (at 48: 50, 55 or 60), asking again at every 5th approval. "Not now" pauses the question until you are 10 notes further. Once the target is met, **click the weekly ring** to stretch any time.
 
 ## 4.6 · 12 Nov 2026 · Completion forecast
 - **Completion forecast** in the Control Centre: a pace slider (5 to 100 notes a week) shows how many weeks are left and the finish date. Quick buttons for My goal, My recent pace and 50/week. The chart shows notes reviewed so far plus a dashed projection; hover for any week.

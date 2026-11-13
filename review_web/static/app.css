@@ -569,3 +569,7 @@ section{padding-bottom:70px}
 .umcrew .td-lbl{font-size:.8rem}.umcrew .td-lbl a{color:var(--muted);font-weight:500;font-size:.9em}
 .umcrew .crew-row{gap:2px}
 header{z-index:20}  /* profile menu opens above the sticky note header */
+
+/* 4.7.3: weekly ring offers a stretch once the target is met */
+.goal.ask{cursor:pointer}.goal.ask:hover{filter:brightness(1.1)}
+.st-opts .b{min-width:64px;font-weight:700}
