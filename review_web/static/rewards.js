@@ -447,14 +447,16 @@ function mbAsk(sat) {
 function mbWalk(m) {
   let left = 120; const card = m.querySelector(".rw-card");
   card.innerHTML = `<div class="rw-art m-walk">${ellie("", 140)}</div><div class="rw-kicker">🚶 Walking with Ellie</div><div class="mb-clock">2:00</div>
-    <div class="cbar mb-bar"><i></i></div><p>Stretch, get some water, look out of the window.</p><button class="b" data-a="done">I'm back</button>`;
+    <div class="cbar mb-bar"><i></i></div><p>Stretch, get some water, look out of the window.</p><button class="b ok" data-a="done">I'm back, continue learning</button>`;
   const clock = card.querySelector(".mb-clock"), bar = card.querySelector(".mb-bar i");
-  const finish = () => { clearInterval(t); mbReset(); const n = mbCount(1);
+  const finish = manual => { clearInterval(t); mbReset(); const n = mbCount(1);
+    if (manual) { m.remove(); playChime("kalimba-short"); fillBreaks(); toast(`💪 Welcome back! ${n} move break${n > 1 ? "s" : ""} today`); return; }   // "I'm back": one click, straight back to learning
+    setTimeout(() => m.remove(), 5000);                                                     // timer ran out: show the cheer, then close by itself
     card.innerHTML = `<div class="rw-art m-jump">${ellie("party", 140)}</div><div class="rw-kicker">💪 Welcome back</div><h2>Break done!</h2>
       <p>${n} move break${n > 1 ? "s" : ""} today. Fresh mind, better takes.</p><button class="b ok" data-a="close">Back to learning</button>`;
     playChime("kalimba-short"); fillBreaks(); };
-  const t = setInterval(() => { left--; clock.textContent = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`; bar.style.width = ((120 - left) / 120 * 100) + "%"; if (left <= 0) finish(); }, 1000);
-  m.onclick = e => { const a = e.target.closest("[data-a]"); if (!a) return; if (a.dataset.a === "done") finish(); else if (a.dataset.a === "close") m.remove(); };
+  const t = setInterval(() => { left--; clock.textContent = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`; bar.style.width = ((120 - left) / 120 * 100) + "%"; if (left <= 0) finish(false); }, 1000);
+  m.onclick = e => { const a = e.target.closest("[data-a]"); if (!a) return; if (a.dataset.a === "done") finish(true); else if (a.dataset.a === "close") m.remove(); };
 }
 function fillBreaks() { const el = document.getElementById("td-breaks"); if (!el) return; const n = mbCount(0), mins = mbMinutes();
   el.textContent = mins ? `🚶 ${n} move break${n === 1 ? "" : "s"} today · next in ${Math.max(0, Math.ceil((MB.start + mins * 60e3 - Date.now()) / 60e3))} min` : ""; }

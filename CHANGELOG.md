@@ -58,6 +58,7 @@ Version 4 began with the assessment release (4.0 and 4.1) and grew into a daily 
 - **Hide »** folds the panel (or press **]**); **Done «** on the right edge brings it back. It starts folded on small screens.
 - Search now labels every result **✓ done**, **to review** or **needs fix**, with All / To review / Done buttons. It always searches every note, whatever the Library filters say.
 - Bug fix 4.8.1 (small feature): **one-click Copy** at the top of every note copies it as clean text with its title, ready to paste into Word, email or Teams. Each of your takes has its own Copy button. Shift+click copies the Markdown instead. The button shows "Copied" in green.
+- Bug fix 4.8.2: after a move break, **one click** ("I'm back, continue learning") closes Ellie and returns you to your note, with a short welcome-back message. If the 2-minute timer runs out, the cheer closes by itself after 5 seconds.
 
 ## 4.7 · 12 Nov 2026 · Full-text search
 - The Library search box now looks **inside every note**: concepts, cases, sources, hubs, reflections and your own takes, not just titles.
