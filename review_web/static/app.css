@@ -585,10 +585,10 @@ main.rclosed .rpanel{visibility:hidden;border:0}
 .rfilters{display:grid;gap:6px;padding:8px 12px}
 .rfilters select{width:100%;min-width:0}
 .rsel{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.seg{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
-.seg button{flex:1;border:0;background:transparent;color:var(--muted);padding:6px 4px;font:inherit;font-size:.8rem;cursor:pointer}
-.seg button+button{border-left:1px solid var(--line)}
-.seg button.on{background:var(--chip);color:var(--ink);font-weight:650}
+.rfilters .seg,.srseg{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.rfilters .seg button,.srseg button{flex:1;border:0;background:transparent;color:var(--muted);padding:6px 4px;font:inherit;font-size:.8rem;cursor:pointer}
+.rfilters .seg button+button,.srseg button+button{border-left:1px solid var(--line)}
+.rfilters .seg button.on,.srseg button.on{background:var(--chip);color:var(--ink);font-weight:650}
 .rcount{padding:0 12px 8px;font-size:.75rem;color:var(--muted)}
 .dlist{flex:1;overflow:auto;padding:2px 8px 24px}
 .dday{position:sticky;top:0;background:var(--panel);font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;padding:10px 6px 4px;z-index:1}
@@ -615,7 +615,7 @@ main.rclosed .rpanel{visibility:hidden;border:0}
 #rw-nudge{pointer-events:none;visibility:hidden}
 #rw-nudge.show{pointer-events:auto;visibility:visible}
 .ddraft{color:#e0a040;font-weight:650}
-.seg button{white-space:nowrap}
+.rfilters .seg button,.srseg button{white-space:nowrap}
 /* 4.8.4: calmer Ellie in the small card: her motion plays twice, then she rests */
 #rw-nudge .rn-art *{animation-iteration-count:2!important}
 /* 4.8.4: award points shown under Ellie */
@@ -626,3 +626,11 @@ main.rclosed .rpanel{visibility:hidden;border:0}
 /* 4.8.6: Ellie card sits beside the Done panel, not on top of it */
 body:has(main:not(.rclosed) .rpanel) #rw-nudge{right:calc(var(--rside) + 22px)}
 @media (max-width:800px){body #rw-nudge{right:22px}}
+/* 4.8.6: settings: options wrap instead of being cut off; one quiet thin scrollbar style everywhere */
+.settings .seg{flex-wrap:wrap}
+.settings .seg button{flex:1 1 auto;white-space:nowrap;border-top:1px solid transparent}
+*{scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--muted) 35%,transparent) transparent}
+*::-webkit-scrollbar{width:8px;height:8px}*::-webkit-scrollbar-track{background:transparent}
+*::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--muted) 35%,transparent);border-radius:8px}
+.settings{scrollbar-gutter:stable;padding-right:10px}
+.settings:not(:hover){scrollbar-color:transparent transparent}.settings:not(:hover)::-webkit-scrollbar-thumb{background:transparent}
