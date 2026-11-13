@@ -60,6 +60,7 @@ Version 4 began with the assessment release (4.0 and 4.1) and grew into a daily 
 - Bug fix 4.8.1 (small feature): **one-click Copy** at the top of every note copies it as clean text with its title, ready to paste into Word, email or Teams. Each of your takes has its own Copy button. Shift+click copies the Markdown instead. The button shows "Copied" in green.
 - Bug fix 4.8.2: after a move break, **one click** ("I'm back, continue learning") closes Ellie and returns you to your note, with a short welcome-back message. If the 2-minute timer runs out, the cheer closes by itself after 5 seconds.
 - Bug fix 4.8.3: **back where you left off**: after a refresh, restart or reboot, the Review app reopens the note you were last working on (within 7 days), with your unsaved draft. The Done panel gains a **🕘 Recent** filter listing the notes you opened, newest first, with unsaved drafts marked. Fixed the Done panel's Hide button and top rows not responding: the hidden achievement card was still catching clicks there.
+- Bug fix 4.8.4: **calmer Ellie** when several awards arrive together. Once her card is on screen it stays still and only the words and bar update; her motion plays twice, then she rests; and when a big award pop-up opens, the small card steps aside so there is only one Ellie at a time.
 
 ## 4.7 · 12 Nov 2026 · Full-text search
 - The Library search box now looks **inside every note**: concepts, cases, sources, hubs, reflections and your own takes, not just titles.

@@ -616,3 +616,5 @@ main.rclosed .rpanel{visibility:hidden;border:0}
 #rw-nudge.show{pointer-events:auto;visibility:visible}
 .ddraft{color:#e0a040;font-weight:650}
 .seg button{white-space:nowrap}
+/* 4.8.4: calmer Ellie in the small card: her motion plays twice, then she rests */
+#rw-nudge .rn-art *{animation-iteration-count:2!important}

@@ -136,6 +136,7 @@ function nextCelebration() {
   const m = document.createElement("div"); m.className = "reward-modal";
   m.innerHTML = `<div class="rw-card"><div class="rw-confetti"></div><div class="rw-art">${it.ellieDone ? it.art : `<div class="rw-duo">${it.art}<div class="m-jump">${ellie("graduate", 120)}</div></div>`}</div><div class="rw-kicker">${it.kicker}</div>
     <h2>${it.title}</h2><p>${it.text}</p><button class="b ok" type="button">Nice! Keep going</button></div>`;
+  const nd = document.getElementById("rw-nudge"); if (nd) nd.classList.remove("show");   // one Ellie at a time
   document.body.appendChild(m); confetti(m.querySelector(".rw-confetti")); playChime(null, true); fireworks(); popSound(5, .5);
   const close = () => { m.classList.add("out"); setTimeout(() => { m.remove(); nextCelebration(); }, 220); };
   m.querySelector("button").onclick = close; m.onclick = e => { if (e.target === m) close(); };
@@ -180,13 +181,17 @@ function nudge(kinds, r, moment, update) {       // Ellie's achievement card, sh
   const gained = Math.max(0, xpOf(r) - xpOf(update ? RW_PREV : RW)), xpTxt = gained ? `<span class="rn-xp">+${gained} XP</span>` : "";
   if (combo >= 2 && !moment) kick = `🔥 Combo x${combo}`;
   let el = document.getElementById("rw-nudge"); if (!el) { el = document.createElement("div"); el.id = "rw-nudge"; document.body.appendChild(el); el.onclick = () => el.classList.remove("show"); }
-  el.innerHTML = `<div class="rn-art ${motion}">${ellie(costume, 92)}</div><div class="rn-txt"><div class="rn-top"><span class="rn-kick">${kick}</span>${xpTxt}</div><b>${title}</b>
-    <small>${line1}</small><div class="cbar"><i></i></div><small>${line2}</small></div>`;
-  const keep = update && el.classList.contains("show") && !moment;   // refresh the numbers without replaying the entrance
-  if (!keep) { el.classList.remove("show"); void el.offsetWidth; el.classList.add("show"); }
+  // Calm card: if it is already on screen, keep Ellie and the card where they are and only update the words and bar,
+  // so several awards in a row don't make her jump. The entrance and her motion play once per appearance.
+  const keep = el.classList.contains("show") && el.querySelector(".rn-art");
+  const txt = `<div class="rn-top"><span class="rn-kick">${kick}</span>${xpTxt}</div><b>${title}</b>
+    <small>${line1}</small><div class="cbar"><i></i></div><small>${line2}</small>`;
+  if (keep) { el.querySelector(".rn-txt").innerHTML = txt; }
+  else { el.innerHTML = `<div class="rn-art ${motion}">${ellie(costume, 92)}</div><div class="rn-txt">${txt}</div>`;
+         el.classList.remove("show"); void el.offsetWidth; el.classList.add("show"); }
   const bar = el.querySelector(".cbar i"); bar.style.width = keep ? Math.max(4, pct) + "%" : "0%"; if (!keep) setTimeout(() => bar.style.width = Math.max(4, pct) + "%", 120);
   el.classList.toggle("combo", combo >= 3 && !moment);
-  if (!keep) { clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove("show"), moment ? 5200 : 4000); }
+  clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove("show"), moment ? 5200 : 4000);   // each new award keeps it up a little longer
 }
 
 /* ---------- party poppers & fireworks (one full-screen canvas, clicks pass through) ---------- */
