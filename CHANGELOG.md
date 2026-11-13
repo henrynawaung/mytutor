@@ -7,7 +7,7 @@ Version numbers read **major.feature.fix**:
 
 The running version appears at the bottom left of every myTutor page.
 
-# Tech stack (as of 4.7)
+# Tech stack (as of 4.8)
 Installed versions were read from the laptop's Python environment on 12 Nov 2026.
 
 ## Languages
@@ -44,11 +44,19 @@ Installed versions were read from the laptop's Python environment on 12 Nov 2026
 - The Control Centre uses a per-session token and Host check, and only runs whitelisted actions.
 
 ## Testing
-- **pytest**: 116 automated tests (pipeline, Review app, Control Centre, vault tools).
+- **pytest**: 118 automated tests (pipeline, Review app, Control Centre, vault tools).
 - **Playwright** browser checks were used while building each UI change (on the development machine, not the laptop).
 
 # Major release 4 (current): myTutor as a second brain
 Version 4 began with the assessment release (4.0 and 4.1) and grew into a daily learning app: Review app, Control Centre and rewards. Feature updates, newest first:
+
+## 4.8 · 14 Nov 2026 · Done panel
+- A new **Done** panel on the right lists your completed work, newest first, grouped Today / Yesterday / by date.
+- Filters: **Both / Takes / Approved**, This week / Today / All time, kind (concepts, cases, sources, hubs), course, and a quick text filter.
+- Each row shows the note, course and day, ✓ approved, the number of takes and the start of your latest take.
+- Click a row to open the note at your takes; click ✎ to jump straight into editing your latest take, for continuous fine-tuning. The list refreshes after every save.
+- **Hide »** folds the panel (or press **]**); **Done «** on the right edge brings it back. It starts folded on small screens.
+- Search now labels every result **✓ done**, **to review** or **needs fix**, with All / To review / Done buttons. It always searches every note, whatever the Library filters say.
 
 ## 4.7 · 12 Nov 2026 · Full-text search
 - The Library search box now looks **inside every note**: concepts, cases, sources, hubs, reflections and your own takes, not just titles.

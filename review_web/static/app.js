@@ -376,7 +376,7 @@ loadAvatar();
 $("b-next").onclick = next; $("b-undo").onclick = undoLast; $("b-okn").onclick = approveNext;
 $("b-sync").onclick = async () => { try { const r = await api("/api/sync", {}); await load(); toast(`Refreshed: ${r.changed} change${r.changed === 1 ? "" : "s"}`); } catch (e) { toast(e.message); } };
 ["f-course", "f-status", "f-type"].forEach(id => $(id).onchange = renderList);
-let searchT = null, SR = {q: "", results: []};
+let searchT = null, SR = {q: "", results: []}, srSt = "all";
 $("f-q").oninput = () => { clearTimeout(searchT); const q = $("f-q").value.trim();
   if (q.length < 2) { SR = {q: "", results: []}; return renderList(); }
   searchT = setTimeout(async () => { try { SR = await api("/api/search?q=" + encodeURIComponent(q)); } catch (e) { SR = {q, results: [], error: e.message}; } renderList(); }, 220); };
@@ -387,13 +387,18 @@ function renderSearch() {
   if (SR.q !== q) { L.innerHTML = `<div class="listmeta">Searching “${esc(q)}”…</div>`; return; }
   const words = q.toLowerCase().match(/[\w'-]{2,}/g) || [];
   const mark = t => { let h = esc(t); for (const w of words) h = h.replace(new RegExp("(" + w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + ")", "gi"), "<mark>$1</mark>"); return h; };
+  const all = SR.results || [], isDone = r => r.status === "reviewed";
+  const shown = all.filter(r => srSt === "done" ? isDone(r) : srSt === "todo" ? !isDone(r) : true);
+  const nd = all.filter(isDone).length;
   L.innerHTML = `<div class="listmeta">${SR.count || 0} note${SR.count === 1 ? "" : "s"} contain “${esc(q)}”${SR.count >= 60 ? " (top 60)" : ""}<span><button class="linkbtn" id="sr-clear">clear</button></span></div>`
-    + (SR.results || []).map(r => `<button class="sres${cur && cur.rel === r.rel ? " on" : ""}" data-open="${esc(r.rel)}" data-kind="${r.type === "theme" ? "journals" : "notes"}">
-        <span class="sr-top"><b>${mark(r.title)}</b>${r.status === "reviewed" ? '<span class="sdot ok" title="Approved"></span>' : ""}</span>
+    + (all.length ? `<div class="seg srseg" id="sr-st"><button data-st="all"${!srSt || srSt === "all" ? ' class="on"' : ""}>All ${all.length}</button><button data-st="todo"${srSt === "todo" ? ' class="on"' : ""}>To review ${all.length - nd}</button><button data-st="done"${srSt === "done" ? ' class="on"' : ""}>✓ Done ${nd}</button></div>` : "")
+    + shown.map(r => `<button class="sres${cur && cur.rel === r.rel ? " on" : ""}" data-open="${esc(r.rel)}" data-kind="${r.type === "theme" ? "journals" : "notes"}">
+        <span class="sr-top"><b>${mark(r.title)}</b>${r.status === "reviewed" ? '<span class="srst ok">✓ done</span>' : r.status === "needs-fix" ? '<span class="srst fix">needs fix</span>' : r.status ? '<span class="srst">to review</span>' : ""}</span>
         <small class="sr-meta">${esc(KIND[r.type] || "📄 Note")} · ${esc(r.course)}${r.day ? " · " + esc(r.day) : ""}</small>
         <span class="sr-snip">${mark(r.snippet)}</span></button>`).join("")
     + (SR.count ? "" : `<div class="sr-none">No notes contain “${esc(q)}”. Try fewer or different words.</div>`);
   const cl = $("sr-clear"); if (cl) cl.onclick = () => { $("f-q").value = ""; $("f-q").oninput(); };
+  const sg = $("sr-st"); if (sg) sg.onclick = e => { const b = e.target.closest("[data-st]"); if (b) { srSt = b.dataset.st; renderSearch(); } };
 }
 function highlightSearch() {                       // mark the searched words inside the open note
   const q = $("f-q") && $("f-q").value.trim(); if (!q || q.length < 2) return;
@@ -653,3 +658,68 @@ if ($("s-wgoal")) {
 
 // Weekly ring: once the target is reached, clicking it offers a higher stretch target
 $("goal").addEventListener("click", () => { if ($("goal").classList.contains("ask") && window.askStretch) askStretch(true); });
+
+
+/* ---------- 4.8 Done panel (right): your takes and approvals, filtered; click to open and fine-tune ---------- */
+const DF = {show: "both", since: "week", kind: "", course: ""};
+try { Object.assign(DF, JSON.parse(localStorage.getItem("mytutor-done-f") || "{}")); } catch (e) {}
+function dayLabel(iso) {
+  if (!iso) return "Earlier";
+  const d = iso.slice(0, 10), t = new Date(), y = new Date(Date.now() - 864e5), f = x => x.toLocaleDateString("en-CA");
+  return d === f(t) ? "Today" : d === f(y) ? "Yesterday" : new Date(d + "T12:00").toLocaleDateString(undefined, {weekday: "short", day: "numeric", month: "short"});
+}
+let doneT = null;
+function loadDone() { clearTimeout(doneT); doneT = setTimeout(renderDone, 250); }
+async function renderDone() {
+  const L = $("d-list"); if (!L || $("main").classList.contains("rclosed")) return;
+  const qs = new URLSearchParams(DF).toString(); let r;
+  try { r = await api("/api/done?" + qs); } catch (e) { L.innerHTML = `<div class="dempty">${esc(e.message)}</div>`; return; }
+  const cs = $("d-course"), have = new Set([...cs.options].map(o => o.value));
+  Object.keys(S.courses || {}).sort().forEach(c => { if (!have.has(c)) cs.add(new Option(c, c)); }); cs.value = DF.course;
+  const nT = r.items.filter(i => i.takes).length, nA = r.items.filter(i => i.approved_at).length;
+  $("d-count").textContent = `${r.count} note${r.count === 1 ? "" : "s"} · ${nT} with takes · ${nA} approved`;
+  const fq = ($("d-q").value || "").trim().toLowerCase();
+  if (fq) r.items = r.items.filter(i => (i.title + " " + i.preview + " " + i.course).toLowerCase().includes(fq));
+  if (fq) $("d-count").textContent = `${r.items.length} match “${$("d-q").value.trim()}” · ` + $("d-count").textContent;
+  if (!r.items.length) { L.innerHTML = `<div class="dempty">Nothing here yet for these filters.</div>`; return; }
+  let last = null, h = "";
+  for (const i of r.items) {
+    const lab = dayLabel(i.last); if (lab !== last) { h += `<div class="dday">${esc(lab)}</div>`; last = lab; }
+    h += `<div class="ditem${cur && cur.rel === i.rel ? " on" : ""}" data-dr="${esc(i.rel)}" title="Open this note">
+      <div class="dtop"><span class="dico">${(KIND[i.type] || "📄").split(" ")[0]}</span><b>${esc(i.title)}</b>
+        ${i.takes ? `<button class="dedit" data-de="${esc(i.rel)}" title="Edit your latest take">✎</button>` : ""}</div>
+      <small class="dmeta">${esc(i.course)}${i.day ? " · " + esc(i.day) : ""}${i.approved_at ? ' · <span class="dok">✓ approved</span>' : ""}${i.takes ? ` · ✎ ${i.takes} take${i.takes > 1 ? "s" : ""}` : ""}</small>
+      ${i.preview ? `<p class="dprev">${esc(i.preview)}</p>` : ""}</div>`;
+  }
+  L.innerHTML = h;
+}
+async function openDone(rel, edit) {
+  await openNote(rel);
+  const tk = document.querySelector(".takes") || document.querySelector(".take"), V = $("view"); if (!tk) return;
+  V.scrollTo({top: tk.getBoundingClientRect().top - V.getBoundingClientRect().top + V.scrollTop - 16, behavior: "smooth"});   // scroll only the note, not the page tk.classList.add("flash"); setTimeout(() => tk.classList.remove("flash"), 1400);
+  if (edit) { const b = [...document.querySelectorAll("[data-tkedit]")].pop(); if (b) { b.click(); setTimeout(() => { const ta = document.querySelector(`[data-tkta="${b.dataset.tkedit}"]`); if (ta) ta.focus(); }, 50); } }
+  document.querySelectorAll(".ditem").forEach(d => d.classList.toggle("on", d.dataset.dr === rel));
+}
+function setRight(closed) {
+  $("main").classList.toggle("rclosed", closed); $("b-rshow").hidden = !closed;
+  try { localStorage.setItem("mytutor-rside", closed ? "1" : "0"); } catch (e) {}
+  if (!closed) loadDone();
+}
+if ($("rpanel")) {
+  $("d-show").querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.v === DF.show));
+  $("d-since").value = DF.since; $("d-kind").value = DF.kind;
+  const saveF = () => { try { localStorage.setItem("mytutor-done-f", JSON.stringify(DF)); } catch (e) {} loadDone(); };
+  $("d-show").onclick = e => { const b = e.target.closest("[data-v]"); if (!b) return; DF.show = b.dataset.v;
+    $("d-show").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b)); saveF(); };
+  $("d-q").oninput = () => loadDone();
+  for (const [id, k] of [["d-since", "since"], ["d-kind", "kind"], ["d-course", "course"]]) $(id).onchange = () => { DF[k] = $(id).value; saveF(); };
+  $("d-list").onclick = e => { const ed = e.target.closest("[data-de]"); if (ed) { e.stopPropagation(); return openDone(ed.dataset.de, true); }
+    const it = e.target.closest("[data-dr]"); if (it) openDone(it.dataset.dr, false); };
+  $("b-rhide").onclick = () => setRight(true); $("b-rshow").onclick = () => setRight(false);
+  document.addEventListener("keydown", e => { if (e.key === "]" && !/TEXTAREA|INPUT|SELECT/.test(e.target.tagName)) setRight(!$("main").classList.contains("rclosed")); });
+  let rc = null; try { rc = localStorage.getItem("mytutor-rside"); } catch (e) {}
+  setRight(rc === "1" || (rc === null && innerWidth < 1250));
+  // refresh after anything you save, approve, edit or undo
+  const _api = api; api = async (path, body) => { const j = await _api(path, body);
+    if (body && /^\/api\/(take|take-edit|take-delete|approve|undo|needs-fix|unreview)/.test(path)) loadDone(); return j; };
+}

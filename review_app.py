@@ -287,6 +287,14 @@ def create_app(vault_root: Path, jobs: Path, obsidian_vault: str = "", testing: 
         hits = vault.search(q)
         return jsonify(q=q, results=hits, count=len(hits))
 
+    @app.get("/api/done")
+    @login_required
+    def done():                              # right-hand "Done" panel: your takes and approvals, filtered
+        a = request.args
+        store.sync(vault)                      # only changed files are read
+        rows = store.done(a.get("show", "both"), a.get("course", "")[:80], a.get("kind", "")[:20], a.get("since", "all"))
+        return jsonify(items=rows, count=len(rows))
+
     @app.get("/api/version")
     def api_version():                      # lets the Control Centre spot an old copy still answering
         return jsonify(version=version.VERSION, pid=os.getpid())

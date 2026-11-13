@@ -441,6 +441,41 @@ class Store:
             added += 1
         return added
 
+    def done(self, show: str = "both", course: str = "", kind: str = "", since: str = "all",
+             today: date | None = None, limit: int = 300) -> list:
+        """Completed work for the right-hand panel: notes you approved and/or wrote takes on, newest first.
+        Read-only. One row per note: last approval time, last take time, number of takes, take preview."""
+        today = today or datetime.now().date()
+        start = {"today": today.isoformat(),
+                 "week": (today - timedelta(days=today.weekday())).isoformat()}.get(since, "")
+        notes = {r["rel"]: r for r in self.q("SELECT rel,title,course,type,status,day FROM notes")}
+        out: dict = {}
+        for r in self.q("SELECT rel, MAX(at) at FROM activity WHERE action='approve' GROUP BY rel"):
+            n = notes.get(r["rel"])
+            if n and n["status"] == "reviewed":           # still approved (not undone or marked for a fix since)
+                out.setdefault(r["rel"], {})["approved_at"] = r["at"]
+        for r in self.q("SELECT rel, at, detail FROM activity WHERE action='my-take' ORDER BY at"):
+            if r["rel"] not in notes:
+                continue
+            d = out.setdefault(r["rel"], {})
+            d["take_at"], d["preview"] = r["at"], " ".join(re.sub(r"[#*_>`]+|\[\[|\]\]", " ", r["detail"] or "").split())[:160]
+            d["takes"] = d.get("takes", 0) + 1
+        rows = []
+        for rel, d in out.items():
+            if show == "takes" and "take_at" not in d or show == "approved" and "approved_at" not in d:
+                continue
+            n = notes[rel]
+            if course and (n["course"] or "") != course or kind and (n["type"] or "") != kind:
+                continue
+            last = max(d.get("approved_at") or "", d.get("take_at") or "")
+            if start and last[:10] < start:
+                continue
+            rows.append({"rel": rel, "title": n["title"] or rel, "course": n["course"] or "", "type": n["type"] or "",
+                         "day": n["day"] or "", "approved_at": d.get("approved_at"), "take_at": d.get("take_at"),
+                         "takes": d.get("takes", 0), "preview": d.get("preview", ""), "last": last})
+        rows.sort(key=lambda x: x["last"], reverse=True)
+        return rows[:limit]
+
     def log(self, user: str, action: str, rel: str, detail: str):
         self.x("INSERT INTO activity(at,user,action,rel,detail) VALUES (?,?,?,?,?)",
                (now(), user, action, rel, (detail or "")[:20000]))

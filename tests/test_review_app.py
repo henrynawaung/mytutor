@@ -135,6 +135,22 @@ class AppTests(unittest.TestCase):
         r = self.c.post("/api/prefs", json={"weekly_goal": 30}, headers={"X-CSRF": tok})
         self.assertEqual(r.status_code, 200)
 
+    def test_done_panel(self):
+        self.login(); tok = self.api_csrf(); rel = "C/Day 1/Core/Disruption.md"
+        self.assertEqual(self.c.get("/api/done").get_json()["count"], 0)
+        m = lambda: self.c.get("/api/note?rel=" + rel).get_json()["mtime"]   # noqa: E731
+        r = self.c.post("/api/take", json={"rel": rel, "mtime": m(), "take": "My first take on disruption"}, headers={"X-CSRF": tok})
+        self.assertEqual(r.status_code, 200, r.get_data(as_text=True))
+        r = self.c.get("/api/done?show=takes&since=today").get_json()
+        self.assertEqual(r["count"], 1); self.assertEqual(r["items"][0]["takes"], 1)
+        self.assertIn("first take", r["items"][0]["preview"])
+        self.assertEqual(self.c.get("/api/done?show=approved").get_json()["count"], 0)
+        self.c.post("/api/approve", json={"rel": rel, "mtime": m()}, headers={"X-CSRF": tok})
+        r = self.c.get("/api/done?show=approved").get_json()
+        self.assertEqual(r["count"], 1); self.assertTrue(r["items"][0]["approved_at"])
+        self.assertEqual(self.c.get("/api/done?kind=case").get_json()["count"], 0)
+        self.assertEqual(self.c.get("/api/done?course=ZZZ").get_json()["count"], 0)
+
     def test_pages_need_login(self):
         self.assertEqual(self.c.get("/").status_code, 302)
         self.assertEqual(self.c.get("/api/summary").status_code, 401)
