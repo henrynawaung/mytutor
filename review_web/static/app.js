@@ -109,7 +109,7 @@ async function load() {
 async function openNote(rel, push = true) {
   try {
     if (cur && push) hist.push(cur.rel);
-    cur = await api("/api/note?rel=" + encodeURIComponent(rel)); hideBanner(); renderList(); show();
+    cur = await api("/api/note?rel=" + encodeURIComponent(rel)); hideBanner(); renderList(); show(); rememberRecent(rel);
     curIdx = Math.max(0, (mode === "journals" ? S.journals : filtered()).findIndex(x => x.rel === rel));
   } catch (e) { toast(e.message); }
 }
@@ -422,7 +422,14 @@ document.addEventListener("keydown", e => {
 });
 window.addEventListener("focus", () => { load().then(() => { if (mode === "activity") showActivity(); }).catch(() => {}); });
 window.addEventListener("hashchange", () => { if (location.hash === "#days") setMode("activity"); });
-load().then(() => { if (location.hash === "#days") return setMode("activity"); const f = filtered(); if (f.length) openNote(f[0].rel); }).catch(e => toast(e.message));
+load().then(async () => { if (location.hash === "#days") return setMode("activity");
+  // after a refresh or restart, go back to the note you were last working on (within the last 7 days)
+  let last = null; try { last = (JSON.parse(localStorage.getItem("mytutor-recent") || "[]"))[0]; } catch (e) {}
+  if (last && Date.now() - new Date(last.at) < 7 * 864e5 && (S.items || []).some(i => i.rel === last.rel)) {
+    await openNote(last.rel, false);
+    if (cur && cur.rel === last.rel) { banner("↩ Back where you left off: " + cur.title + (dget(dkey("take", last.rel)) ? " (your draft is kept)" : ""), "info", false, true); return; }
+  }
+  const f = filtered(); if (f.length) openNote(f[0].rel); }).catch(e => toast(e.message));
 
 // ---------------------------------------------------------------- drafts (kept in this browser until saved)
 function dkey(kind, rel, i) { return `mytutor-draft:${kind}:${rel}${i === undefined ? "" : ":" + i}`; }
@@ -671,14 +678,31 @@ function dayLabel(iso) {
 }
 let doneT = null;
 function loadDone() { clearTimeout(doneT); doneT = setTimeout(renderDone, 250); }
+// "Recent": the notes you last worked on (opened), kept in this browser, newest first
+function rememberRecent(rel) {
+  try { const a = JSON.parse(localStorage.getItem("mytutor-recent") || "[]").filter(x => x.rel !== rel);
+        a.unshift({rel, at: new Date().toISOString()}); localStorage.setItem("mytutor-recent", JSON.stringify(a.slice(0, 40))); } catch (e) {}
+  if (DF.show === "recent") loadDone();
+}
+function recentItems() {
+  let a = []; try { a = JSON.parse(localStorage.getItem("mytutor-recent") || "[]"); } catch (e) {}
+  const by = Object.fromEntries((S.items || []).map(i => [i.rel, i])), today = new Date().toLocaleDateString("en-CA");
+  const mon = new Date(); mon.setDate(mon.getDate() - ((mon.getDay() + 6) % 7)); const monS = mon.toLocaleDateString("en-CA");
+  return a.filter(x => by[x.rel]).map(x => { const n = by[x.rel], d = new Date(x.at).toLocaleDateString("en-CA"), draft = dget(dkey("take", x.rel));
+    return {rel: x.rel, title: n.title, course: n.course || "", type: n.type || "", day: n.day || "", last: d + "T" + new Date(x.at).toTimeString().slice(0, 8),
+            approved_at: n.status === "reviewed" ? "y" : null, takes: 0, draft: !!draft, preview: draft ? "✎ Unsaved draft: " + draft.replace(/\s+/g, " ").slice(0, 120) : ""}; })
+    .filter(i => (!DF.course || i.course === DF.course) && (!DF.kind || i.type === DF.kind) && (DF.since === "all" || (DF.since === "today" ? i.last.slice(0, 10) === today : i.last.slice(0, 10) >= monS)));
+}
 async function renderDone() {
   const L = $("d-list"); if (!L || $("main").classList.contains("rclosed")) return;
   const qs = new URLSearchParams(DF).toString(); let r;
-  try { r = await api("/api/done?" + qs); } catch (e) { L.innerHTML = `<div class="dempty">${esc(e.message)}</div>`; return; }
+  if (DF.show === "recent") r = (() => { const it = recentItems(); return {items: it, count: it.length}; })();
+  else try { r = await api("/api/done?" + qs); } catch (e) { L.innerHTML = `<div class="dempty">${esc(e.message)}</div>`; return; }
   const cs = $("d-course"), have = new Set([...cs.options].map(o => o.value));
   Object.keys(S.courses || {}).sort().forEach(c => { if (!have.has(c)) cs.add(new Option(c, c)); }); cs.value = DF.course;
   const nT = r.items.filter(i => i.takes).length, nA = r.items.filter(i => i.approved_at).length;
-  $("d-count").textContent = `${r.count} note${r.count === 1 ? "" : "s"} · ${nT} with takes · ${nA} approved`;
+  $("d-count").textContent = DF.show === "recent" ? `${r.count} note${r.count === 1 ? "" : "s"} you opened · ${r.items.filter(i => i.draft).length} with an unsaved draft`
+    : `${r.count} note${r.count === 1 ? "" : "s"} · ${nT} with takes · ${nA} approved`;
   const fq = ($("d-q").value || "").trim().toLowerCase();
   if (fq) r.items = r.items.filter(i => (i.title + " " + i.preview + " " + i.course).toLowerCase().includes(fq));
   if (fq) $("d-count").textContent = `${r.items.length} match “${$("d-q").value.trim()}” · ` + $("d-count").textContent;
@@ -689,7 +713,7 @@ async function renderDone() {
     h += `<div class="ditem${cur && cur.rel === i.rel ? " on" : ""}" data-dr="${esc(i.rel)}" title="Open this note">
       <div class="dtop"><span class="dico">${(KIND[i.type] || "📄").split(" ")[0]}</span><b>${esc(i.title)}</b>
         ${i.takes ? `<button class="dedit" data-de="${esc(i.rel)}" title="Edit your latest take">✎</button>` : ""}</div>
-      <small class="dmeta">${esc(i.course)}${i.day ? " · " + esc(i.day) : ""}${i.approved_at ? ' · <span class="dok">✓ approved</span>' : ""}${i.takes ? ` · ✎ ${i.takes} take${i.takes > 1 ? "s" : ""}` : ""}</small>
+      <small class="dmeta">${esc(i.course)}${i.day ? " · " + esc(i.day) : ""}${i.approved_at ? ' · <span class="dok">✓ approved</span>' : ""}${i.draft ? ' · <span class="ddraft">draft</span>' : ""}${i.takes ? ` · ✎ ${i.takes} take${i.takes > 1 ? "s" : ""}` : ""}</small>
       ${i.preview ? `<p class="dprev">${esc(i.preview)}</p>` : ""}</div>`;
   }
   L.innerHTML = h;

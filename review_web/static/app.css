@@ -610,3 +610,9 @@ main.rclosed .rpanel{visibility:hidden;border:0}
 .rfilters .sinput{width:100%;box-sizing:border-box}
 .rpanel{height:100%;align-self:stretch;box-sizing:border-box}
 .copyb{display:inline-flex;align-items:center;gap:5px}.copyb.done{color:var(--teal);border-color:var(--teal)}
+
+/* 4.8.3: the hidden achievement card no longer blocks clicks (it covered the Done panel's top-right) */
+#rw-nudge{pointer-events:none;visibility:hidden}
+#rw-nudge.show{pointer-events:auto;visibility:visible}
+.ddraft{color:#e0a040;font-weight:650}
+.seg button{white-space:nowrap}
