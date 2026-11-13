@@ -618,3 +618,8 @@ main.rclosed .rpanel{visibility:hidden;border:0}
 .seg button{white-space:nowrap}
 /* 4.8.4: calmer Ellie in the small card: her motion plays twice, then she rests */
 #rw-nudge .rn-art *{animation-iteration-count:2!important}
+/* 4.8.4: award points shown under Ellie */
+#rw-nudge .rn-left{flex:0 0 92px;display:flex;flex-direction:column;align-items:center;gap:2px}
+#rw-nudge .rn-left .rn-art{width:80px;height:80px;flex:0 0 80px}
+#rw-nudge .rn-pts{font-size:.78rem;font-weight:800;color:var(--brand);background:color-mix(in srgb,var(--brand) 14%,transparent);padding:1px 8px;border-radius:999px;white-space:nowrap}
+#rw-nudge .rn-pts.none{color:var(--muted);background:none;font-weight:600}

@@ -178,16 +178,17 @@ function nudge(kinds, r, moment, update) {       // Ellie's achievement card, sh
   else if (moment === "goal") { kick = "👑 Weekly goal"; title = `${r.approved_week} / ${goal}: goal reached!`; line1 = `🔥 ${r.week_streak || 0}-week streak · boardroom ready`; line2 = "Great week! Anything more is a bonus."; pct = 100; }
   let [costume, motion] = ELLIE_LOOK[moment || k];
   const pick = chosenCostume(); if (pick !== null && !moment) costume = pick;
-  const gained = Math.max(0, xpOf(r) - xpOf(update ? RW_PREV : RW)), xpTxt = gained ? `<span class="rn-xp">+${gained} XP</span>` : "";
+  const gained = Math.max(0, xpOf(r) - xpOf(update ? RW_PREV : RW)), xpTxt = gained ? `+${gained} XP` : "";
   if (combo >= 2 && !moment) kick = `🔥 Combo x${combo}`;
   let el = document.getElementById("rw-nudge"); if (!el) { el = document.createElement("div"); el.id = "rw-nudge"; document.body.appendChild(el); el.onclick = () => el.classList.remove("show"); }
   // Calm card: if it is already on screen, keep Ellie and the card where they are and only update the words and bar,
   // so several awards in a row don't make her jump. The entrance and her motion play once per appearance.
   const keep = el.classList.contains("show") && el.querySelector(".rn-art");
-  const txt = `<div class="rn-top"><span class="rn-kick">${kick}</span>${xpTxt}</div><b>${title}</b>
+  const pts = `<span class="rn-pts${gained ? "" : " none"}">${xpTxt || (xpOf(r)).toLocaleString() + " XP"}</span>`;   // award points sit under Ellie
+  const txt = `<div class="rn-top"><span class="rn-kick">${kick}</span></div><b>${title}</b>
     <small>${line1}</small><div class="cbar"><i></i></div><small>${line2}</small>`;
-  if (keep) { el.querySelector(".rn-txt").innerHTML = txt; }
-  else { el.innerHTML = `<div class="rn-art ${motion}">${ellie(costume, 92)}</div><div class="rn-txt">${txt}</div>`;
+  if (keep) { el.querySelector(".rn-txt").innerHTML = txt; if (gained) el.querySelector(".rn-pts").outerHTML = pts; }   // keep the last +XP if this update adds none   // Ellie herself is not redrawn
+  else { el.innerHTML = `<div class="rn-left"><div class="rn-art ${motion}">${ellie(costume, 76)}</div>${pts}</div><div class="rn-txt">${txt}</div>`;
          el.classList.remove("show"); void el.offsetWidth; el.classList.add("show"); }
   const bar = el.querySelector(".cbar i"); bar.style.width = keep ? Math.max(4, pct) + "%" : "0%"; if (!keep) setTimeout(() => bar.style.width = Math.max(4, pct) + "%", 120);
   el.classList.toggle("combo", combo >= 3 && !moment);
