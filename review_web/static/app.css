@@ -623,3 +623,6 @@ main.rclosed .rpanel{visibility:hidden;border:0}
 #rw-nudge .rn-left .rn-art{width:80px;height:80px;flex:0 0 80px}
 #rw-nudge .rn-pts{font-size:.78rem;font-weight:800;color:var(--brand);background:color-mix(in srgb,var(--brand) 14%,transparent);padding:1px 8px;border-radius:999px;white-space:nowrap}
 #rw-nudge .rn-pts.none{color:var(--muted);background:none;font-weight:600}
+/* 4.8.6: Ellie card sits beside the Done panel, not on top of it */
+body:has(main:not(.rclosed) .rpanel) #rw-nudge{right:calc(var(--rside) + 22px)}
+@media (max-width:800px){body #rw-nudge{right:22px}}
