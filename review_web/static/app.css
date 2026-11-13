@@ -609,3 +609,4 @@ main.rclosed .rpanel{visibility:hidden;border:0}
 .srst.ok{color:var(--teal)}.srst.fix{color:#e0a040}
 .rfilters .sinput{width:100%;box-sizing:border-box}
 .rpanel{height:100%;align-self:stretch;box-sizing:border-box}
+.copyb{display:inline-flex;align-items:center;gap:5px}.copyb.done{color:var(--teal);border-color:var(--teal)}

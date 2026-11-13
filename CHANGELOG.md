@@ -57,6 +57,7 @@ Version 4 began with the assessment release (4.0 and 4.1) and grew into a daily 
 - Click a row to open the note at your takes; click ✎ to jump straight into editing your latest take, for continuous fine-tuning. The list refreshes after every save.
 - **Hide »** folds the panel (or press **]**); **Done «** on the right edge brings it back. It starts folded on small screens.
 - Search now labels every result **✓ done**, **to review** or **needs fix**, with All / To review / Done buttons. It always searches every note, whatever the Library filters say.
+- Bug fix 4.8.1 (small feature): **one-click Copy** at the top of every note copies it as clean text with its title, ready to paste into Word, email or Teams. Each of your takes has its own Copy button. Shift+click copies the Markdown instead. The button shows "Copied" in green.
 
 ## 4.7 · 12 Nov 2026 · Full-text search
 - The Library search box now looks **inside every note**: concepts, cases, sources, hubs, reflections and your own takes, not just titles.

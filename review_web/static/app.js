@@ -16,6 +16,7 @@ const CSRF = document.querySelector('meta[name="csrf"]').content;
 let S = {items: [], journals: [], courses: {}, stats: {}}, cur = null, mode = "notes", hist = [];
 const $ = id => document.getElementById(id);
 
+const COPY_IC = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8.5" y="8.5" width="12" height="12" rx="2"/><path d="M15.5 8.5V5a1.5 1.5 0 0 0-1.5-1.5H5A1.5 1.5 0 0 0 3.5 5v9A1.5 1.5 0 0 0 5 15.5h3.5"/></svg>';
 async function api(path, body) {
   const r = await fetch(path, {method: body ? "POST" : "GET", credentials: "same-origin",
     headers: {"X-CSRF": CSRF, "Content-Type": "application/json"}, body: body ? JSON.stringify(body) : undefined});
@@ -143,10 +144,10 @@ function show() {
     $("actions").hidden = true; return;
   }
   const takes = n.takes || [];
-  V.innerHTML = `<div class="doc"><div class="meta">${chips}${p.status === "reviewed" || p.status === "needs-fix" ? '<button class="b small" id="b-unrev" title="Set this note back to not reviewed">Mark not reviewed</button>' : ""}<b class="stitle">${esc(n.title)}</b></div>${md(n.body)}</div>
+  V.innerHTML = `<div class="doc"><div class="meta">${chips}${p.status === "reviewed" || p.status === "needs-fix" ? '<button class="b small" id="b-unrev" title="Set this note back to not reviewed">Mark not reviewed</button>' : ""}<button class="b small copyb" id="b-copy" title="Copy this note as text (Shift+click: copy the Markdown)">${COPY_IC}<span>Copy</span></button><b class="stitle">${esc(n.title)}</b></div>${md(n.body)}</div>
     ${takes.length ? `<div class="takes"><h3>✎ My takes on this note (${takes.length})</h3>` + takes.map(t => `
       <div class="tk" data-tk="${t.i}"><div class="tkhead"><b>${t.date ? esc(niceDay(t.date)) : "Earlier (undated)"}</b>
-        <span><button class="b small" data-tkedit="${t.i}">Edit</button><button class="b small warn" data-tkdel="${t.i}">Delete</button></span></div>
+        <span><button class="b small copyb" data-tkcopy="${t.i}" title="Copy this take (Shift+click: Markdown)">${COPY_IC}<span>Copy</span></button><button class="b small" data-tkedit="${t.i}">Edit</button><button class="b small warn" data-tkdel="${t.i}">Delete</button></span></div>
         <div class="md tkview">${md(t.body)}</div>
         <div class="tkedit" hidden><textarea data-tkta="${t.i}">${esc(t.body)}</textarea>
           <div class="gap"><button class="b ok small" data-tksave="${t.i}">Save changes</button> <button class="b small" data-tkcancel="${t.i}">Cancel</button></div></div></div>`).join("") + "</div>" : ""}
@@ -723,3 +724,27 @@ if ($("rpanel")) {
   const _api = api; api = async (path, body) => { const j = await _api(path, body);
     if (body && /^\/api\/(take|take-edit|take-delete|approve|undo|needs-fix|unreview)/.test(path)) loadDone(); return j; };
 }
+
+
+/* ---------- 4.8.1 one-click copy: whole note or a single take ---------- */
+async function copyText(t) {
+  try { await navigator.clipboard.writeText(t); return true; } catch (e) {
+    const ta = document.createElement("textarea"); ta.value = t; ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select(); let ok = false; try { ok = document.execCommand("copy"); } catch (e2) {} ta.remove(); return ok; }
+}
+function plain(el) { return (el.innerText || "").replace(/\n{3,}/g, "\n\n").trim(); }
+$("view").addEventListener("click", async e => {
+  const b = e.target.closest("#b-copy,[data-tkcopy]"); if (!b || !cur) return;
+  let text;
+  if (b.id === "b-copy") {
+    if (e.shiftKey) text = cur.body;
+    else { const doc = document.querySelector("#view .doc"); text = cur.title + "\n\n" + [...doc.children].filter(c => !c.classList.contains("meta")).map(plain).filter(Boolean).join("\n\n"); }
+  } else {
+    const tk = b.closest(".tk"), i = b.dataset.tkcopy;
+    text = e.shiftKey ? (document.querySelector(`[data-tkta="${i}"]`) || {}).value : plain(tk.querySelector(".tkview"));
+  }
+  const ok = await copyText(text || "");
+  const lab = b.querySelector("span"); if (!lab) return;
+  b.classList.add(ok ? "done" : "err"); lab.textContent = ok ? "Copied" : "Copy failed";
+  setTimeout(() => { b.classList.remove("done", "err"); lab.textContent = "Copy"; }, 1500);
+});

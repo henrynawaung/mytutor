@@ -1,7 +1,7 @@
 """myTutor release version, shown at the bottom left of every myTutor page."""
-VERSION = "4.8"
+VERSION = "4.8.1"
 RELEASED = "2026-11-14"
-NOTES = "Done panel: your takes and approvals on the right"
+NOTES = "One-click copy for notes and takes"
 
 
 def label() -> str:
