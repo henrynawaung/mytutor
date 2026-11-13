@@ -617,7 +617,6 @@ main.rclosed .rpanel{visibility:hidden;border:0}
 .ddraft{color:#e0a040;font-weight:650}
 .rfilters .seg button,.srseg button{white-space:nowrap}
 /* 4.8.4: calmer Ellie in the small card: her motion plays twice, then she rests */
-#rw-nudge .rn-art *{animation-iteration-count:2!important}
 /* 4.8.4: award points shown under Ellie */
 #rw-nudge .rn-left{flex:0 0 92px;display:flex;flex-direction:column;align-items:center;gap:2px}
 #rw-nudge .rn-left .rn-art{width:80px;height:80px;flex:0 0 80px}

@@ -161,6 +161,22 @@ const CHEERS = {approve: ["Note approved!", "Another one done!", "Sharp work!", 
   fix: ["Flagged for fixing!", "Good catch!"], edit: ["Take polished!", "Sharper now!"]};
 const ELLIE_LOOK = {approve: ["", "m-wave"], take: ["boss", "m-toot"], edit: ["boss", "m-toot"], answer: ["graduate", "m-wave"], fix: ["", "m-toot"],
   five: ["party", "m-dance"], goal: ["champion", "m-dance"]};
+// Ellie moves for as long as the tune plays, then rests (each part repeats a whole number of times, so she ends in her normal pose)
+function tuneMs(moment) {
+  const c = getSet().chime || "kalimba";
+  if (c === "off") return 2500;
+  if (moment || c === "fanfare") return 3800;
+  return c === "kalimba" ? 3300 : c === "kalimba-short" ? 1700 : 2200;
+}
+function ellieForTune(el, moment) {
+  const ms = tuneMs(moment);
+  el.querySelectorAll(".rn-art *").forEach(n => {
+    const d = parseFloat(getComputedStyle(n).animationDuration) * 1000; if (!d) return;
+    const alt = getComputedStyle(n).animationDirection.includes("alternate");
+    let reps = Math.max(1, Math.ceil(ms / d)); if (alt && reps % 2) reps += 1;      // alternate: even count ends where it started
+    n.style.animationIterationCount = reps;
+  });
+}
 function nudge(kinds, r, moment, update) {       // Ellie's achievement card, shown while the tune plays
   const s = getSet(); if (s.rewards === "off") return;
   const map = {approve: "approved", take: "takes", answer: "reflections", fix: "approved", edit: "takes"};
@@ -189,7 +205,7 @@ function nudge(kinds, r, moment, update) {       // Ellie's achievement card, sh
     <small>${line1}</small><div class="cbar"><i></i></div><small>${line2}</small>`;
   if (keep) { el.querySelector(".rn-txt").innerHTML = txt; if (gained) el.querySelector(".rn-pts").outerHTML = pts; }   // keep the last +XP if this update adds none   // Ellie herself is not redrawn
   else { el.innerHTML = `<div class="rn-left"><div class="rn-art ${motion}">${ellie(costume, 76)}</div>${pts}</div><div class="rn-txt">${txt}</div>`;
-         el.classList.remove("show"); void el.offsetWidth; el.classList.add("show"); }
+         el.classList.remove("show"); void el.offsetWidth; el.classList.add("show"); ellieForTune(el, moment); }
   const bar = el.querySelector(".cbar i"); bar.style.width = keep ? Math.max(4, pct) + "%" : "0%"; if (!keep) setTimeout(() => bar.style.width = Math.max(4, pct) + "%", 120);
   el.classList.toggle("combo", combo >= 3 && !moment);
   clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove("show"), moment ? 5200 : 4000);   // each new award keeps it up a little longer
