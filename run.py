@@ -83,6 +83,35 @@ def sort_dated_files(inbox: Path, courses: list, settle_minutes: float, dry_run:
     return moved
 
 
+def failed_jobs(jobs_root: Path, max_age_days: int = 30) -> list:
+    """Job folders where note writing failed for at least one source (e.g. the API key was rejected),
+    newest job per day folder only, from the last `max_age_days`. Those days are retried by the next run."""
+    latest: dict = {}
+    for job in sorted(p for p in jobs_root.iterdir() if p.is_dir()) if jobs_root.is_dir() else []:
+        if time.time() - job.stat().st_mtime > max_age_days * 86400:
+            continue
+        try:
+            folder = json.loads((job / "manifest.json").read_text(encoding="utf-8")).get("folder")
+        except (OSError, ValueError):
+            continue
+        if folder:
+            latest[folder] = job                     # sorted by name = by time, so the newest wins
+    out = []
+    for folder, job in sorted(latest.items()):
+        try:
+            rep = json.loads((job / "generate.json").read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if any(r.get("status") == "failed" for r in rep.get("sources", {}).values()):
+            out.append((folder, job))
+    return out
+
+
+def key_rejected(rep: dict) -> bool:
+    return any(str(r.get("error", "")).startswith(("AuthenticationError", "PermissionDeniedError"))
+               for r in rep.get("sources", {}).values())
+
+
 def folder_status(day: Path, extensions: set, known_sha: set, settle_minutes: float) -> tuple[str, int]:
     """'new' (with count), 'syncing', or 'done'."""
     from retrieve import is_ignored
@@ -147,9 +176,12 @@ def run(cfg: dict, client=None, dry_run: bool = False, log=print, after_day=None
                 log(f"new        {label}: {new} new file(s)")
             elif status == "syncing":
                 log(f"waiting    {label}: files changed in the last few minutes, next run will take it")
-        if not todo:
+        retry = [(f, j) for f, j in failed_jobs(jobs_root) if f not in todo]
+        for f, j in retry:
+            log(f"retry      {f}: note writing failed last time ({j.name})")
+        if not todo and not retry:
             log("No new files.")
-        if dry_run or not todo:
+        if dry_run or not (todo or retry):
             summary["seconds"] = round(time.perf_counter() - t0, 1)
             return summary
 
@@ -160,6 +192,42 @@ def run(cfg: dict, client=None, dry_run: bool = False, log=print, after_day=None
                 return summary
             import anthropic
             client = anthropic.Anthropic(max_retries=3)
+
+        def record(day, label, job_dir, rep):
+            done = [r for r in rep["sources"].values() if r.get("status") == "done"]
+            bad = [r for r in rep["sources"].values() if r.get("status") == "failed"]
+            day.update(job=job_dir.name, sources=len(done), failed=len(bad),
+                       notes=sum(r.get("notes_written", 0) for r in done),
+                       cost_usd=round(sum(r.get("cost_usd", 0) for r in done), 3),
+                       practice_set=bool(rep.get("practice_set")))
+            summary["days_processed"] += 1
+            summary["sources"] += day["sources"]
+            summary["notes"] += day["notes"]
+            summary["cost_usd"] = round(summary["cost_usd"] + day["cost_usd"], 3)
+            summary["failed"] += day["failed"]
+            log(f"done       {label}: {day['sources']} sources, {day['notes']} notes, "
+                f"US${day['cost_usd']:.2f}, {day['failed']} failed")
+            if after_day and day["sources"]:
+                after_day(day)
+
+        # first, days whose notes failed last time (only the failed sources are redone; nothing is charged twice)
+        for label, job_dir in retry:
+            day = {"folder": label, "retried": True}
+            try:
+                rep = generate.generate_job(job_dir, client, cfg, log_path=jobs_root / "generate_runs.csv")
+                record(day, label, job_dir, rep)
+                if key_rejected(rep):
+                    summary["status"] = "api key rejected"
+                    log("API KEY REJECTED by Claude (401). Set the new key with setx, then Stop all, close and reopen "
+                        "the Control Centre, and Start all. Stopping here; the waiting days will be retried next run.")
+                    summary["days"].append(day)
+                    summary["seconds"] = round(time.perf_counter() - t0, 1)
+                    return summary
+            except Exception as exc:
+                day["error"] = f"{type(exc).__name__}: {exc}"
+                summary["failed"] += 1
+                log(f"FAILED     {label}: {day['error']}")
+            summary["days"].append(day)
 
         source = retrieve.SyncedSource(inbox, settle_seconds=float(cfg.get("settle_seconds", 1.0)))
         for label in todo:
@@ -173,21 +241,13 @@ def run(cfg: dict, client=None, dry_run: bool = False, log=print, after_day=None
                     continue
                 extract.extract_job(res.job_dir)
                 rep = generate.generate_job(res.job_dir, client, cfg, log_path=jobs_root / "generate_runs.csv")
-                done = [r for r in rep["sources"].values() if r.get("status") == "done"]
-                bad = [r for r in rep["sources"].values() if r.get("status") == "failed"]
-                day.update(job=res.job_dir.name, sources=len(done), failed=len(bad),
-                           notes=sum(r.get("notes_written", 0) for r in done),
-                           cost_usd=round(sum(r.get("cost_usd", 0) for r in done), 3),
-                           practice_set=bool(rep.get("practice_set")))
-                summary["days_processed"] += 1
-                summary["sources"] += day["sources"]
-                summary["notes"] += day["notes"]
-                summary["cost_usd"] = round(summary["cost_usd"] + day["cost_usd"], 3)
-                summary["failed"] += day["failed"]
-                log(f"done       {label}: {day['sources']} sources, {day['notes']} notes, "
-                    f"US${day['cost_usd']:.2f}, {day['failed']} failed")
-                if after_day and day["sources"]:
-                    after_day(day)
+                record(day, label, res.job_dir, rep)
+                if key_rejected(rep):
+                    summary["status"] = "api key rejected"
+                    log("API KEY REJECTED by Claude (401). Set the new key with setx, then Stop all, close and reopen "
+                        "the Control Centre, and Start all. Stopping here; this day will be retried next run.")
+                    summary["days"].append(day)
+                    break
             except Exception as exc:                 # one bad day must not stop the others
                 day["error"] = f"{type(exc).__name__}: {exc}"
                 summary["failed"] += 1
@@ -201,7 +261,7 @@ def run(cfg: dict, client=None, dry_run: bool = False, log=print, after_day=None
             (jobs_root / "practice.html").write_text(practice.build_html(payload), encoding="utf-8")
             log("Practice page rebuilt.")
     summary["seconds"] = round(time.perf_counter() - t0, 1)
-    if summary["failed"]:
+    if summary["failed"] and summary["status"] == "ok":
         summary["status"] = "some failed"
     return summary
 
@@ -265,7 +325,7 @@ def main(argv=None) -> int:
                         "finished": datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds"),
                         "detail": "; ".join(d["folder"] for d in summary["days"])})
     print("SUMMARY " + json.dumps(summary, ensure_ascii=False))
-    return 1 if summary["status"] in ("some failed", "no api key") else 0
+    return 1 if summary["status"] in ("some failed", "no api key", "api key rejected") else 0
 
 
 if __name__ == "__main__":

@@ -44,7 +44,7 @@ Installed versions were read from the laptop's Python environment on 12 Nov 2026
 - The Control Centre uses a per-session token and Host check, and only runs whitelisted actions.
 
 ## Testing
-- **pytest**: 118 automated tests (pipeline, Review app, Control Centre, vault tools).
+- **pytest**: 120 automated tests (pipeline, Review app, Control Centre, vault tools).
 - **Playwright** browser checks were used while building each UI change (on the development machine, not the laptop).
 
 # Major release 4 (current): myTutor as a second brain
@@ -61,6 +61,7 @@ Version 4 began with the assessment release (4.0 and 4.1) and grew into a daily 
 - Bug fix 4.8.2: after a move break, **one click** ("I'm back, continue learning") closes Ellie and returns you to your note, with a short welcome-back message. If the 2-minute timer runs out, the cheer closes by itself after 5 seconds.
 - Bug fix 4.8.3: **back where you left off**: after a refresh, restart or reboot, the Review app reopens the note you were last working on (within 7 days), with your unsaved draft. The Done panel gains a **🕘 Recent** filter listing the notes you opened, newest first, with unsaved drafts marked. Fixed the Done panel's Hide button and top rows not responding: the hidden achievement card was still catching clicks there.
 - Bug fix 4.8.4: **calmer Ellie** when several awards arrive together. Once her card is on screen it stays still and only the words and bar update; her motion plays twice, then she rests; and when a big award pop-up opens, the small card steps aside so there is only one Ellie at a time. Your **award points (+XP)** now show in a badge under Ellie and update in place.
+- Bug fix 4.8.5: **failed days are retried automatically**. If note writing failed (for example the API key was rejected), every later run, including n8n's 15-minute run, redoes only the failed sources and then files the notes. Days that already worked are never redone or charged twice. If Claude rejects the API key, the run stops after the first failure with one clear message ("API KEY REJECTED … Stop all, close and reopen the Control Centre, Start all") instead of failing every day.
 
 ## 4.7 · 12 Nov 2026 · Full-text search
 - The Library search box now looks **inside every note**: concepts, cases, sources, hubs, reflections and your own takes, not just titles.

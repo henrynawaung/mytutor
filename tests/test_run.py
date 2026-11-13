@@ -102,6 +102,30 @@ class RunTests(unittest.TestCase):
         self.assertEqual((s["status"], s["failed"]), ("some failed", 1))
 
 
+    def test_failed_day_is_retried_next_run_without_redoing_good_sources(self):
+        s = self.go(FakeClient([RuntimeError("down"), answer("B")]))
+        self.assertEqual(s["failed"], 1)
+        client = FakeClient([answer("A")])                # only the failed source is asked again
+        s = self.go(client)
+        self.assertEqual((len(client.calls), s["status"], s["failed"]), (1, "ok", 0))
+        self.assertTrue(any(line.startswith("retry") for line in self.logs))
+        client = FakeClient([])                           # all good now: nothing left to retry
+        self.assertEqual((self.go(client)["days_processed"], client.calls), (0, []))
+
+    def test_rejected_key_stops_the_run_and_is_retried_later(self):
+        class AuthenticationError(Exception):
+            pass
+        make_pdf(self.inbox / "MBAM601_Digital" / "Day 2" / "c.pdf", "Ecosystems compound. " * 40)
+        client = FakeClient([AuthenticationError("401 invalid x-api-key"), AuthenticationError("401 invalid x-api-key")])
+        s = self.go(client)
+        self.assertEqual(s["status"], "api key rejected")
+        self.assertEqual(s["days_processed"], 1)          # stopped after Day 1; Day 2 not even fetched
+        self.assertTrue(any("API KEY REJECTED" in line for line in self.logs))
+        client = FakeClient([answer("A"), answer("B"), answer("C")])
+        s = self.go(client)                               # new key: Day 1 retried, Day 2 processed
+        self.assertEqual((s["status"], s["days_processed"], len(client.calls)), ("ok", 2, 3))
+
+
 if __name__ == "__main__":
     unittest.main()
 
