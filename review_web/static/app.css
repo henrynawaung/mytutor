@@ -633,3 +633,8 @@ body:has(main:not(.rclosed) .rpanel) #rw-nudge{right:calc(var(--rside) + 22px)}
 *::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--muted) 35%,transparent);border-radius:8px}
 .settings{scrollbar-gutter:stable;padding-right:10px}
 .settings:not(:hover){scrollbar-color:transparent transparent}.settings:not(:hover)::-webkit-scrollbar-thumb{background:transparent}
+/* 4.8.8: one clean card: no glow ring or gradient layer; combo shown by colour only */
+#rw-nudge,#rw-nudge.combo{background:var(--panel);background-image:none;border:1px solid var(--line);border-left:4px solid var(--brand);border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.28);animation:none;overflow:hidden;align-items:center;padding:10px 16px 10px 10px}
+#rw-nudge.combo{border-left-color:#ff6b6b}
+#rw-nudge .rn-left{align-self:center;justify-content:center;height:100%}
+#rw-nudge .rn-art{overflow:hidden;border-radius:12px;background:transparent}

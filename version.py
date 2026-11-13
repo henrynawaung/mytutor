@@ -1,7 +1,7 @@
 """myTutor release version, shown at the bottom left of every myTutor page."""
-VERSION = "4.8.7"
+VERSION = "4.8.8"
 RELEASED = "2026-11-14"
-NOTES = "Ellie dances for the whole tune"
+NOTES = "Cleaner Ellie card"
 
 
 def label() -> str:
