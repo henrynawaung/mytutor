@@ -725,6 +725,13 @@ def generate_job(job_dir: Path, client, cfg: dict, only: str | None = None, forc
             result, tin, tout = call_claude(client, model, msg, max_tokens=int(cfg.get("max_output_tokens", 12000)),
                                             tool_choice=cfg.get("tool_choice"))
             written, linked = write_notes(notes_dir, result, known, origin_link)
+            if post:                                   # your own posts: filed as already reviewed (not in the review queue)
+                for w in written:
+                    f = notes_dir / w
+                    if f.exists():
+                        t = f.read_text(encoding="utf-8")
+                        f.write_text(t.replace("status: unreviewed\n", f"status: reviewed\nreviewed_on: {today}\n", 1),
+                                     encoding="utf-8")
             ref_title = next((w.split("/", 1)[1][:-3] for w in written if w.startswith("reference/")), "")
             quiz = valid_quiz(result.get("quiz")) if quiz_on else []
             written += write_quiz(notes_dir, job_dir / "quiz", course, day, today, Path(rel).name,

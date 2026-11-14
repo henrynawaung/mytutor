@@ -44,7 +44,7 @@ Installed versions were read from the laptop's Python environment on 12 Nov 2026
 - The Control Centre uses a per-session token and Host check, and only runs whitelisted actions.
 
 ## Testing
-- **pytest**: 129 automated tests (pipeline, Review app, Control Centre, vault tools).
+- **pytest**: 130 automated tests (pipeline, Review app, Control Centre, vault tools).
 - **Playwright** browser checks were used while building each UI change (on the development machine, not the laptop).
 
 # Major release 4 (current): myTutor as a second brain
@@ -53,6 +53,7 @@ Version 4 began with the assessment release (4.0 and 4.1) and grew into a daily 
 ## 4.11 · 14 Nov 2026 · LinkedIn images
 - The **📣 Post** pop-up now also gives you **two images** for every draft: a **title image** (1200×627: headline, a topic illustration and "Henry N. Aung") and an **ending image** (1080×1350: the key points as numbered steps, your takeaway and the closing question). Clean light style in your accent colour, drawn on your laptop (no extra cost). **Download PNG** saves each one.
 - **Copy image prompt** for each image: a ready-made prompt for ChatGPT, Gemini, Copilot or Midjourney when you want a photo-style version (an executive presenting the headline to a boardroom, or an icon infographic). No logos or brand names.
+- Bug fix 4.11.1: notes made from **your own LinkedIn posts are filed as reviewed**, so they never join your review queue.
 
 ## 4.10 · 14 Nov 2026 · LinkedIn in and out
 - **Your posts in:** a new inbox folder **LinkedIn_MyPosts** (next to BusinessMentor). Save each post as a text or .md file, with the article link or text underneath if it was based on one. myTutor files it by date (from the file name, or the day you saved it) and writes a **"My post - ..."** note: your public position in one line, the post text, what it was based on (with links), and links to the concepts it uses. The article gets its own source note. No quiz questions on your own opinions.

@@ -85,6 +85,20 @@ class ReadingGenerateTests(unittest.TestCase):
         self.assertTrue(msg.startswith("COURSE: MBAM601"))
 
 
+    def test_linkedin_post_notes_are_filed_as_reviewed(self):
+        m = json.loads((self.job / "manifest.json").read_text())
+        m["folder"] = "LinkedIn_Posts/08_Nov_2026 Why Good Marketing"
+        (self.job / "manifest.json").write_text(json.dumps(m))
+        client = FakeClient([reading_response("My post - Good Marketing")] * 3)
+        generate.generate_job(self.job, client, self.cfg)
+        notes = list((self.job / "notes").rglob("*.md"))
+        self.assertTrue(notes)
+        for n in notes:
+            t = n.read_text(encoding="utf-8")
+            if "status:" in t:
+                self.assertIn("status: reviewed\nreviewed_on:", t, n.name)
+
+
 class PhrasebookTests(unittest.TestCase):
     def test_append_only_and_no_duplicates(self):
         with tempfile.TemporaryDirectory() as d:
