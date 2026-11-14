@@ -832,18 +832,30 @@ $("view").addEventListener("click", async e => {
   m.innerHTML = `<div class="rw-card li-card"><div class="rw-kicker">📣 LinkedIn draft</div><h2>${esc(cur.title)}</h2>
     <p class="muted tiny">Drafted from your take, in the voice of your earlier posts. Edit it, copy it, and post it yourself on LinkedIn.</p>
     <textarea class="li-text" readonly>Drafting your post…</textarea>
-    <div class="mb-btns"><button class="b ok" data-l="copy" disabled>Copy</button><button class="b" data-l="again" disabled>Try again</button><button class="b" data-l="close">Close</button></div></div>`;
+    <div class="li-imgs" hidden>
+      <div class="li-img"><b>🖼 Title image</b><div class="li-cv" data-cv="title"></div>
+        <div class="li-ib"><button class="b small" data-l="dl-title">Download PNG</button><button class="b small" data-l="pr-title" title="Paste into ChatGPT, Gemini, Copilot or Midjourney for a photo-style version">Copy image prompt</button></div></div>
+      <div class="li-img"><b>📊 Ending image</b><div class="li-cv" data-cv="ending"></div>
+        <div class="li-ib"><button class="b small" data-l="dl-ending">Download PNG</button><button class="b small" data-l="pr-ending" title="Paste into ChatGPT, Gemini, Copilot or Midjourney for a photo-style version">Copy image prompt</button></div></div>
+    </div>
+    <div class="mb-btns"><button class="b ok" data-l="copy" disabled>Copy post</button><button class="b" data-l="again" disabled>Try again</button><button class="b" data-l="close">Close</button></div></div>`;
   document.body.appendChild(m);
+  let R = null, cvs = {};
   const ta = m.querySelector(".li-text"), go = async () => {
     ta.value = "Drafting your post…"; ta.readOnly = true; m.querySelectorAll("[data-l=copy],[data-l=again]").forEach(x => x.disabled = true);
-    try { const r = await api("/api/draft-post", {rel: cur.rel, i: +b.dataset.tkpost}); ta.value = r.text; ta.readOnly = false;
+    try { const r = await api("/api/draft-post", {rel: cur.rel, i: +b.dataset.tkpost}); R = r; ta.value = r.text; ta.readOnly = false;
+          if (r.card && window.titleCard) { cvs = {title: titleCard(r.card), ending: endingCard(r.card)};
+            for (const k of ["title", "ending"]) { const box = m.querySelector(`[data-cv=${k}]`); box.innerHTML = ""; box.appendChild(cvs[k]); }
+            m.querySelector(".li-imgs").hidden = false; }
           m.querySelector(".tiny").textContent = `Drafted from your take (about US$${r.cost_usd.toFixed(2)}). Edit it, copy it, and post it yourself on LinkedIn.`; }
     catch (err) { ta.value = err.message; }
     m.querySelectorAll("[data-l=copy],[data-l=again]").forEach(x => x.disabled = false);
   };
   m.onclick = async ev => { const a = ev.target.closest("[data-l]"); if (ev.target === m) return m.remove(); if (!a) return;
     if (a.dataset.l === "close") m.remove();
+    else if (a.dataset.l.startsWith("dl-")) { const k = a.dataset.l.slice(3); if (cvs[k]) downloadCanvas(cvs[k], `linkedin-${k}-${(R.card.headline || "post").replace(/[^a-z0-9]+/gi, "-").slice(0, 40).toLowerCase()}.png`); }
+    else if (a.dataset.l.startsWith("pr-")) { const k = a.dataset.l.slice(3), ok = await copyText((R && R[k + "_prompt"]) || ""); a.textContent = ok ? "Prompt copied ✓" : "Copy failed"; setTimeout(() => a.textContent = "Copy image prompt", 1600); }
     else if (a.dataset.l === "again") go();
-    else { const ok = await copyText(ta.value); a.textContent = ok ? "Copied ✓" : "Copy failed"; setTimeout(() => a.textContent = "Copy", 1500); } };
+    else { const ok = await copyText(ta.value); a.textContent = ok ? "Copied ✓" : "Copy failed"; setTimeout(() => a.textContent = "Copy post", 1500); } };
   go();
 });

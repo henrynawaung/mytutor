@@ -1,7 +1,7 @@
 """myTutor release version, shown at the bottom left of every myTutor page."""
-VERSION = "4.10.1"
+VERSION = "4.11"
 RELEASED = "2026-11-14"
-NOTES = "Stretch asks as soon as you pass your target"
+NOTES = "Title and ending images for LinkedIn posts"
 
 
 def label() -> str:

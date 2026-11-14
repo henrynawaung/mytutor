@@ -177,9 +177,24 @@ def cost_usd(usage: dict, in_per_m: float = 3.0, out_per_m: float = 15.0) -> flo
 # ---------------- LinkedIn: draft a post from one of your takes, in your own voice (you edit and post it yourself)
 POST_SYSTEM = """You help an Executive MBA student (project manager in Singapore healthcare IT, building a leadership
 network) turn one of his own takes into a LinkedIn post. Keep HIS view and examples; do not add claims, numbers or
-stories he did not give. Plain, confident British English, no hype, no hashtag spam (at most 3 relevant hashtags at the end),
-no emojis unless his own posts use them. 120-220 words: a strong first line, the idea, his example, one practical
-takeaway for leaders, and a closing question to invite discussion. Return only the post text."""
+stories he did not give. Plain, confident British English, no hype, at most 3 relevant hashtags at the end,
+no emojis unless his own posts use them. Post: 120-220 words: a strong first line, the idea, his example, one practical
+takeaway for leaders, and a closing question to invite discussion.
+
+Return ONLY one JSON object (no code fence) with these keys:
+"post": the post text;
+"headline": a title for the post, max 12 words;
+"points": 3 or 4 key points, each {"label": max 3 words, "line": max 12 words};
+"takeaway": one sentence for leaders, max 18 words;
+"question": the closing question;
+"topic": one of risk, people, growth, strategy, data, innovation, health, leadership, change, time;
+"title_prompt": a detailed prompt for an image generator (ChatGPT, Gemini, Copilot, Midjourney) for a photo-realistic
+ 16:9 title image: a Southeast Asian male executive in a navy suit presenting to a boardroom or conference audience,
+ seen from behind the audience, natural light, a large screen showing the headline in clean bold text and 4-5 simple
+ icons with short labels from the points, professional, warm, no company logos or real brand names;
+"ending_prompt": a detailed prompt for a clean 4:5 infographic ending image: the headline at the top, the points as
+ numbered steps with simple icons along a path, the takeaway in a highlighted box, the closing question at the bottom,
+ the small signature "Henry N. Aung", light background, modern corporate style, no logos."""
 
 
 def my_posts(vault, limit: int = 3) -> list:
@@ -196,13 +211,35 @@ def my_posts(vault, limit: int = 3) -> list:
     return out
 
 
+def _json_obj(text: str) -> dict:
+    import json
+    t = text.strip()
+    t = re.sub(r"^```(?:json)?\s*|\s*```$", "", t)
+    i, j = t.find("{"), t.rfind("}")
+    try:
+        return json.loads(t[i:j + 1]) if i >= 0 and j > i else {}
+    except ValueError:
+        return {}
+
+
+TOPICS = {"risk", "people", "growth", "strategy", "data", "innovation", "health", "leadership", "change", "time"}
+
+
 def draft_post(client, model: str, title: str, note_text: str, take: str, examples: list) -> dict:
     voice = "\n\n---\n\n".join(examples) or "(no earlier posts yet)"
     msg = (f"## My earlier posts (match this voice)\n{voice}\n\n## The concept note: {title}\n"
            f"{core.strip_take_section(core.body(note_text))[:2500]}\n\n## My take (the heart of the post)\n{take[:3000]}")
-    resp = client.messages.create(model=model, max_tokens=1200, system=POST_SYSTEM,
+    resp = client.messages.create(model=model, max_tokens=2500, system=POST_SYSTEM,
                                   messages=[{"role": "user", "content": msg}])
-    text = "".join(b.text for b in resp.content if getattr(b, "type", "") == "text").strip()
+    raw = "".join(b.text for b in resp.content if getattr(b, "type", "") == "text").strip()
+    d = _json_obj(raw)
+    post = str(d.get("post") or raw).strip()
+    pts = [{"label": str(p.get("label", ""))[:40], "line": str(p.get("line", ""))[:140]}
+           for p in (d.get("points") or []) if isinstance(p, dict) and p.get("label")][:4]
     u = getattr(resp, "usage", None)
     usage = {"input_tokens": getattr(u, "input_tokens", 0) or 0, "output_tokens": getattr(u, "output_tokens", 0) or 0, "searches": 0}
-    return {"text": text, "cost_usd": cost_usd(usage)}
+    return {"text": post, "cost_usd": cost_usd(usage),
+            "card": {"headline": str(d.get("headline") or title)[:120], "points": pts,
+                     "takeaway": str(d.get("takeaway", ""))[:200], "question": str(d.get("question", ""))[:200],
+                     "topic": d.get("topic") if d.get("topic") in TOPICS else "leadership"},
+            "title_prompt": str(d.get("title_prompt", "")).strip(), "ending_prompt": str(d.get("ending_prompt", "")).strip()}

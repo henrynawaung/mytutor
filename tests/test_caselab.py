@@ -94,6 +94,22 @@ class CaseLabCore(unittest.TestCase):
         self.assertNotIn("tools", client.calls[0])
 
 
+    def test_post_draft_returns_card_and_image_prompts(self):
+        import json
+        body = {"post": "Most AI projects fail on people.", "headline": "AI fails on people",
+                "points": [{"label": "Co-design", "line": "Involve nurses early"}, {"label": "Trust", "line": "Show evidence"}],
+                "takeaway": "Ask users first.", "question": "What worked for you?", "topic": "people",
+                "title_prompt": "photo of an executive presenting", "ending_prompt": "infographic"}
+        client = SimpleNamespace(messages=SimpleNamespace(create=lambda **kw: SimpleNamespace(
+            content=[SimpleNamespace(type="text", text="```json\n" + json.dumps(body) + "\n```")],
+            usage=SimpleNamespace(input_tokens=1000, output_tokens=500))))
+        r = caselab.draft_post(client, "m", "Change Resistance", NOTE.format(st="x", t="T", body="b"), "my take", [])
+        self.assertEqual(r["text"], "Most AI projects fail on people.")
+        self.assertEqual(r["card"]["topic"], "people")
+        self.assertEqual(len(r["card"]["points"]), 2)
+        self.assertIn("executive", r["title_prompt"])
+
+
 @unittest.skipUnless(HAVE_FLASK, "needs flask")
 class CaseLabApp(unittest.TestCase):
     def go(self, reviewed):
