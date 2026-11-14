@@ -44,7 +44,7 @@ Installed versions were read from the laptop's Python environment on 12 Nov 2026
 - The Control Centre uses a per-session token and Host check, and only runs whitelisted actions.
 
 ## Testing
-- **pytest**: 130 automated tests (pipeline, Review app, Control Centre, vault tools).
+- **pytest**: 132 automated tests (pipeline, Review app, Control Centre, vault tools).
 - **Playwright** browser checks were used while building each UI change (on the development machine, not the laptop).
 
 # Major release 4 (current): myTutor as a second brain
@@ -56,6 +56,7 @@ Version 4 began with the assessment release (4.0 and 4.1) and grew into a daily 
 - Bug fix 4.11.1: notes made from **your own LinkedIn posts are filed as reviewed**, so they never join your review queue. References you put in the **comments** under your own post are now picked up as the post's sources.
 - Bug fix 4.11.2: a **longer career ladder** for a growing library: Analyst 0, Senior Analyst 500, Manager 1,200, Senior Manager 2,200, Director 3,500, Vice President 5,500, **Senior Vice President 9,000** (new), C-suite 14,000, **Chief Executive 21,000** (new), Board Chair 30,000 XP. Ranks you already hold keep their XP, so nobody is demoted; Ellie's Champion outfit now unlocks at C-suite.
 - Bug fix 4.11.3 (small feature): **Sound volume** in Personalise, a slider from 0 (muted) to 100 for myTutor's own sounds (chimes, kalimba, party poppers), separate from your laptop volume. Default 70 is the original loudness; it plays a preview when you let go, and **Test** plays it again.
+- Bug fix 4.11.4: posts with **very long titles** (a whole question as the folder name) could not be filed because the Windows path went over 260 characters. Folder and note names are now shortened at a word, and any day whose notes were written but not filed is **filed on the next run**. LinkedIn notes are also marked reviewed when filed, whatever version wrote them.
 
 ## 4.10 · 14 Nov 2026 · LinkedIn in and out
 - **Your posts in:** a new inbox folder **LinkedIn_MyPosts** (next to BusinessMentor). Save each post as a text or .md file, with the article link or text underneath if it was based on one. myTutor files it by date (from the file name, or the day you saved it) and writes a **"My post - ..."** note: your public position in one line, the post text, what it was based on (with links), and links to the concepts it uses. The article gets its own source note. No quiz questions on your own opinions.

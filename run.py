@@ -288,6 +288,29 @@ def file_day(day: dict, here: Path, cfg_path: Path, sample: int) -> bool:
     return day["filed"]
 
 
+def unfiled_jobs(jobs_root: Path, max_age_days: int = 30) -> list:
+    """Jobs whose notes were written but never filed into the vault (e.g. a Windows path was too long),
+    newest job per day folder only. The next run files them."""
+    filed = set()
+    log = jobs_root / "file_runs.csv"
+    if log.exists():
+        with log.open(encoding="utf-8", newline="") as f:
+            filed = {row.get("job", "") for row in csv.DictReader(f)}
+    latest: dict = {}
+    for job in sorted(p for p in jobs_root.iterdir() if p.is_dir()) if jobs_root.is_dir() else []:
+        if time.time() - job.stat().st_mtime > max_age_days * 86400:
+            continue
+        try:
+            folder = json.loads((job / "manifest.json").read_text(encoding="utf-8")).get("folder")
+            rep = json.loads((job / "generate.json").read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        done = sum(1 for r in rep.get("sources", {}).values() if r.get("status") == "done")
+        if folder and done:
+            latest[folder] = (job, done)
+    return [{"folder": f, "job": j.name, "sources": n} for f, (j, n) in sorted(latest.items()) if j.name not in filed]
+
+
 def file_new_days(summary: dict, here: Path, cfg_path: Path, sample: int) -> None:
     """File every processed day not filed yet (days are normally filed one by one during the run)."""
     for day in summary["days"]:
@@ -319,6 +342,13 @@ def main(argv=None) -> int:
     if args.file and not args.dry_run:
         after = lambda day: file_day(day, here, cfg_path, args.sample)   # file each day before the next
     summary = run(cfg, dry_run=args.dry_run, after_day=after)
+    if args.file and not args.dry_run:                  # notes written earlier but never filed: file them now
+        done_now = {d.get("job") for d in summary["days"]}
+        for day in unfiled_jobs(Path(os.path.expandvars(os.path.expanduser(cfg.get("jobs_root", "~/mytutor/jobs"))))):
+            if day["job"] not in done_now:
+                print(f"filing     {day['folder']}: notes were written but not filed last time")
+                if file_day(day, here, cfg_path, args.sample):
+                    summary["days_filed"] = summary.get("days_filed", 0) + 1
     if args.file and not args.dry_run:
         file_new_days(summary, here, cfg_path, args.sample)
     if not args.dry_run and summary["status"] not in ("already running",):

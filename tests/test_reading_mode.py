@@ -168,3 +168,24 @@ class SortDatedFilesTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class LongNameTests(unittest.TestCase):
+    def test_long_post_titles_make_short_folder_names(self):
+        long = ("A 27-year-old researcher quit his job last month and the world listened. "
+                "Would his warning have been heard inside your organisation")
+        self.assertEqual(generate.short_label(long), "A 27-year-old researcher quit his job last month")
+        self.assertEqual(generate.short_label("Day 1"), "Day 1")
+        self.assertEqual(filer.short_label(long), generate.short_label(long))
+        self.assertEqual(generate.parse_folder("LinkedIn_Posts/" + long)[1], generate.short_label(long))
+
+    def test_unfiled_jobs_are_found_once(self):
+        with tempfile.TemporaryDirectory() as d:
+            jobs = Path(d)
+            for name, folder, status in [("2026-11-14_1_a", "L/One", "done"), ("2026-11-14_2_b", "L/Two", "done"),
+                                         ("2026-11-14_3_c", "L/Three", "failed")]:
+                (jobs / name).mkdir()
+                (jobs / name / "manifest.json").write_text(json.dumps({"folder": folder}))
+                (jobs / name / "generate.json").write_text(json.dumps({"sources": {"x": {"status": status}}}))
+            (jobs / "file_runs.csv").write_text("finished,job\n2026-11-14,2026-11-14_1_a\n")
+            self.assertEqual([j["job"] for j in run.unfiled_jobs(jobs)], ["2026-11-14_2_b"])

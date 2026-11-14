@@ -32,7 +32,7 @@ import os
 import random
 import re
 import sys
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from urllib.parse import quote
 
@@ -42,6 +42,18 @@ SMALL_WORDS = {"and", "of", "the", "in", "for", "to", "a", "an", "on", "with"}
 AUDIT_FIELDS = ["date", "job", "note", "folder", "in_right_folder", "frontmatter_complete",
                 "links_to_source", "links_to_existing_note", "accurate", "comment"]
 RUN_FIELDS = ["finished", "job", "course_folder", "filed", "updated", "unchanged", "kept_yours", "sampled"]
+
+
+def short_label(day: str, limit: int = 60) -> str:
+    """Same as generate.short_label: short day/post folder names keep vault paths under Windows' 260 characters."""
+    day = day.strip()
+    if len(day) > limit:
+        cut = day[:limit]
+        day = cut[:cut.rfind(" ")] if " " in cut[20:] else cut
+    day = day.rstrip(" .,;:?!-")
+    while day.rsplit(" ", 1)[-1].lower() in {"and", "the", "a", "an", "of", "to", "in", "on", "for", "with", "his", "her", "its"} and " " in day:
+        day = day.rsplit(" ", 1)[0].rstrip(" .,;:?!-")
+    return day
 
 
 def sha(text: str) -> str:
@@ -86,7 +98,7 @@ def file_job(job_dir: Path, vault: Path, cfg: dict, jobs_root: Path, dry_run: bo
     manifest = json.loads((job_dir / "manifest.json").read_text(encoding="utf-8"))
     parts = [x for x in manifest.get("folder", "").replace("\\", "/").split("/") if x]
     inbox_folder = parts[0] if parts else ""
-    day = parts[-1] if len(parts) > 1 else ""
+    day = short_label(parts[-1]) if len(parts) > 1 else ""
     course = re.split(r"[_\s-]", inbox_folder)[0] if inbox_folder else "COURSE"
     target = course_folder(vault, course, inbox_folder, cfg)
     folders = {**DEFAULT_FOLDERS, **(cfg.get("vault_folders") or {})}
@@ -103,8 +115,13 @@ def file_job(job_dir: Path, vault: Path, cfg: dict, jobs_root: Path, dry_run: bo
         dest = target / day / sub / src.name if sub else target / day / src.name
         if not cfg.get("day_folders", True):
             dest = target / sub / src.name if sub else target / src.name
+        if len(str(dest)) > 240:                       # Windows path limit: shorten a very long note name
+            room = max(20, len(dest.stem) - (len(str(dest)) - 240))
+            dest = dest.with_name(dest.stem[:room].rstrip(" .,;:?!-") + dest.suffix)
         rel = dest.relative_to(vault).as_posix()
         new = src.read_text(encoding="utf-8")
+        if course.upper() in {str(c).upper() for c in cfg.get("post_courses", ["LinkedIn"])}:   # your own posts: already reviewed
+            new = new.replace("status: unreviewed\n", f"status: reviewed\nreviewed_on: {date.today().isoformat()}\n", 1)
         if dest.exists():
             current = dest.read_text(encoding="utf-8")
             if current == new:

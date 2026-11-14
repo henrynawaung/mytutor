@@ -237,8 +237,21 @@ def parse_folder(folder: str) -> tuple[str, str]:
     """'MBAM601_DigitalTransformation.../Day 1' -> ('MBAM601', 'Day 1')."""
     parts = [p for p in folder.replace("\\", "/").split("/") if p]
     course = re.split(r"[_\s-]", parts[0])[0] if parts else "COURSE"
-    day = parts[-1] if len(parts) > 1 else ""
+    day = short_label(parts[-1]) if len(parts) > 1 else ""
     return course, day
+
+
+def short_label(day: str, limit: int = 60) -> str:
+    """Keep day/post folder names short enough for Windows paths (a post titled with a long question would
+    otherwise make vault paths longer than 260 characters). Cuts at a word, drops trailing dots and spaces."""
+    day = day.strip()
+    if len(day) > limit:
+        cut = day[:limit]
+        day = cut[:cut.rfind(" ")] if " " in cut[20:] else cut
+    day = day.rstrip(" .,;:?!-")
+    while day.rsplit(" ", 1)[-1].lower() in {"and", "the", "a", "an", "of", "to", "in", "on", "for", "with", "his", "her", "its"} and " " in day:
+        day = day.rsplit(" ", 1)[0].rstrip(" .,;:?!-")
+    return day
 
 
 NOTE_FOLDERS = {"reference", "ref", "core", "cases", "quizzes", "quiz", "theme"}
