@@ -151,3 +151,10 @@ The laptop must be on and OneDrive synced for scheduled runs.
 - Notes pass structural checks automatically; factual accuracy needs a human spot-check.
 
 More detail on the retrieve step: [docs/guides/retrieve-details.md](docs/guides/retrieve-details.md).
+
+## Licence
+myTutor by henryZ is © 2026 Henry N. Aung.
+
+It is **free for personal, study and other non-commercial use** under the [PolyForm Noncommercial License 1.0.0](LICENSE): students, teachers and researchers are welcome to use it, adapt it and share it, keeping the `Required Notice` line. **Commercial use** (selling it, or using it in or for a business) needs my permission; please contact me on [GitHub](https://github.com/henrynawaung) or LinkedIn.
+
+Shared as-is, without warranty or promised support. You need your own Anthropic API key, and you are responsible for following your university's rules on AI tools.
