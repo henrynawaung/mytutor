@@ -306,6 +306,9 @@ with the article title, author or outlet and every URL exactly as written (or "N
 linking the concepts the post relies on.
 - Prefer linking to EXISTING NOTE TITLES for the concepts the post uses. Create a new core note only for a concept \
 that is clearly explained in the post or its article and not already in the list. Never invent claims he did not make.
+- He often puts his references in the COMMENTS under his own post. Treat links, titles and citations that HE (the post's \
+author) wrote in the comments as sources of the post: list every one under "## Based on" with its URL exactly as written. \
+Ignore other people's comments, likes and LinkedIn page furniture (menus, "Show more", suggested posts, ads).
 - If an article is included, also create one reference note for the article (its thesis, key points and evidence), \
 linked from the post note.
 - "phrases" and "reflection_prompts": empty lists. Do not write quiz questions about his own opinions.
