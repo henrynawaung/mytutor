@@ -411,7 +411,7 @@ async function refreshRewards(kinds) {
     const moment = goalHit ? "goal" : five ? "five" : null;
     nudge(kinds, r, moment, true);
     if (moment === "goal") { playChime(null, true); fireworks(); popSound(5, .5); setTimeout(askStretch, 3200); }   // weekly goal: fireworks, then ask about a stretch
-    else if (wk1 > tgt && wk1 > (wk0 || 0) && wk1 % 5 === 0) setTimeout(askStretch, 3200);   // already past the target: suggest a higher one at every 5th
+    else if (wk1 > tgt && wk1 > (wk0 || 0)) setTimeout(askStretch, 3200);   // past the target (e.g. 121 of 120): suggest a higher one now
     else if (moment === "five") { partyPopper(); popSound(2, 0); }                     // every 5th: party poppers
   }
 }
@@ -493,10 +493,10 @@ fillBreaks();
 function weekId() { const d = new Date(), t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); const day = t.getUTCDay() || 7; t.setUTCDate(t.getUTCDate() + 4 - day);
   const y0 = new Date(Date.UTC(t.getUTCFullYear(), 0, 1)); return t.getUTCFullYear() + "-W" + String(Math.ceil(((t - y0) / 864e5 + 1) / 7)).padStart(2, "0"); }
 // Stretch: offers the next three targets above your current count (e.g. at 48 → 50, 55, 60).
-// "Not now" pauses the question until you are 10 notes further; tapping the header ring always asks.
+// "Not now" (or clicking outside) pauses the question until you are 5 notes further; tapping the header ring always asks.
 function stretchSnoozed(done) {
   try { const v = localStorage.getItem("mytutor-nostretch-" + weekId()); if (!v) return false;
-        return v === "1" ? done < 0 : done < +v + 10; } catch (e) { return false; }
+        return v === "1" ? done < 0 : done < +v + 5; } catch (e) { return false; }
 }
 function askStretch(force) {
   const tgt = weeklyTarget(), done = (RW && RW.approved_week) || (S.stats && S.stats.approved_week) || 0;
@@ -510,8 +510,8 @@ function askStretch(force) {
     <div class="mb-btns st-opts">${opts.map((n, k) => `<button class="b${k ? "" : " ok"}" data-s="${n}">${n}</button>`).join("")}</div>
     <div class="mb-btns"><button class="b" data-s="no">Not now</button></div></div>`;
   document.body.appendChild(m);
-  m.onclick = async e => { if (e.target === m) { m.remove(); return; } const b = e.target.closest("[data-s]"); if (!b) return; m.remove();
+  m.onclick = async e => { const b = e.target === m ? {dataset: {s: "no"}} : e.target.closest("[data-s]"); if (!b) return; m.remove();   // clicking outside = Not now
     if (b.dataset.s !== "no") { try { const r = await api("/api/stretch", {step: +b.dataset.s - tgt}); S.weekly_extra = r.weekly_extra; renderProg(); toast(`🎯 New target: ${weeklyTarget()} this week`); } catch (err) { toast(err.message); } }
-    else { try { localStorage.setItem("mytutor-nostretch-" + weekId(), String(done)); } catch (err) {} toast(`👍 OK. I'll ask again at ${done + 10}, or tap the weekly ring any time`); } };
+    else { try { localStorage.setItem("mytutor-nostretch-" + weekId(), String(done)); } catch (err) {} toast(`👍 OK. I'll ask again at ${done + 5}, or tap the weekly ring any time`); } };
 }
 window.askStretch = askStretch;

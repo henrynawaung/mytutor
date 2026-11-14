@@ -53,6 +53,7 @@ Version 4 began with the assessment release (4.0 and 4.1) and grew into a daily 
 ## 4.10 · 14 Nov 2026 · LinkedIn in and out
 - **Your posts in:** a new inbox folder **LinkedIn_MyPosts** (next to BusinessMentor). Save each post as a text or .md file, with the article link or text underneath if it was based on one. myTutor files it by date (from the file name, or the day you saved it) and writes a **"My post - ..."** note: your public position in one line, the post text, what it was based on (with links), and links to the concepts it uses. The article gets its own source note. No quiz questions on your own opinions.
 - **Posts out:** a **📣 Post** button on every take drafts a LinkedIn post from that take, in the voice of your earlier posts (about US$0.02). Edit, copy and post it yourself; myTutor never posts for you.
+- Bug fix 4.10.1: the stretch question now comes **as soon as you pass your target** (at 121 of 120, not 125). "Not now", or clicking outside the box, pauses it for 5 more notes.
 
 ## 4.9 · 14 Nov 2026 · Case Lab
 - New **🧭 Case Lab** tab. Describe a situation, paste an article or name a board topic, and myTutor writes a board-ready case with a **model answer to guide you** when a similar situation comes up: the case, recommendation, options considered, rationale, risks and how to reduce them, first 90 days, and the questions a board will ask with strong answers.
