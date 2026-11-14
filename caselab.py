@@ -172,3 +172,37 @@ def save_case(vault_root: Path, situation: str, result: dict, notes: list, today
 
 def cost_usd(usage: dict, in_per_m: float = 3.0, out_per_m: float = 15.0) -> float:
     return round(usage["input_tokens"] / 1e6 * in_per_m + usage["output_tokens"] / 1e6 * out_per_m + usage["searches"] * 0.01, 3)
+
+
+# ---------------- LinkedIn: draft a post from one of your takes, in your own voice (you edit and post it yourself)
+POST_SYSTEM = """You help an Executive MBA student (project manager in Singapore healthcare IT, building a leadership
+network) turn one of his own takes into a LinkedIn post. Keep HIS view and examples; do not add claims, numbers or
+stories he did not give. Plain, confident British English, no hype, no hashtag spam (at most 3 relevant hashtags at the end),
+no emojis unless his own posts use them. 120-220 words: a strong first line, the idea, his example, one practical
+takeaway for leaders, and a closing question to invite discussion. Return only the post text."""
+
+
+def my_posts(vault, limit: int = 3) -> list:
+    """Your recent LinkedIn posts (notes titled 'My post - ...'), newest first, to match your voice."""
+    found = []
+    for p, rel in vault.notes():
+        if p.stem.startswith("My post"):
+            found.append((p.stat().st_mtime, p))
+    out = []
+    for _, p in sorted(found, reverse=True)[:limit]:
+        t = core.body(core.read(p))
+        m = re.search(r"## My post\s*\n(.+?)(?:\n## |\Z)", t, re.S)
+        out.append((m.group(1) if m else t)[:1500].strip())
+    return out
+
+
+def draft_post(client, model: str, title: str, note_text: str, take: str, examples: list) -> dict:
+    voice = "\n\n---\n\n".join(examples) or "(no earlier posts yet)"
+    msg = (f"## My earlier posts (match this voice)\n{voice}\n\n## The concept note: {title}\n"
+           f"{core.strip_take_section(core.body(note_text))[:2500]}\n\n## My take (the heart of the post)\n{take[:3000]}")
+    resp = client.messages.create(model=model, max_tokens=1200, system=POST_SYSTEM,
+                                  messages=[{"role": "user", "content": msg}])
+    text = "".join(b.text for b in resp.content if getattr(b, "type", "") == "text").strip()
+    u = getattr(resp, "usage", None)
+    usage = {"input_tokens": getattr(u, "input_tokens", 0) or 0, "output_tokens": getattr(u, "output_tokens", 0) or 0, "searches": 0}
+    return {"text": text, "cost_usd": cost_usd(usage)}

@@ -147,7 +147,7 @@ function show() {
   V.innerHTML = `<div class="doc"><div class="meta">${chips}${p.status === "reviewed" || p.status === "needs-fix" ? '<button class="b small" id="b-unrev" title="Set this note back to not reviewed">Mark not reviewed</button>' : ""}<button class="b small copyb" id="b-copy" title="Copy this note as text (Shift+click: copy the Markdown)">${COPY_IC}<span>Copy</span></button><b class="stitle">${esc(n.title)}</b></div>${md(n.body)}</div>
     ${takes.length ? `<div class="takes"><h3>✎ My takes on this note (${takes.length})</h3>` + takes.map(t => `
       <div class="tk" data-tk="${t.i}"><div class="tkhead"><b>${t.date ? esc(niceDay(t.date)) : "Earlier (undated)"}</b>
-        <span><button class="b small copyb" data-tkcopy="${t.i}" title="Copy this take (Shift+click: Markdown)">${COPY_IC}<span>Copy</span></button><button class="b small" data-tkedit="${t.i}">Edit</button><button class="b small warn" data-tkdel="${t.i}">Delete</button></span></div>
+        <span><button class="b small copyb" data-tkcopy="${t.i}" title="Copy this take (Shift+click: Markdown)">${COPY_IC}<span>Copy</span></button><button class="b small" data-tkpost="${t.i}" title="Draft a LinkedIn post from this take, in your voice (about US$0.02). You edit and post it yourself.">📣 Post</button><button class="b small" data-tkedit="${t.i}">Edit</button><button class="b small warn" data-tkdel="${t.i}">Delete</button></span></div>
         <div class="md tkview">${md(t.body)}</div>
         <div class="tkedit" hidden><textarea data-tkta="${t.i}">${esc(t.body)}</textarea>
           <div class="gap"><button class="b ok small" data-tksave="${t.i}">Save changes</button> <button class="b small" data-tkcancel="${t.i}">Cancel</button></div></div></div>`).join("") + "</div>" : ""}
@@ -823,3 +823,27 @@ async function showCases() {
     } catch (e) { msg.textContent = e.message; msg.classList.add("err"); b.disabled = false; b.textContent = "Create case"; }
   };
 }
+
+
+/* ---------- 4.10 LinkedIn: draft a post from one of your takes (you edit and post it yourself) ---------- */
+$("view").addEventListener("click", async e => {
+  const b = e.target.closest("[data-tkpost]"); if (!b || !cur) return;
+  const m = document.createElement("div"); m.className = "reward-modal li-modal";
+  m.innerHTML = `<div class="rw-card li-card"><div class="rw-kicker">📣 LinkedIn draft</div><h2>${esc(cur.title)}</h2>
+    <p class="muted tiny">Drafted from your take, in the voice of your earlier posts. Edit it, copy it, and post it yourself on LinkedIn.</p>
+    <textarea class="li-text" readonly>Drafting your post…</textarea>
+    <div class="mb-btns"><button class="b ok" data-l="copy" disabled>Copy</button><button class="b" data-l="again" disabled>Try again</button><button class="b" data-l="close">Close</button></div></div>`;
+  document.body.appendChild(m);
+  const ta = m.querySelector(".li-text"), go = async () => {
+    ta.value = "Drafting your post…"; ta.readOnly = true; m.querySelectorAll("[data-l=copy],[data-l=again]").forEach(x => x.disabled = true);
+    try { const r = await api("/api/draft-post", {rel: cur.rel, i: +b.dataset.tkpost}); ta.value = r.text; ta.readOnly = false;
+          m.querySelector(".tiny").textContent = `Drafted from your take (about US$${r.cost_usd.toFixed(2)}). Edit it, copy it, and post it yourself on LinkedIn.`; }
+    catch (err) { ta.value = err.message; }
+    m.querySelectorAll("[data-l=copy],[data-l=again]").forEach(x => x.disabled = false);
+  };
+  m.onclick = async ev => { const a = ev.target.closest("[data-l]"); if (ev.target === m) return m.remove(); if (!a) return;
+    if (a.dataset.l === "close") m.remove();
+    else if (a.dataset.l === "again") go();
+    else { const ok = await copyText(ta.value); a.textContent = ok ? "Copied ✓" : "Copy failed"; setTimeout(() => a.textContent = "Copy", 1500); } };
+  go();
+});

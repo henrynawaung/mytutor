@@ -671,3 +671,4 @@ main.noside{grid-template-columns:minmax(0,1fr) var(--rside)}main.noside.rclosed
 .cl-past{display:grid;gap:6px}.cl-item{text-align:left;border:1px solid var(--line);background:var(--panel);color:inherit;border-radius:10px;padding:10px 12px;cursor:pointer;font:inherit}
 .cl-item:hover{border-color:var(--brand)}.cl-item b{display:block}.cl-item small{color:var(--muted)}
 main.noside.noside{grid-template-columns:minmax(0,1fr) var(--rside)}main.noside.noside.rclosed{grid-template-columns:minmax(0,1fr) 0}
+.li-card{max-width:620px;width:92vw;text-align:left}.li-card h2{margin:.2em 0}.li-text{width:100%;box-sizing:border-box;min-height:260px;font:inherit;line-height:1.5;padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);resize:vertical;margin:8px 0}

@@ -133,5 +133,19 @@ class CaseLabApp(unittest.TestCase):
         self.assertEqual(self.c.post("/api/case", json={"situation": "too short"}, headers={"X-CSRF": self.tok}).status_code, 400)
 
 
+    def test_draft_linkedin_post_from_a_take(self):
+        self.go(reviewed=1)
+        rel = "MBAM601/Day 1/Core/Change Resistance.md"
+        r = self.c.post("/api/draft-post", json={"rel": rel}, headers={"X-CSRF": self.tok})
+        self.assertEqual(r.status_code, 200, r.get_data(as_text=True))
+        msg = self.client.calls[-1]["messages"][0]["content"]
+        self.assertIn("co-designed", msg)                              # your take is the heart of the post
+        self.assertTrue(r.get_json()["text"])
+        r = self.c.post("/api/draft-post", json={"rel": "MBAM601/Day 1/Core/Kodak.md"}, headers={"X-CSRF": self.tok})
+        self.assertEqual(r.status_code, 400)                           # no take yet
+        r = self.c.post("/api/draft-post", json={"rel": "../x.md"}, headers={"X-CSRF": self.tok})
+        self.assertEqual(r.status_code, 404)
+
+
 if __name__ == "__main__":
     unittest.main()

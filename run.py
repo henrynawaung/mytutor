@@ -59,27 +59,33 @@ def day_folders(inbox: Path) -> list[tuple[str, Path]]:
 DATE_IN_NAME = re.compile(r"\d{4}-\d{2}-\d{2}")
 
 
-def sort_dated_files(inbox: Path, courses: list, settle_minutes: float, dry_run: bool = False) -> list:
+def sort_dated_files(inbox: Path, courses: list, settle_minutes: float, dry_run: bool = False,
+                     mtime_courses: list | None = None) -> list:
     """For reading courses: move files saved straight into the course folder into a folder per date
     (e.g. 2026-11-04_..._Notes.md -> <course>/2026-11-04/). Files still syncing are left for the next run."""
     wanted = {str(c).upper() for c in courses or []}
+    by_mtime = {str(c).upper() for c in mtime_courses or []}      # e.g. LinkedIn posts saved without a date in the name
     moved = []
     if not wanted or not inbox.is_dir():
         return moved
     for course in sorted(p for p in inbox.iterdir() if p.is_dir()):
         if re.split(r"[_\s-]", course.name)[0].upper() not in wanted:
             continue
+        undated_ok = re.split(r"[_\s-]", course.name)[0].upper() in by_mtime
         for f in sorted(p for p in course.iterdir() if p.is_file()):
             m = DATE_IN_NAME.search(f.name)
-            if not m or time.time() - f.stat().st_mtime < settle_minutes * 60:
+            if f.name.startswith((".", "~$")) or time.time() - f.stat().st_mtime < settle_minutes * 60:
                 continue
-            dest = course / m.group(0) / f.name
+            day = m.group(0) if m else (datetime.fromtimestamp(f.stat().st_mtime).strftime("%Y-%m-%d") if undated_ok else "")
+            if not day:
+                continue
+            dest = course / day / f.name
             if dest.exists():
                 continue
             if not dry_run:
                 dest.parent.mkdir(exist_ok=True)
                 f.rename(dest)
-            moved.append(f"{course.name}/{m.group(0)}/{f.name}")
+            moved.append(f"{course.name}/{day}/{f.name}")
     return moved
 
 
@@ -165,7 +171,9 @@ def run(cfg: dict, client=None, dry_run: bool = False, log=print, after_day=None
             summary["status"] = "already running"
             log("Another myTutor run is in progress: nothing to do.")
             return summary
-        for rel in sort_dated_files(inbox, cfg.get("reading_courses"), float(cfg.get("settle_minutes", 3)), dry_run):
+        dated = list(cfg.get("reading_courses") or []) + list(cfg.get("post_courses", ["LinkedIn"]))   # sorted into date folders
+        for rel in sort_dated_files(inbox, dated, float(cfg.get("settle_minutes", 3)), dry_run,
+                                    mtime_courses=cfg.get("post_courses", ["LinkedIn"])):
             log(f"sorted     {rel}")
         todo = []
         for label, path in day_folders(inbox):

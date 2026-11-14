@@ -363,6 +363,35 @@ def create_app(vault_root: Path, jobs: Path, obsidian_vault: str = "", testing: 
         c = cases.get(cid)
         return (jsonify(c), 200) if c else (jsonify(state="error", error="Unknown case."), 404)
 
+    @app.post("/api/draft-post")
+    @login_required
+    def draft_post():                        # turn one of your takes into a LinkedIn post draft (never posted for you)
+        d = request.get_json(silent=True) or {}
+        try:
+            p = vault.path(str(d.get("rel", "")))
+        except ValueError:
+            p = None
+        if not p or not p.exists():
+            return jsonify(ok=False, error="Note not found."), 404
+        text = core.read(p)
+        takes = core.list_takes(text)
+        try:
+            take = takes[int(d.get("i", len(takes) - 1))]["body"]
+        except (ValueError, IndexError):
+            return jsonify(ok=False, error="Write a take on this note first."), 400
+        if case_client is None and not os.environ.get("ANTHROPIC_API_KEY"):
+            return jsonify(ok=False, error="ANTHROPIC_API_KEY is not set for the Review app."), 400
+        client = case_client
+        if client is None:
+            import anthropic
+            client = anthropic.Anthropic(max_retries=2)
+        try:
+            r = caselab.draft_post(client, model, p.stem, text, take, caselab.my_posts(vault))
+        except Exception as exc:
+            return jsonify(ok=False, error=f"{type(exc).__name__}: {exc}"[:300]), 502
+        store.log(session.get("user", ""), "draft-post", str(d.get("rel", "")), r["text"][:2000])
+        return jsonify(ok=True, **r)
+
     @app.get("/api/version")
     def api_version():                      # lets the Control Centre spot an old copy still answering
         return jsonify(version=version.VERSION, pid=os.getpid())

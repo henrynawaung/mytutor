@@ -298,6 +298,25 @@ meaning; otherwise an empty list. Do not make concept notes from them.
 """
 
 
+POST_MODE_NOTE = """MODE: MY LINKEDIN POST. This source is the student's OWN published LinkedIn post (his public \
+leadership view), possibly followed by the article it was based on. Adapt the notes:
+- Reference note: name it "My post - <short topic of the post>". Start with "**My public position:**" in one sentence \
+(his stance, in his words where possible), then "## My post" with the post text copied exactly, then "## Based on" \
+with the article title, author or outlet and every URL exactly as written (or "Not stated"), then "## Concepts used" \
+linking the concepts the post relies on.
+- Prefer linking to EXISTING NOTE TITLES for the concepts the post uses. Create a new core note only for a concept \
+that is clearly explained in the post or its article and not already in the list. Never invent claims he did not make.
+- If an article is included, also create one reference note for the article (its thesis, key points and evidence), \
+linked from the post note.
+- "phrases" and "reflection_prompts": empty lists. Do not write quiz questions about his own opinions.
+"""
+
+
+def post_mode(course: str, cfg: dict) -> bool:
+    """True for your own LinkedIn posts (config "post_courses", default ["LinkedIn"])."""
+    return course.upper() in {str(c).upper() for c in cfg.get("post_courses", ["LinkedIn"])}
+
+
 def reading_mode(course: str, cfg: dict) -> bool:
     """True for courses listed in config "reading_courses" (daily readings rather than lectures)."""
     return course.upper() in {str(c).upper() for c in (cfg.get("reading_courses") or [])}
@@ -331,10 +350,10 @@ def quiz_enabled(course: str, cfg: dict) -> bool:
 
 
 def build_user_message(course, day, today, src, origin_link, kind_guess, titles, text, quiz: bool = True,
-                       reading: bool = False) -> str:
+                       reading: bool = False, post: bool = False) -> str:
     title_list = "\n".join(f"- {t}" for t in sorted(titles)) or "- (none yet)"
     return (
-        (READING_MODE_NOTE if reading else "") +
+        (POST_MODE_NOTE if post else READING_MODE_NOTE if reading else "") +
         ("" if quiz else NO_QUIZ_NOTE) +
         f"COURSE: {course}\nDAY: {day}\nDATE: {today}\n"
         f"SOURCE FILE: {Path(src).name}\nORIGINAL LINK: {origin_link}\n"
@@ -648,8 +667,9 @@ def generate_job(job_dir: Path, client, cfg: dict, only: str | None = None, forc
     extract = json.loads((job_dir / "extract.json").read_text(encoding="utf-8"))
     origins = {f["rel_path"]: f.get("origin", "") for f in manifest["files"]}
     course, day = parse_folder(manifest.get("folder", ""))
-    quiz_on = quiz_enabled(course, cfg)
-    reading = reading_mode(course, cfg)
+    post = post_mode(course, cfg)
+    quiz_on = quiz_enabled(course, cfg) and not post         # no quiz on your own opinions
+    reading = reading_mode(course, cfg) and not post
     model = cfg.get("model", DEFAULT_MODEL)
     prices = cfg.get("price_per_mtok", DEFAULT_PRICES)
     today = date.today().isoformat()
@@ -696,7 +716,7 @@ def generate_job(job_dir: Path, client, cfg: dict, only: str | None = None, forc
 
         origin_link = file_link(origins.get(rel, ""))
         msg = build_user_message(course, day, today, rel, origin_link, e.get("kind_guess", ""), known, text,
-                                 quiz=quiz_on, reading=reading)
+                                 quiz=quiz_on, reading=reading, post=post)
         t0 = time.perf_counter()
         row = {"job": job_dir.name, "source": rel, "model": model, "status": "failed",
                "input_tokens": 0, "output_tokens": 0, "cost_usd": 0, "notes_written": 0,

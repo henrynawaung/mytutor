@@ -129,5 +129,28 @@ class SortDatedFilesTests(unittest.TestCase):
             self.assertTrue((mba / "2026-11-04_lecture.pdf").exists())       # lecture course untouched
 
 
+    def test_linkedin_posts_sorted_by_date_in_name_or_file_date(self):
+        with tempfile.TemporaryDirectory() as d:
+            inbox = Path(d)
+            li = inbox / "LinkedIn_MyPosts"
+            li.mkdir()
+            old = time.mktime((2026, 11, 3, 12, 0, 0, 0, 0, -1))
+            for f in (li / "2026-11-01_ai-risk.md", li / "board post.md"):
+                f.write_text("x")
+                os.utime(f, (old, old))
+            moved = run.sort_dated_files(inbox, ["LinkedIn"], 3, mtime_courses=["LinkedIn"])
+            self.assertEqual(sorted(moved), ["LinkedIn_MyPosts/2026-11-01/2026-11-01_ai-risk.md",
+                                             "LinkedIn_MyPosts/2026-11-03/board post.md"])
+
+    def test_post_mode_prompt_and_no_quiz(self):
+        cfg = {}
+        self.assertTrue(generate.post_mode("LINKEDIN", cfg))
+        self.assertFalse(generate.post_mode("BUSINESSMENTOR", cfg))
+        msg = generate.build_user_message("LINKEDIN", "2026-11-14", "2026-11-14", "post.md", "", "reading", set(), "text",
+                                          quiz=False, reading=False, post=True)
+        self.assertIn("MODE: MY LINKEDIN POST", msg)
+        self.assertIn("My public position", msg)
+
+
 if __name__ == "__main__":
     unittest.main()

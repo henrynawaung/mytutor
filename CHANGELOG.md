@@ -7,7 +7,7 @@ Version numbers read **major.feature.fix**:
 
 The running version appears at the bottom left of every myTutor page.
 
-# Tech stack (as of 4.9)
+# Tech stack (as of 4.10)
 Installed versions were read from the laptop's Python environment on 12 Nov 2026.
 
 ## Languages
@@ -44,11 +44,15 @@ Installed versions were read from the laptop's Python environment on 12 Nov 2026
 - The Control Centre uses a per-session token and Host check, and only runs whitelisted actions.
 
 ## Testing
-- **pytest**: 125 automated tests (pipeline, Review app, Control Centre, vault tools).
+- **pytest**: 128 automated tests (pipeline, Review app, Control Centre, vault tools).
 - **Playwright** browser checks were used while building each UI change (on the development machine, not the laptop).
 
 # Major release 4 (current): myTutor as a second brain
 Version 4 began with the assessment release (4.0 and 4.1) and grew into a daily learning app: Review app, Control Centre and rewards. Feature updates, newest first:
+
+## 4.10 · 14 Nov 2026 · LinkedIn in and out
+- **Your posts in:** a new inbox folder **LinkedIn_MyPosts** (next to BusinessMentor). Save each post as a text or .md file, with the article link or text underneath if it was based on one. myTutor files it by date (from the file name, or the day you saved it) and writes a **"My post - ..."** note: your public position in one line, the post text, what it was based on (with links), and links to the concepts it uses. The article gets its own source note. No quiz questions on your own opinions.
+- **Posts out:** a **📣 Post** button on every take drafts a LinkedIn post from that take, in the voice of your earlier posts (about US$0.02). Edit, copy and post it yourself; myTutor never posts for you.
 
 ## 4.9 · 14 Nov 2026 · Case Lab
 - New **🧭 Case Lab** tab. Describe a situation, paste an article or name a board topic, and myTutor writes a board-ready case with a **model answer to guide you** when a similar situation comes up: the case, recommendation, options considered, rationale, risks and how to reduce them, first 90 days, and the questions a board will ask with strong answers.
