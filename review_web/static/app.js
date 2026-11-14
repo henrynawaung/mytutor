@@ -1,6 +1,6 @@
 "use strict";
 // ---- display settings (kept in this browser) ----
-const SET_DEF = {remind: "off", size: "m", theme: "auto", font: "sans", width: "normal", photo: "soft", goal: "5", accent: "amber", density: "comfy", name: "", today: "clock,wx,quote", ellie: "auto", movebreak: "30", rewards: "on", chime: "kalimba", city: "Christchurch"};
+const SET_DEF = {remind: "off", size: "m", theme: "auto", font: "sans", width: "normal", photo: "soft", goal: "5", accent: "amber", density: "comfy", name: "", today: "clock,wx,quote", ellie: "auto", vol: 70, movebreak: "30", rewards: "on", chime: "kalimba", city: "Christchurch"};
 function getSet() { try { return Object.assign({}, SET_DEF, JSON.parse(localStorage.getItem("mytutor-settings") || "{}")); } catch (e) { return {...SET_DEF}; } }
 function applySet(s) {
   const r = document.documentElement;
@@ -859,3 +859,13 @@ $("view").addEventListener("click", async e => {
     else { const ok = await copyText(ta.value); a.textContent = ok ? "Copied ✓" : "Copy failed"; setTimeout(() => a.textContent = "Copy post", 1500); } };
   go();
 });
+
+
+/* ---------- 4.11.3 myTutor sound volume (separate from the laptop volume) ---------- */
+if ($("s-vol")) {
+  const show = () => { const v = +getSet().vol; $("s-vol").value = isNaN(v) ? 70 : v; $("s-volv").textContent = (isNaN(v) ? 70 : v) === 0 ? "Muted" : $("s-vol").value + "%"; };
+  show();
+  $("s-vol").oninput = () => { saveSet("vol", +$("s-vol").value); show(); };
+  $("s-vol").onchange = () => { if (window.playChime && +$("s-vol").value) playChime(null, false); };
+  $("s-voltest").onclick = () => window.playChime && playChime(null, false);
+}

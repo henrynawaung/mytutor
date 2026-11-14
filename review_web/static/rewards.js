@@ -90,6 +90,8 @@ const KALIMBA = [[72,0,.8,-.2],[76,.13,.7,.2],[79,.26,.75,0],[84,.4,.8,.2],[81,.
   [77,1.1,.65,-.2],[76,1.23,.65,0],[74,1.36,.65,.2],[72,1.62,.85,0],[79,1.62,.45,-.2],[84,1.65,.5,.2]];
 const KALIMBA_SHORT = [[72,0,.8,-.2],[76,.1,.7,.2],[79,.2,.75,0],[84,.3,.8,.2],[72,.55,.8,0],[79,.55,.45,-.2],[84,.58,.5,.2]];
 const KALIMBA_BIG = KALIMBA.concat([[88,1.95,.55,.2],[91,2.08,.5,-.2],[96,2.21,.6,0]]);
+// 4.11.3: myTutor's own volume (Personalise > Sound volume, 0-100, default 70 = the original loudness)
+function volFactor() { const v = +getSet().vol; return Math.max(0, Math.min(100, isNaN(v) ? 70 : v)) / 70; }
 function playKalimba(ac, big, dest, volume = .22, short = false) {
   const t0 = ac.currentTime + .03, out = ac.createGain(); out.gain.value = volume;
   const echo = ac.createDelay(); echo.delayTime.value = .13; const fb = ac.createGain(); fb.gain.value = .28; const wet = ac.createGain(); wet.gain.value = .35;
@@ -114,7 +116,8 @@ function playChime(name, big) {
   try {
     AC = AC || new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === "suspended") AC.resume();
     if (AC._master) { try { AC._master.gain.cancelScheduledValues(0); AC._master.disconnect(); } catch (e) {} }   // a new chime replaces one still ringing
-    AC._master = AC.createGain(); AC._master.connect(AC.destination);
+    AC._master = AC.createGain(); AC._master.gain.value = volFactor(); AC._master.connect(AC.destination);
+    if (!volFactor()) return;
     if (name === "kalimba" || name === "kalimba-short") playKalimba(AC, big, AC._master, .22, name === "kalimba-short" && !big);
     else playNotes(big ? CHIME_NOTES.fanfare : (CHIME_NOTES[name] || CHIME_NOTES.bell), AC.currentTime + .02);
   } catch (e) {}
@@ -255,13 +258,13 @@ function fireworks() {
   setTimeout(partyPopper, 300);
 }
 function popSound(n, delay) {                 // little "pop" bursts made from noise
-  if (getSet().chime === "off") return;
+  if (getSet().chime === "off" || !volFactor()) return;
   try {
     AC = AC || new (window.AudioContext || window.webkitAudioContext)();
     const len = AC.sampleRate * .12, buf = AC.createBuffer(1, len, AC.sampleRate), ch = buf.getChannelData(0);
     for (let i = 0; i < len; i++) ch[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 4);
     for (let k = 0; k < n; k++) { const s = AC.createBufferSource(), g = AC.createGain(), f = AC.createBiquadFilter();
-      f.type = "bandpass"; f.frequency.value = 900 + Math.random() * 1500; s.buffer = buf; g.gain.value = .35;
+      f.type = "bandpass"; f.frequency.value = 900 + Math.random() * 1500; s.buffer = buf; g.gain.value = .35 * volFactor();
       s.connect(f); f.connect(g); g.connect(AC.destination); s.start(AC.currentTime + delay + k * (n > 2 ? .52 : .07) + Math.random() * .05); }
   } catch (e) {}
 }

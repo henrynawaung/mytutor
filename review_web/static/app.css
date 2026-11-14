@@ -678,3 +678,5 @@ main.noside.noside{grid-template-columns:minmax(0,1fr) var(--rside)}main.noside.
 .li-cv canvas{width:100%;height:auto;border-radius:8px;border:1px solid var(--line);display:block}
 .li-ib{display:flex;gap:6px;flex-wrap:wrap}
 .li-modal .rw-card{max-height:92vh;overflow:auto}
+.volrow{display:flex;align-items:center;gap:8px}.volrow input[type=range]{flex:1;accent-color:var(--brand)}.volrow b{min-width:52px;text-align:right;font-size:.85rem}.volic{opacity:.7}
+.volrow input[type=range]{min-width:0;flex:1 1 60px}.volrow b{min-width:40px}.volrow .b{flex:none}
