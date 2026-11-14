@@ -316,11 +316,14 @@ const RANKS = [
   {name: "Analyst", xp: 0, icon: "📋"}, {name: "Senior Analyst", xp: 500, icon: "📈", unlock: "party"},
   {name: "Manager", xp: 1200, icon: "🧭", unlock: "graduate"}, {name: "Senior Manager", xp: 2200, icon: "🗂️"},
   {name: "Director", xp: 3500, icon: "🎯", unlock: "boss"}, {name: "Vice President", xp: 5500, icon: "🚀"},
-  {name: "C-suite", xp: 8000, icon: "🏛️", unlock: "champion"}, {name: "Board Chair", xp: 12000, icon: "👑"}];
+  {name: "Senior Vice President", xp: 9000, icon: "🛰️"}, {name: "C-suite", xp: 14000, icon: "🏛️", unlock: "champion"},
+  {name: "Chief Executive", xp: 21000, icon: "🌐"}, {name: "Board Chair", xp: 30000, icon: "👑"}];
+// 4.11.2: the ladder is stretched for a growing library (about 830 notes now, +7 a day from the readings) by adding
+// Senior Vice President and Chief Executive and raising the top. Ranks up to Vice President keep their XP, so nobody is demoted.
 function rankOf(xp) { let i = 0; RANKS.forEach((r, k) => { if (xp >= r.xp) i = k; }); return i; }
 const WARDROBE = [
   {id: "", name: "Everyday", rank: 0}, {id: "party", name: "Party hat", rank: 1}, {id: "graduate", name: "Graduate", rank: 2},
-  {id: "boss", name: "C-suite", rank: 4}, {id: "champion", name: "Champion", rank: 6}];
+  {id: "boss", name: "C-suite", rank: 4}, {id: "champion", name: "Champion", rank: 7}];
 function wardrobeOpen(id) { const w = WARDROBE.find(x => x.id === id); return !!w && RW && rankOf(xpOf(RW)) >= w.rank; }
 function chosenCostume() { const c = getSet().ellie; return c && c !== "auto" && wardrobeOpen(c === "everyday" ? "" : c) ? (c === "everyday" ? "" : c) : null; }
 
